@@ -1,0 +1,316 @@
+/*===================================================
+    Main Slider
+====================================================*/
+.main-slider {
+    background-color: var(--white-color);
+    position: relative;
+    overflow: hidden;
+}
+
+.main-slider .swiper-slide {
+    background-color: #fff;
+    z-index: 1;
+}
+
+.slider-img-wrap {
+    width: 100%;
+    height: calc(100% + -50px);
+    position: absolute;
+    right: 0;
+    top: 0;
+}
+
+.slider-img {
+    background-repeat: no-repeat;
+    background-position: center center;
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    left: 0;
+    top: 0;
+    overflow: hidden;
+    z-index: -1;
+}
+
+.slider-img img {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+    animation-duration: 8s;
+}
+
+.slider-road {
+    background-color: #2e2c2d;
+    background-image: url(../img/texture.png);
+    background-repeat: repeat;
+    background-size: cover;
+    width: 55%;
+    height: 200px;
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    clip-path: polygon(100% 0, 0% 100%, 100% 100%);
+}
+
+.corner-shape {
+    background-image: url(../img/corner-shape-red.png);
+    background-repeat: no-repeat;
+    background-position: top left;
+    background-size: 50px;
+    width: 150px;
+    height: 427px;
+    position: absolute;
+    left: 0;
+    top: 0;
+}
+
+.container-img {
+    background-image: url(../img/slider-container.png);
+    background-repeat: no-repeat;
+    background-position: top right;
+    background-size: 300px;
+    width: 413px;
+    height: 500px;
+    position: absolute;
+    right: 35%;
+    top: 0;
+}
+
+.slider-truck {
+    background-image: url(../img/slider-truck.png);
+    background-repeat: no-repeat;
+    background-position: bottom right;
+    background-size: 700px;
+    width: 859px;
+    height: 600px;
+    position: absolute;
+    right: -80px;
+    bottom: -50px;
+}
+
+.slider-badge {
+    background-image: url(../img/slider-badge.png);
+    background-repeat: no-repeat;
+    background-position: center right;
+    background-size: contain;
+    width: 175px;
+    height: 200px;
+    position: absolute;
+    right: 38%;
+    bottom: 20%;
+}
+
+.slider-content-wrap {
+    height: 550px;
+}
+
+.slider-caption.medium {
+    font-family: var(--primary-font);
+    color: var(--primary-color);
+    font-size: 16px;
+    font-weight: 600;
+    text-transform: capitalize;
+    margin-bottom: 20px;
+}
+
+.slider-caption.medium .inner-layer div {
+    position: relative;
+    padding-left: 50px;
+}
+
+.slider-caption.medium .inner-layer div:before {
+    background-color: var(--primary-color);
+    width: 40px;
+    height: 2px;
+    border-radius: 2px;
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+.slider-caption.big {
+    font-family: var(--primary-font);
+    color: var(--heading-color);
+    font-size: 56px;
+    line-height: 60px;
+    font-weight: 700;
+    margin-bottom: 20px;
+}
+
+.slider-caption.big span {
+    color: var(--primary-color);
+}
+
+.slider-caption.small {
+    font-family: var(--primary-font);
+    font-size: 18px;
+    line-height: 28px;
+    font-weight: 500;
+    color: #555;
+    margin-bottom: 20px;
+}
+
+
+/* Slider Pagination */
+.main-slider .swiper-nav {
+    background-color: var(--primary-color);
+    width: 55px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 30px;
+    color: var(--heading-color);
+    position: absolute;
+    left: 0;
+    bottom: 50%;
+    transform: translateY(-50%);
+    transition: all 0.3s ease-in-out;
+    z-index: 1;
+}
+
+
+.main-slider .swiper-nav.slider-button-prev {
+    clip-path: polygon(0 0, 100% 0%, 75% 100%, 0% 100%);
+}
+
+.main-slider .swiper-nav.slider-button-next {
+    clip-path: polygon(0 0, 100% 0%, 100% 100%, 25% 100%);
+    left: auto;
+    right: 0;
+}
+
+.main-slider .swiper-nav:hover {
+    background-color: var(--bg-dark);
+    color: #fff;
+    transition: all 0.3s ease-in-out;
+}
+
+/*Slider Pagination*/
+.main-slider .slider-pagination {
+    width: 15px;
+    height: auto;
+    position: absolute;
+    left: 30px;
+    bottom: 50%;
+    transform: translateY(50%);
+    z-index: 1;
+}
+
+.main-slider .slider-pagination .swiper-pagination-bullet {
+    background-color: var(--bg-dark);
+    border-radius: 0;
+    opacity: 1;
+}
+
+.main-slider .slider-pagination .swiper-pagination-bullet-active {
+    background-color: var(--primary-color);
+    box-shadow: 0px 0px 0px 3px #DF111950;
+    position: relative;
+    transition: all 0.2s ease-in-out;
+}
+
+/* Truck Animation */
+.truck-animation-right {
+    -webkit-animation-name: truck-animation-right;
+    animation-name: truck-animation-right;
+    animation-timing-function: cubic-bezier(0.215, 0.610, 0.355, 1.000);
+    animation-fill-mode: both;
+}
+@-webkit-keyframes truck-animation-right {
+    0% {
+        -webkit-transform: translateX(60%);
+        transform: translateX(60%);
+    }
+
+    100% {
+        -webkit-transform: translateX(0);
+        transform: translateX(0);
+    }
+}
+
+@keyframes truck-animation-right {
+    0% {
+        -webkit-transform: translateX(60%);
+        transform: translateX(60%);
+    }
+
+    100% {
+        -webkit-transform: translateX(0);
+        transform: translateX(0);
+    }
+}
+
+/* Responsive */
+@media (min-width: 1200px) {
+    .slider-content-wrap {
+        height: 650px;
+    }
+}
+
+@media (max-width: 1170px) {
+    .main-slider .swiper-nav {
+        left: 20px;
+        bottom: 20px;
+        width: 45px;
+        height: 45px;
+    }
+
+    .main-slider .swiper-nav.slider-button-prev {
+        bottom: 75px;
+    }
+}
+
+@media (max-width: 992px) {
+
+    .slider-img-wrap {
+        height: 100%;
+    }
+
+    .slider-content-wrap {
+        height: 500px;
+    }
+
+    .slider-caption.big {
+        font-size: 48px;
+        line-height: 52px;
+    }
+
+    .slider-img-wrap .slider-badge,
+    .slider-img-wrap .slider-truck,
+    .slider-img-wrap .container-img,
+    .slider-img-wrap .corner-shape {
+        display: none;
+    }
+
+    .main-slider .slider-pagination {
+        width: auto;
+        bottom: 20px;
+        left: 50%;
+        transform: translate(-50%, 0px);
+    }
+
+    .main-slider div.slider-pagination > span {
+        margin: 0 7px !important;
+    }
+
+}
+
+@media (max-width: 767px) {
+
+    div br {
+        display: none;
+    }
+
+    .slider-caption.big {
+        font-size: 36px;
+        line-height: 46px;
+    }
+
+}
