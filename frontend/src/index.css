@@ -1,0 +1,221 @@
+@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap');
+
+@theme {
+  /* Custom Colors */
+  --color-primary: #DF1119; /* Red (Buttons) */
+  --color-body-light: #FFFFFF; /* White (Body Background) */
+  --color-body-dark: #04223E; /* Dark Blue (Body Background for Footer, etc.) */
+  --color-text-heading: #000000; /* Black (Headings) */
+  --color-text-normal: #737373; /* Gray (Normal Text) */
+  --color-text-light: #FFFFFF; /* White (Text on Dark Backgrounds) */
+  --color-accent: #F8F5F1; /* Off-White (Secondary Background) */
+  --color-green: #10B981; /* Green (Success) */
+  --color-orange: #F59E0B; /* Orange (Alerts) */
+
+  /* Typography */
+  --font-display:"Poppins","DM Sans", "sans-serif";
+  --font-body: "Poppins", "GeneralSans", "sans-serif";
+
+  /* Breakpoints */
+  --breakpoint-xxs: 350px;
+  --breakpoint-xs: 370px;
+  --breakpoint-sm: 640px;
+  --breakpoint-md: 850px;
+  --breakpoint-lg: 1024px;
+  --breakpoint-lg2: 1200px;
+  --breakpoint-xl: 1280px;
+  --breakpoint-2xl: 1536px;
+
+  /* Spacing */
+  --spacing-1: 0.25rem;
+  --spacing-2: 0.5rem;
+  --spacing-3: 0.75rem;
+  --spacing-4: 1rem;
+  --spacing-5: 1.25rem;
+  --spacing-6: 1.5rem;
+  --spacing-8: 2rem;
+  --spacing-10: 2.5rem;
+  --spacing-12: 3rem;
+  --spacing-16: 4rem;
+  --spacing-20: 5rem;
+  --spacing-24: 6rem;
+  --spacing-32: 8rem;
+  --spacing-40: 10rem;
+  --spacing-48: 12rem;
+  --spacing-56: 14rem;
+  --spacing-64: 16rem;
+
+  /* Animations */
+  --ease-default: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-snappy: cubic-bezier(0.2, 0, 0, 1);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+/* Global Styles */
+body {
+  font-family: "Poppins","DM Sans", sans-serif;
+  @apply bg-body-light text-text-heading font-body;
+}
+
+/* Custom Utility Classes */
+.btn-primary {
+  @apply bg-primary text-white px-6 py-3 rounded-lg hover:bg-primary/90 transition-all;
+}
+
+.card {
+  @apply bg-accent p-6 rounded-lg shadow-lg;
+}
+
+/* Dark Background Sections */
+.dark-bg {
+  @apply bg-body-dark text-white;
+}
+
+/* Custom Animations */
+.fade-in {
+  animation: fadeIn 0.5s var(--ease-default);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 9px; /* Adjust width */
+  border-radius: 0px;
+}
+
+::-webkit-scrollbar-track {
+  background: #000; /* Off-white background */
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-primary); /* Red color */
+  transition: background 0.3s ease-in-out;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #b6040a; /* Dark blue on hover */
+  cursor: pointer;
+}
+
+
+/* Custom Clip Path for Angled Background */
+.clip-path-angle {
+  clip-path: polygon(0 0, 90% 0, 100% 100%, 0% 100%);
+}
+
+/* Ensure the red strip is visible */
+.bg-primary {
+  background-color: #DF1119;
+}
+/* Custom Underline Animation */
+.group:hover .group-hover\:w-full {
+  width: 100%;
+}
+
+/* Ensure the hero section doesn't overflow */
+.overflow-hidden {
+  overflow: hidden;
+}
+
+/* Responsive adjustments for small screens */
+@media (max-width: 768px) {
+  .hero-truck {
+    width: 80%;
+    margin: 2rem auto 0;
+  }
+  .hero-badge {
+    width: 20%;
+    margin: 1rem auto 0;
+  }
+}
+
+/* Ensure the reviews container doesn't overflow */
+.overflow-x-hidden {
+  overflow-x: hidden;
+}
+
+/* Enable horizontal scrolling on small screens */
+@media (max-width: 768px) {
+  .overflow-x-hidden {
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+  }
+  .flex-shrink-0 {
+    scroll-snap-align: start;
+  }
+}
+
+/* Pre-loader Animation */
+@keyframes moveTruck {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.animate-moveTruck {
+  animation: moveTruck 2s linear infinite;
+}
+
+/* Custom Fade-in Animation */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(-1rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.3s ease-out;
+}
+
+/* Hide scrollbar for Chrome, Safari and Opera */
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar {
+      display: none;
+  }
+ /* Hide scrollbar for IE, Edge and Firefox */
+  .no-scrollbar {
+      -ms-overflow-style: none;  /* IE and Edge */
+      scrollbar-width: none;  /* Firefox */
+  }
+}
+
+@keyframes float {
+  0% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-20px);
+  }
+  100% {
+    transform: translateY(0px);
+  }
+}
+
+.float-animation {
+  animation: float 3s ease-in-out infinite;
+}
+.no-scroll {
+  overflow: hidden;
+}
