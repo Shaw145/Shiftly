@@ -17,6 +17,7 @@ const ProfileDropdown = ({ userName, userDetails, onClose }) => {
   const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("fullName");
+    localStorage.removeItem("username");
     localStorage.removeItem("rememberMe");
     window.location.href = "/login";
   };

@@ -13,8 +13,8 @@
   --color-orange: #F59E0B; /* Orange (Alerts) */
 
   /* Typography */
-  --font-display:"Poppins","DM Sans", "sans-serif";
-  --font-body: "Poppins", "GeneralSans", "sans-serif";
+  --font-display:"DM Sans", "sans-serif";
+  --font-body: "GeneralSans", "sans-serif";
 
   /* Breakpoints */
   --breakpoint-xxs: 350px;

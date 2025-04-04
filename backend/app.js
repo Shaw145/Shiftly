@@ -37,7 +37,7 @@ app.use(express.urlencoded({ extended: true }));
 // CORS middleware
 app.use(
   cors({
-    origin: process.env.FRONTEND_URL,
+    origin: process.env.FRONTEND_URL || process.env.FRONTEND_URL_DRIVER,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: [
       "Origin",
@@ -45,8 +45,9 @@ app.use(
       "Content-Type",
       "Accept",
       "Authorization",
-      "X-Payment-Token",
     ],
+    credentials: true,
+    optionsSuccessStatus: 200,
   })
 );
 
@@ -63,13 +64,17 @@ const bookingRoutes = require("./routes/bookingRoutes");
 const paymentRoutes = require("./routes/paymentRoutes");
 const trackingRoutes = require("./routes/trackingRoutes");
 const userRoutes = require("./routes/userRoutes");
+const driverAuthRoutes = require("./routes/driverAuthRoutes");
+const driverRoutes = require("./routes/driverRoutes");
 app.use("/api/auth", authRoutes); // Mount authRoutes under /api/auth
 app.use("/api/auth", emailRoutes); // Mount emailRoutes under /api/auth
 app.use("/api/auth", passwordRoutes); // Mount password routes under /api/auth
 app.use("/api/bookings", bookingRoutes); // Mount booking routes under /api/bookings
 app.use("/api/payments", paymentRoutes); // Mount payment routes under /api/payments
 app.use("/api/tracking", trackingRoutes); // Mount tracking routes under /api/tracking
-app.use("/api/users", userRoutes);
+app.use("/api/users", userRoutes); // Mount user routes under /api/users
+app.use("/api/driver/auth", driverAuthRoutes); // Mount driver auth routes under /api/driver/auth
+app.use("/api/driver", driverRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
