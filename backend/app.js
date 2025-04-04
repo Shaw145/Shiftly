@@ -37,7 +37,7 @@ app.use(express.urlencoded({ extended: true }));
 // CORS middleware
 app.use(
   cors({
-    origin: process.env.FRONTEND_URL || process.env.FRONTEND_URL_DRIVER,
+    origin: '*',
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: [
       "Origin",
