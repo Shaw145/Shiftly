@@ -440,12 +440,12 @@ const Signup = () => {
             />
             <span className="ml-2 text-sm text-gray-600">
               I accept the{" "}
-              <a
-                href="/terms"
+              <Link
+                to="/terms"
                 className="text-red-500 hover:text-red-600 hover:underline"
               >
                 terms and conditions
-              </a>
+              </Link>
             </span>
           </div>
 

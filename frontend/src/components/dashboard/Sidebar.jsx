@@ -1,4 +1,4 @@
-import { forwardRef } from "react";
+import { forwardRef, useState, useEffect } from "react";
 import {
   FaHome,
   FaTruck,
@@ -7,12 +7,14 @@ import {
   FaQuestionCircle,
   FaCog,
   FaSignOutAlt,
+  FaBell,
 } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import useSwipe from "../../hooks/useSwipe";
 
 const Sidebar = forwardRef(({ isSidebarOpen, toggleSidebar }, ref) => {
   const navigate = useNavigate();
+  const [notificationCount, setNotificationCount] = useState(3);
 
   const handleLogout = () => {
     localStorage.removeItem("token");
@@ -26,7 +28,25 @@ const Sidebar = forwardRef(({ isSidebarOpen, toggleSidebar }, ref) => {
     { icon: <FaHome />, title: "Dashboard", link: "/dashboard" },
     { icon: <FaTruck />, title: "Book Transport", link: "/book-transport" },
     { icon: <FaCalendarAlt />, title: "My Bookings", link: "/my-bookings" },
-    { icon: <FaMapMarkerAlt />, title: "Live Tracking", link: "/live-tracking" },
+    {
+      icon: <FaMapMarkerAlt />,
+      title: "Live Tracking",
+      link: "/live-tracking",
+    },
+    {
+      icon: (
+        <div className="relative">
+          <FaBell />
+          {notificationCount > 0 && (
+            <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+              {notificationCount}
+            </span>
+          )}
+        </div>
+      ),
+      title: "Notifications",
+      link: "/notifications",
+    },
     { icon: <FaQuestionCircle />, title: "Help & Support", link: "/support" },
   ];
 
@@ -38,7 +58,7 @@ const Sidebar = forwardRef(({ isSidebarOpen, toggleSidebar }, ref) => {
   // Swipe handlers
   const swipeHandlers = useSwipe(
     () => !isSidebarOpen && toggleSidebar(), // Open on swipe right
-    () => isSidebarOpen && toggleSidebar()   // Close on swipe left
+    () => isSidebarOpen && toggleSidebar() // Close on swipe left
   );
 
   return (
@@ -99,17 +119,6 @@ const Sidebar = forwardRef(({ isSidebarOpen, toggleSidebar }, ref) => {
 
 Sidebar.displayName = "Sidebar";
 export default Sidebar;
-
-
-
-
-
-
-
-
-
-
-
 
 // const Sidebar = forwardRef(({ isSidebarOpen, toggleSidebar }, ref) => {
 //   const navigate = useNavigate();

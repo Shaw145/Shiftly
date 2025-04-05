@@ -1,108 +1,122 @@
-# Overview:
-"Shiftly" is a web-based transport system designed to facilitate seamless transportation of goods across India. Whether it's shifting household items during relocation or transporting industrial materials for businesses, Shiftly ensures a hassle-free experience by connecting customers with suitable vehicles and reliable drivers. The platform is built to simplify the process, ensure affordability, and maintain reliability for both customers and drivers.
+# Shiftly
 
-# Key Features and Functionalities:
+![Shiftly Logo](./frontend/src/assets/logo-light.png)
 
-## User Registration and Login:
+## Overview
 
-Users (customers and drivers) can create an account with basic details for secure access.
-Multiple authentication options, including email, phone number, and social logins.
+**Shiftly** is a web-based transport system designed to facilitate seamless transportation of goods across India. Whether it's shifting household items during relocation or transporting industrial materials for businesses, Shiftly ensures a hassle-free experience by connecting customers with suitable vehicles and reliable drivers. The platform is built to simplify the process, ensure affordability, and maintain reliability for both customers and drivers.
 
-## Goods and Address Input:
+## Key Features
 
-Customers can enter pick-up and destination addresses.
-Option to specify goods details like type (household or industrial), weight, and size.
-If weight and size are unknown, the platform provides an intuitive estimation tool using AI to predict weight and volume based on goods descriptions.
+### For Customers
 
-## Vehicle Selection:
+- **User Registration and Login**: Secure account creation with multiple authentication options (email, phone number, social logins).
+- **Goods and Address Input**: Customers can enter pick-up and destination addresses, specify goods details, and use an AI estimation tool for unknown weights and sizes.
+- **Vehicle Selection**: Displays a list of vehicles suitable for the goods based on size and weight.
+- **Driver Bidding System**: Customers can compare bids from drivers based on distance, size, and type of goods.
+- **Dynamic Pricing Model**: Pricing is calculated based on distance, weight, volume, vehicle type, and time of day.
+- **Booking and Scheduling**: Customers can book vehicles for immediate or future transport with a flexible calendar interface.
+- **Live Tracking**: Real-time tracking of goods through a GPS-enabled interface.
+- **Customer Feedback System**: Customers can rate drivers and provide feedback to maintain platform quality.
 
-Displays a list of vehicles suitable for the goods based on size and weight.
-Options range from mini-tempos for smaller items to large trucks for industrial transport.
+### For Drivers
 
-## Driver Bidding System:
+- **Driver Registration and Login**: Secure account creation and login for drivers.
+- **Bid Submission**: Drivers can submit bids for transport jobs based on customer requests.
+- **Profile Management**: Drivers can manage their profiles, including vehicle details and availability.
+- **Earnings Tracking**: Drivers can view their earnings and transaction history.
+- **Customer Ratings**: Drivers can view feedback and ratings from customers to improve service quality.
 
-Drivers within the pick-up area submit their bids based on distance, size, and type of goods.
-Customers can compare bids, view driver profiles and reviews, and choose the most suitable driver.
+## Technologies Used
 
-## Dynamic Pricing Model:
+- **Frontend**: React.js for a responsive and user-friendly interface.
+- **Backend**: Node.js and Express.js for handling requests and logic.
+- **Database**: MongoDB for user, driver, and transport data storage.
+- **Cloud Storage**: Cloudinary for image and asset management.
+- **SMS Service**: Twilio for sending SMS notifications.
+- **Distance Calculation**: OpenRoute API for calculating distances and routes.
+- **Email Service**: Nodemailer for sending emails, including OTPs and notifications.
+- **Animation**: Framer Motion for smooth animations and transitions.
+- **Real-time Functionality**: Firebase or WebSocket technology for live tracking and updates.
+- **Security**: Authentication using JWT tokens for secure logins and encrypted communication.
 
-Pricing is calculated based on multiple factors: distance, weight, volume, vehicle type, and time of day.
-The system ensures affordability for customers while maintaining fair profits for drivers and the platform.
+## Installation
 
-## Booking and Scheduling:
+To get started with Shiftly, follow these steps:
 
-Customers can book a vehicle and driver for immediate or future transport.
-A flexible calendar interface allows customers to select their preferred time slots.
-Live Tracking:
+1. **Clone the repository**:
 
-Customers can track their goods in real-time through a GPS-enabled interface.
-The live map shows the vehicle's location, estimated delivery time, and updates on the delivery status.
-Damage Policy:
+   ```bash
+   git clone https://github.com/Shaw145/Shiftly.git
+   cd Shiftly
+   ```
 
-Transparent policies for reporting damages during transit.
-Goods-in-transit insurance ensures compensation for customers in case of losses.
-Continuous training for drivers to minimize damage risks.
+2. **Install backend dependencies**:
 
-## Driver Benefits:
+   ```bash
+   cd backend
+   npm install
+   ```
 
-Flexible earning opportunities by taking up transport jobs as per availability.
-Transparent commission structure for better earnings.
-Access to more customers and transport jobs through the platform.
+3. **Install frontend dependencies**:
 
-## Preventing Unauthorized Direct Deals:
+   ```bash
+   cd ../frontend
+   npm install
+   ```
 
-Drivers and customers cannot share personal contact details through the platform.
-Communication is handled entirely through in-app messaging and calls to ensure bookings remain within the platform.
+4. **Set up environment variables**:
 
-## Customer Feedback System:
+   - Create a `.env` file in the `backend` directory and add the necessary environment variables. Refer to the `.env.example` file for guidance.
+   - Ensure you have the following environment variables set up:
+     - `MONGODB_URI`: Your MongoDB connection string.
+     - `CLOUDINARY_URL`: Your Cloudinary URL for image uploads.
+     - `TWILIO_ACCOUNT_SID`: Your Twilio Account SID.
+     - `TWILIO_AUTH_TOKEN`: Your Twilio Auth Token.
+     - `TWILIO_PHONE_NUMBER`: Your Twilio phone number for sending SMS.
+     - `EMAIL_USER`: Your email address for sending emails.
+     - `EMAIL_PASS`: Your email password or app-specific password.
 
-After delivery, customers can rate drivers and provide feedback.
-Reviews help future customers choose the best drivers and maintain platform quality.
+5. **Run the application**:
+   - Start the backend server:
+     ```bash
+     cd backend
+     npm start
+     ```
+   - Start the frontend server:
+     ```bash
+     cd ../frontend
+     npm start
+     ```
 
-## Eco-friendly Initiatives (Future Scope):
+## Usage
 
-Introduce electric vehicles for transport to reduce carbon emissions.
-Promote optimized delivery routes to save fuel and time.
+Once the application is running, you can access it at `http://localhost:5173` for the frontend and `http://localhost:5000` for the backend API.
 
-## Technological Integration:
+### Important Screenshots/Demo
 
-### AI/ML Applications:
+#### Customer Side
 
-Dynamic pricing models for fair pricing.
-Predictive algorithms for route optimization and delivery time estimation.
-AI-based weight and volume estimators for goods when exact details are unknown.
+- **Login Page**: ![Customer Login](path/to/customer-login.png) <!-- Add your screenshot path here -->
+- **Registration Page**: ![Customer Registration](path/to/customer-registration.png) <!-- Add your screenshot path here -->
+- **Booking Interface**: ![Booking Interface](path/to/booking-interface.png) <!-- Add your screenshot path here -->
+- **Live Tracking**: ![Live Tracking](path/to/live-tracking.png) <!-- Add your screenshot path here -->
 
-### Web Technologies:
+#### Driver Side
 
-- Frontend: React.js for a responsive and user-friendly interface.
-- Backend: Node.js for handling requests and logic.
-- Database: MongoDB for user, driver, and transport data storage and firebase.
+- **Driver Login Page**: ![Driver Login](path/to/driver-login.png) <!-- Add your screenshot path here -->
+- **Driver Dashboard**: ![Driver Dashboard](path/to/driver-dashboard.png) <!-- Add your screenshot path here -->
+- **Bid Submission**: ![Bid Submission](path/to/bid-submission.png) <!-- Add your screenshot path here -->
+- **Earnings Overview**: ![Earnings Overview](path/to/earnings-overview.png) <!-- Add your screenshot path here -->
 
-## Real-time Functionality:
+## License
 
-Firebase or WebSocket technology for live tracking and updates.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## Security:
+## Contact
 
-Authentication using JWT tokens for secure logins.
-Encrypted communication between customers and drivers.
+For any inquiries or feedback, please reach out to [sumanshaw706@gmail.com](mailto:sumanshaw706@gmail.com).
 
-## Challenges Faced:
+---
 
-Deciding on a pricing model that is fair for customers, drivers, and the platform.
-
-Solution: Implemented an AI-driven dynamic pricing model that accounts for multiple factors.
-Acquiring freelance drivers who may already work for other transport businesses.
-
-Solution: Offered attractive commissions and a flexible schedule to encourage drivers to join.
-Preventing customers from bypassing the platform to save money.
-
-Solution: Restricted personal communication outside the platform and incentivized in-platform bookings.
-Target Audience:
-
-Individuals relocating homes.
-Small and large businesses needing industrial goods transport.
-Freelance drivers looking for flexible earning opportunities.
-
-Impact:
 Shiftly aims to revolutionize goods transport in India by providing a digital solution that bridges the gap between customers and transport service providers. The platform focuses on affordability, efficiency, and customer satisfaction, making it a win-win for all stakeholders involved.

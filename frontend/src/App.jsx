@@ -26,6 +26,8 @@ import TrackingPage from "./pages/TrackingPage";
 import ProfilePage from "./pages/ProfilePage";
 import { ProfileProvider } from "./context/ProfileContext";
 import Settings from "./pages/Settings";
+import NotificationsPage from "./pages/NotificationsPage";
+
 
 const AppWrapper = () => {
   const location = useLocation();
@@ -36,7 +38,8 @@ const AppWrapper = () => {
     location.pathname.startsWith("/payment/") ||
     location.pathname.startsWith("/user/") ||
     location.pathname.startsWith("/track/") ||
-    location.pathname.startsWith("/settings");
+    location.pathname.startsWith("/settings") ||
+    location.pathname.startsWith("/notifications");
 
   // Get email and token from URL for verification
   const verifyEmail = new URLSearchParams(location.search).get("email");
@@ -96,6 +99,7 @@ const AppWrapper = () => {
           <Route path="/track/:bookingId" element={<TrackingPage />} />
           <Route path="/user/:username" element={<ProfilePage />} />
           <Route path="/settings" element={<Settings />} />
+          <Route path="/notifications" element={<NotificationsPage />} />
         </Route>
 
         {/* 404 Page - This route will catch all unmatched routes */}
