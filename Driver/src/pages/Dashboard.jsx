@@ -1,6 +1,14 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { FaSignOutAlt, FaSpinner } from "react-icons/fa";
+import DashboardLayout from "../components/DashboardLayout";
+import WelcomeCard from "../components/dashboard/WelcomeCard";
+import StatsCard from "../components/dashboard/StatsCard";
+import QuickActions from "../components/dashboard/QuickActions";
+import BookingsOverview from "../components/dashboard/BookingsOverview";
+import PerformanceMetrics from "../components/dashboard/PerformanceMetrics";
+import EarningsSummary from "../components/dashboard/EarningsSummary";
+import VehicleStatus from "../components/dashboard/VehicleStatus";
+import { FaSpinner } from "react-icons/fa";
 
 const Dashboard = () => {
   const [driver, setDriver] = useState(null);
@@ -41,35 +49,6 @@ const Dashboard = () => {
     }
   };
 
-  const handleLogout = async () => {
-    try {
-      const response = await fetch(
-        `${import.meta.env.VITE_BACKEND_URL}/api/driver/logout`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("driverToken")}`,
-          },
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error("Logout failed");
-      }
-
-      // Clear local storage
-      localStorage.removeItem("driverToken");
-      localStorage.removeItem("driverName");
-      localStorage.removeItem("driverUsername");
-      localStorage.removeItem("rememberMe");
-
-      // Redirect to login
-      navigate("/login");
-    } catch (error) {
-      console.error("Logout error:", error);
-    }
-  };
-
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -79,58 +58,44 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      <nav className="bg-white shadow-lg">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
-            <div className="flex items-center">
-              <h1 className="text-2xl font-bold text-gray-900">
-                Driver Dashboard
-              </h1>
-            </div>
-            <div className="flex items-center">
-              <button
-                onClick={handleLogout}
-                className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
-              >
-                <FaSignOutAlt className="mr-2" />
-                Logout
-              </button>
-            </div>
-          </div>
+    <DashboardLayout>
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 mt-5">
+        {/* Welcome Card - Takes 3 columns on large screens */}
+        <div className="lg:col-span-3">
+          <WelcomeCard driver={driver} />
         </div>
-      </nav>
 
-      <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-        {driver && (
-          <div className="bg-white shadow rounded-lg p-6">
-            <h2 className="text-xl font-semibold mb-4">
-              Welcome, {driver.fullName}!
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="p-4 bg-gray-50 rounded-lg">
-                <p className="text-sm text-gray-600">Username</p>
-                <p className="font-medium">{driver.username}</p>
-              </div>
-              <div className="p-4 bg-gray-50 rounded-lg">
-                <p className="text-sm text-gray-600">Email</p>
-                <p className="font-medium">{driver.email}</p>
-              </div>
-              <div className="p-4 bg-gray-50 rounded-lg">
-                <p className="text-sm text-gray-600">Phone</p>
-                <p className="font-medium">{driver.phone}</p>
-              </div>
-              <div className="p-4 bg-gray-50 rounded-lg">
-                <p className="text-sm text-gray-600">Status</p>
-                <p className="font-medium">
-                  {driver.isAvailable ? "Available" : "Unavailable"}
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-      </main>
-    </div>
+        {/* Quick Stats Summary - Takes 2 columns on large screens */}
+        <div className="lg:col-span-2">
+          <StatsCard driver={driver} />
+        </div>
+      </div>
+
+      {/* Quick Actions */}
+      <div className="mt-6">
+        <QuickActions />
+      </div>
+
+      {/* Bookings Overview */}
+      <div className="mt-6">
+        <BookingsOverview />
+      </div>
+
+      {/* Earnings Summary */}
+      <div className="mt-6">
+        <EarningsSummary />
+      </div>
+
+      {/* Performance Metrics */}
+      <div className="mt-6">
+        <PerformanceMetrics driver={driver} />
+      </div>
+
+      {/* Vehicle Status */}
+      <div className="mt-6">
+        <VehicleStatus vehicle={driver?.vehicle} />
+      </div>
+    </DashboardLayout>
   );
 };
 
