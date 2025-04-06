@@ -54,7 +54,7 @@ const QuickActions = () => {
     {
       icon: <FaUser className="text-3xl" />,
       title: "Profile",
-      description: "View your profile",
+      description: "Update your profile",
       link: `/driver/profile/${username}`,
       color: "indigo",
     },

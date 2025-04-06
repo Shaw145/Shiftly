@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 const WelcomeCard = () => {
   const navigate = useNavigate();
   const fullName = localStorage.getItem("fullName") || "User";
+  const firstName = fullName.split(" ")[0] || "User";
 
   return (
     <div className="bg-white rounded-xl shadow-lg p-4 sm:p-8 relative overflow-hidden border border-gray-100">
@@ -12,7 +13,7 @@ const WelcomeCard = () => {
         <div className="flex items-center justify-between gap-4 mb-6">
           <div>
             <h1 className="text-2xl sm:text-3xl font-bold mb-2 text-gray-800">
-              Welcome to Shiftly, {fullName}!
+              Welcome to Shiftly, {firstName}!
             </h1>
             <p className="text-gray-600 text-sm sm:text-base">
               Your trusted partner for seamless goods transportation across

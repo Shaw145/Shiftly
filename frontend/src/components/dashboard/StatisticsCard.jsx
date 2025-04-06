@@ -14,7 +14,7 @@ const StatisticsCard = () => {
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
               <FaTruck className="text-red-500" />
-              <span className="text-sm text-gray-600">Today's Bookings</span>
+              <span className="text-sm text-gray-600">Today&apos;s Bookings</span>
             </div>
             <span className="text-sm text-gray-500">Your Area</span>
           </div>
