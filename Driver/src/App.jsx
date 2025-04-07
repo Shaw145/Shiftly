@@ -11,6 +11,7 @@ import VerifyOTP from "./pages/VerifyOTP";
 import Terms from "./pages/Terms";
 import NotFound from "./pages/NotFound";
 import { ProfileProvider } from "./context/ProfileContext";
+import PublicRoute from "./components/PublicRoute";
 
 function App() {
   return (
@@ -21,10 +22,25 @@ function App() {
           <Route path="/" element={<Navigate to="/login" replace />} />
 
           {/* Auth routes */}
-          <Route path="/login" element={<Login />} />
-          <Route path="/signup" element={<Signup />} />
+          <Route path="/login" element={
+            <PublicRoute>
+              <Login />
+            </PublicRoute>
+          } />
+          <Route path="/signup" element={
+            <PublicRoute>
+              <Signup />
+            </PublicRoute>
+          } />
           <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/verify-otp" element={<VerifyOTP />} />
+          <Route
+            path="/verify-otp"
+            element={
+              <PublicRoute>
+                <VerifyOTP />
+              </PublicRoute>
+            }
+          />
           <Route path="/terms" element={<Terms />} />
 
           {/* 404 Route - Must be last */}

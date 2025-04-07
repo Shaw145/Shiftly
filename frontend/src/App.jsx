@@ -27,7 +27,7 @@ import ProfilePage from "./pages/ProfilePage";
 import { ProfileProvider } from "./context/ProfileContext";
 import Settings from "./pages/Settings";
 import NotificationsPage from "./pages/NotificationsPage";
-
+import PublicRoute from "./components/PublicRoute";
 
 const AppWrapper = () => {
   const location = useLocation();
@@ -52,16 +52,41 @@ const AppWrapper = () => {
       <Routes>
         {/* Public Routes */}
         <Route path="/" element={<Home />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/signup" element={<Signup />} />
-        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route
+          path="/login"
+          element={
+            <PublicRoute>
+              <Login />
+            </PublicRoute>
+          }
+        />
+        <Route
+          path="/signup"
+          element={
+            <PublicRoute>
+              <Signup />
+            </PublicRoute>
+          }
+        />
+        <Route
+          path="/forgot-password"
+          element={
+            <PublicRoute>
+              <ForgotPassword />
+            </PublicRoute>
+          }
+        />
 
         {/* Protected Email Verification Route */}
         <Route
           path="/verify-email"
           element={
             <ConditionalRoute
-              element={<VerifyEmail />}
+              element={
+                <PublicRoute>
+                  <VerifyEmail />
+                </PublicRoute>
+              }
               condition={!!verifyEmail}
               redirectTo="/signup"
             />
@@ -73,7 +98,11 @@ const AppWrapper = () => {
           path="/reset-password"
           element={
             <ConditionalRoute
-              element={<ResetPassword />}
+              element={
+                <PublicRoute>
+                  <ResetPassword />
+                </PublicRoute>
+              }
               condition={!!resetToken}
               redirectTo="/forgot-password"
             />

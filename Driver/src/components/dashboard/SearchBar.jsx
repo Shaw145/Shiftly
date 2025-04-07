@@ -65,9 +65,20 @@ const SearchBar = ({ placeholder = "Search..." }) => {
         <FaSearch className="text-red-500 hover:text-red-700 cursor-pointer ml-2 flex-shrink-0" />
       </div>
 
-      {/* Suggestions */}
+      {/* Suggestions with custom scrollbar */}
       {suggestions.length > 0 && (
-        <div className="absolute top-12 left-0 w-full bg-white rounded-lg shadow-lg border border-gray-100 z-50 max-h-[300px] overflow-y-auto">
+        <div className="absolute top-12 left-0 w-full bg-white rounded-lg shadow-lg border border-gray-100 z-50 max-h-[300px] overflow-y-auto scrollbar-hide">
+          <style>
+            {`
+              .scrollbar-hide::-webkit-scrollbar {
+                display: none;
+              }
+              .scrollbar-hide {
+                -ms-overflow-style: none;
+                scrollbar-width: none;
+              }
+            `}
+          </style>
           <ul className="py-2">
             {suggestions.map((item, index) => (
               <li

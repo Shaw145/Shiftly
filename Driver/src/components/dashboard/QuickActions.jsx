@@ -105,16 +105,20 @@ const QuickActions = () => {
           <button
             key={index}
             onClick={() => navigate(action.link)}
-            className="group relative overflow-hidden rounded-xl transition-all duration-300 hover:shadow-lg cursor-pointer"
+            className="group relative overflow-hidden rounded-xl transition-all duration-300 hover:shadow-lg cursor-pointer h-full"
           >
-            <div className={`p-4 sm:p-6 ${getColorClasses(action.color)}`}>
+            <div
+              className={`p-4 sm:p-6 ${getColorClasses(
+                action.color
+              )} h-full flex flex-col justify-between`}
+            >
               <div className="absolute top-0 right-0 -mr-8 -mt-8 bg-white/10 w-32 h-32 rounded-full transition-all duration-300 group-hover:scale-150" />
-              <div className="relative z-10 flex flex-col items-center text-center">
+              <div className="relative z-10 flex flex-col items-center text-center h-full">
                 <div className="relative mb-3 sm:mb-4">{action.icon}</div>
-                <h3 className="font-semibold text-base sm:text-lg mb-1">
+                <h3 className="font-semibold text-sm sm:text-base mb-1 sm:mb-2 break-words w-full">
                   {action.title}
                 </h3>
-                <p className="text-xs sm:text-sm text-white/80">
+                <p className="text-xs sm:text-sm text-white/80 break-words w-full">
                   {action.description}
                 </p>
               </div>

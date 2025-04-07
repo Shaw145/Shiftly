@@ -50,12 +50,12 @@ const Sidebar = forwardRef(({ isSidebarOpen, toggleSidebar }, ref) => {
     { icon: <FaSignOutAlt />, title: "Logout", onClick: handleLogout },
   ];
 
-  // Swipe handlers
+  // Swipe handlers with edge detection
   const swipeHandlers = useSwipe(
     () => !isSidebarOpen && toggleSidebar(),
     () => isSidebarOpen && toggleSidebar(),
-    30,
-    10
+    50, // threshold
+    20 // edgeSize
   );
 
   return (
@@ -67,9 +67,9 @@ const Sidebar = forwardRef(({ isSidebarOpen, toggleSidebar }, ref) => {
       } transition-transform duration-200 ease-in-out md:translate-x-0`}
       style={{ top: "64px", width: isSidebarOpen ? "240px" : "94px" }}
     >
-      <div className="flex flex-col h-[calc(100vh-64px)] justify-between">
-        {/* Top Menu Items - aligned with logo */}
-        <div className="py-4 md:py-6 lg:py-8">
+      <div className="flex flex-col h-[calc(100vh-64px)]">
+        {/* Top Menu Items - with scrolling */}
+        <div className="flex-1 overflow-y-auto py-4 md:py-6 lg:py-8">
           {menuItems.map((item, index) => (
             <div
               key={index}
@@ -85,7 +85,7 @@ const Sidebar = forwardRef(({ isSidebarOpen, toggleSidebar }, ref) => {
                 </span>
               )}
               {!isSidebarOpen && (
-                <span className="hidden md:group-hover:block absolute left-24 bg-red-500 text-white text-sm px-2 py-1 rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">
+                <span className="hidden md:group-hover:block absolute left-24 bg-red-500 text-white text-sm px-2 py-1 rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap z-50">
                   {item.title}
                 </span>
               )}
@@ -93,8 +93,8 @@ const Sidebar = forwardRef(({ isSidebarOpen, toggleSidebar }, ref) => {
           ))}
         </div>
 
-        {/* Bottom Menu Items - with same icon alignment */}
-        <div className="border-t border-gray-200 py-4 md:py-6 lg:py-8">
+        {/* Bottom Menu Items - fixed at bottom */}
+        <div className="border-t border-gray-200 bg-white py-4 md:py-6 lg:py-8">
           {bottomMenuItems.map((item, index) => (
             <div
               key={index}
@@ -110,7 +110,7 @@ const Sidebar = forwardRef(({ isSidebarOpen, toggleSidebar }, ref) => {
                 </span>
               )}
               {!isSidebarOpen && (
-                <span className="hidden md:group-hover:block absolute left-24 bg-red-500 text-white text-sm px-2 py-1 rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                <span className="hidden md:group-hover:block absolute left-24 bg-red-500 text-white text-sm px-2 py-1 rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-50">
                   {item.title}
                 </span>
               )}
