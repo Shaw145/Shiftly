@@ -69,7 +69,7 @@ const ProfileDropdown = ({ userName, userDetails, onClose }) => {
       <ul className="py-2">
         <li
           onClick={() => {
-            navigate(`/driver/profile`);
+            navigate(`/profile/${localStorage.getItem("driverUsername")}`);
             onClose();
           }}
           className="px-4 py-2 hover:bg-gray-50 cursor-pointer flex items-center space-x-3 group"

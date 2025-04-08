@@ -1,14 +1,19 @@
 import { Navigate } from "react-router-dom";
 
-const PublicRoute = ({ children }) => {
+const PublicRoute = ({ children, protected: isProtected = false }) => {
   const token = localStorage.getItem("driverToken");
 
-  // If driver is logged in, redirect to dashboard
-  if (token) {
+  // For protected routes, redirect to login if not authenticated
+  if (isProtected && !token) {
+    return <Navigate to="/login" replace />;
+  }
+
+  // For public routes, redirect to dashboard if already authenticated
+  if (!isProtected && token) {
     return <Navigate to="/dashboard" replace />;
   }
 
-  // If driver is not logged in, show the requested page
+  // Show the requested page
   return children;
 };
 

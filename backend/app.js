@@ -4,7 +4,7 @@ const bodyParser = require("body-parser");
 const dotenv = require("dotenv");
 const connectDB = require("./database/connection");
 
-// Add model imports here
+// Update model imports to use correct filenames
 require("./models/User");
 require("./models/Booking");
 require("./models/Driver");
@@ -37,7 +37,7 @@ app.use(express.urlencoded({ extended: true }));
 // CORS middleware
 app.use(
   cors({
-    origin: '*',
+    origin: "*",
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: [
       "Origin",

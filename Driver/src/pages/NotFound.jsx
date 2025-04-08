@@ -62,14 +62,14 @@ const NotFound = () => {
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 px-4">
             <button
               onClick={() => navigate(-1)}
-              className="group bg-gray-100 hover:bg-gray-200 text-gray-700 px-6 sm:px-8 py-3 sm:py-4 rounded-xl font-medium transition-all duration-300 flex items-center gap-2 sm:gap-3 w-full sm:w-auto border border-gray-200 hover:border-gray-300"
+              className="group bg-gray-100 hover:bg-gray-200 text-gray-700 px-6 sm:px-8 py-3 sm:py-4 rounded-xl font-medium transition-all duration-300 flex items-center gap-2 sm:gap-3 w-full sm:w-auto border border-gray-200 hover:border-gray-300 cursor-pointer"
             >
               <FaArrowLeft className="text-base sm:text-lg group-hover:-translate-x-1 transition-transform duration-300" />
               <span className="text-base sm:text-lg">Go Back</span>
             </button>
             <button
               onClick={() => navigate("/dashboard")}
-              className="group bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white px-6 sm:px-8 py-3 sm:py-4 rounded-xl font-medium transition-all duration-300 flex items-center gap-2 sm:gap-3 w-full sm:w-auto shadow-lg shadow-red-500/10 hover:shadow-red-500/20"
+              className="group bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white px-6 sm:px-8 py-3 sm:py-4 rounded-xl font-medium transition-all duration-300 flex items-center gap-2 sm:gap-3 w-full sm:w-auto shadow-lg shadow-red-500/10 hover:shadow-red-500/20 cursor-pointer"
             >
               <FaHome className="text-base sm:text-lg group-hover:scale-110 transition-transform duration-300" />
               <span className="text-base sm:text-lg">Back to Dashboard</span>

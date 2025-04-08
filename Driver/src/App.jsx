@@ -12,6 +12,8 @@ import Terms from "./pages/Terms";
 import NotFound from "./pages/NotFound";
 import { ProfileProvider } from "./context/ProfileContext";
 import PublicRoute from "./components/PublicRoute";
+import DriverProfile from "./pages/DriverProfile";
+import Settings from "./pages/Settings";
 
 function App() {
   return (
@@ -21,18 +23,23 @@ function App() {
           {/* Redirect root to login */}
           <Route path="/" element={<Navigate to="/login" replace />} />
 
-          {/* Auth routes */}
-          <Route path="/login" element={
-            <PublicRoute>
-              <Login />
-            </PublicRoute>
-          } />
-          <Route path="/signup" element={
-            <PublicRoute>
-              <Signup />
-            </PublicRoute>
-          } />
-          <Route path="/dashboard" element={<Dashboard />} />
+          {/* Public routes */}
+          <Route
+            path="/login"
+            element={
+              <PublicRoute>
+                <Login />
+              </PublicRoute>
+            }
+          />
+          <Route
+            path="/signup"
+            element={
+              <PublicRoute>
+                <Signup />
+              </PublicRoute>
+            }
+          />
           <Route
             path="/verify-otp"
             element={
@@ -42,6 +49,32 @@ function App() {
             }
           />
           <Route path="/terms" element={<Terms />} />
+
+          {/* Protected routes */}
+          <Route
+            path="/dashboard"
+            element={
+              <PublicRoute protected={true}>
+                <Dashboard />
+              </PublicRoute>
+            }
+          />
+          <Route
+            path="/profile/:username"
+            element={
+              <PublicRoute protected={true}>
+                <DriverProfile />
+              </PublicRoute>
+            }
+          />
+          <Route
+            path="/settings"
+            element={
+              <PublicRoute protected={true}>
+                <Settings />
+              </PublicRoute>
+            }
+          />
 
           {/* 404 Route - Must be last */}
           <Route path="*" element={<NotFound />} />
