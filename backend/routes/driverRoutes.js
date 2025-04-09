@@ -5,7 +5,6 @@ const Driver = require("../models/Driver");
 const driverProfileController = require("../controllers/driverProfileController");
 const upload = require("../middleware/uploadMiddleware");
 
-
 router.get("/me", protectDriver, async (req, res) => {
   try {
     // Since we already have the driver from the middleware
@@ -99,8 +98,12 @@ router.post(
   "/upload-photo",
   protectDriver,
   upload.single("profileImage"),
-  uploadProfilePhoto
+  driverProfileController.uploadProfilePhoto
 );
-router.delete("/remove-photo", protectDriver, removeProfilePhoto);
+router.delete(
+  "/remove-photo",
+  protectDriver,
+  driverProfileController.removeProfilePhoto
+);
 
 module.exports = router;
