@@ -4,10 +4,7 @@ const { protectDriver } = require("../middleware/driverAuthMiddleware");
 const Driver = require("../models/Driver");
 const driverProfileController = require("../controllers/driverProfileController");
 const upload = require("../middleware/uploadMiddleware");
-const {
-  uploadProfilePhoto,
-  removeProfilePhoto,
-} = require("../controllers/driverPhotoController");
+
 
 router.get("/me", protectDriver, async (req, res) => {
   try {
