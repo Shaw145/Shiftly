@@ -2,6 +2,12 @@ const express = require("express");
 const router = express.Router();
 const { protectDriver } = require("../middleware/driverAuthMiddleware");
 const Driver = require("../models/Driver");
+const driverProfileController = require("../controllers/driverProfileController");
+const upload = require("../middleware/uploadMiddleware");
+const {
+  uploadProfilePhoto,
+  removeProfilePhoto,
+} = require("../controllers/driverPhotoController");
 
 router.get("/me", protectDriver, async (req, res) => {
   try {
@@ -75,30 +81,29 @@ router.get("/profile/:username", protectDriver, async (req, res) => {
   }
 });
 
-router.get("/me/profile", protectDriver, async (req, res) => {
-  try {
-    const driver = req.driver;
+router.get("/me/profile", protectDriver, driverProfileController.getProfile);
+router.put(
+  "/profile/personal",
+  protectDriver,
+  driverProfileController.updatePersonalDetails
+);
+router.put(
+  "/profile/bank",
+  protectDriver,
+  driverProfileController.updateBankDetails
+);
+router.put(
+  "/profile/vehicle",
+  protectDriver,
+  driverProfileController.updateVehicleDetails
+);
 
-    // Return driver data excluding sensitive information
-    const driverData = {
-      fullName: driver.fullName,
-      username: driver.username,
-      email: driver.email,
-      phone: driver.phone,
-      dateOfBirth: driver.dateOfBirth,
-      gender: driver.gender,
-      address: driver.address,
-      bankDetails: driver.bankDetails,
-      vehicle: driver.vehicle,
-      drivingLicense: driver.drivingLicense,
-      isEmailVerified: driver.isEmailVerified,
-      isPhoneVerified: driver.isPhoneVerified,
-    };
-
-    res.json(driverData);
-  } catch (error) {
-    res.status(500).json({ error: "Error fetching driver profile" });
-  }
-});
+router.post(
+  "/upload-photo",
+  protectDriver,
+  upload.single("profileImage"),
+  uploadProfilePhoto
+);
+router.delete("/remove-photo", protectDriver, removeProfilePhoto);
 
 module.exports = router;

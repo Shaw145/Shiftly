@@ -37,9 +37,9 @@ const ProfileDropdown = ({ userName, userDetails, onClose }) => {
       <div className="p-4 border-b border-gray-200">
         <div className="flex items-center space-x-3">
           <div className="w-12 h-12 rounded-full border-2 border-red-500 overflow-hidden">
-            {userDetails?.profileImage ? (
+            {profileImage ? (
               <img
-                src={userDetails.profileImage}
+                src={profileImage}
                 alt={userDetails?.fullName || userName}
                 className="w-full h-full object-cover"
               />

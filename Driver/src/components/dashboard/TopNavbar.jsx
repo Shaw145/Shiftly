@@ -21,13 +21,14 @@ const getFirstName = (fullName) => {
   return fullName.split(" ")[0];
 };
 
-// eslint-disable-next-line react/prop-types
+
 const TopNavbar = forwardRef(({ toggleSidebar }, ref) => {
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [notificationCount, setNotificationCount] = useState(3);
   const [isOnline, setIsOnline] = useState(true);
-  const { profileImage, userDetails, updateUserDetails } = useProfile();
+  const { profileImage, userDetails, updateUserDetails, updateProfileImage } =
+    useProfile();
   const driverName = localStorage.getItem("driverName");
   const firstName = getFirstName(driverName);
   const driverUsername = localStorage.getItem("driverUsername");
@@ -59,6 +60,7 @@ const TopNavbar = forwardRef(({ toggleSidebar }, ref) => {
 
   const fetchDriverDetails = async () => {
     try {
+      // Fetch basic driver details
       const response = await fetch(
         `${import.meta.env.VITE_BACKEND_URL}/api/driver/me`,
         {
@@ -67,9 +69,27 @@ const TopNavbar = forwardRef(({ toggleSidebar }, ref) => {
           },
         }
       );
-      const data = await response.json();
-      if (data.success) {
-        updateUserDetails(data.driver);
+
+      if (response.ok) {
+        const data = await response.json();
+        updateUserDetails(data);
+      }
+
+      // Fetch profile details to get profile image
+      const profileResponse = await fetch(
+        `${import.meta.env.VITE_BACKEND_URL}/api/driver/me/profile`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("driverToken")}`,
+          },
+        }
+      );
+
+      if (profileResponse.ok) {
+        const profileData = await profileResponse.json();
+        if (profileData.profileImage) {
+          updateProfileImage(profileData.profileImage);
+        }
       }
     } catch (error) {
       console.error("Error fetching driver details:", error);

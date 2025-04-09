@@ -297,14 +297,14 @@ const Settings = () => {
             ) : (
               <div className="space-y-3">
                 <p className="text-sm text-gray-600">
-                  Are you absolutely sure? Please type "DELETE" to confirm:
+                  Are you absolutely sure? Please type &quot;DELETE&quot; to confirm:
                 </p>
                 <input
                   type="text"
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
                   placeholder="Type DELETE to confirm"
                 />
-                <div className="flex space-x-3">
+                <div className="flex flex-col justify-center sm:flex-row gap-3 sm:gap-4">
                   <button
                     onClick={handleDeleteAccount}
                     className="flex-1 bg-red-500 text-white py-3 rounded-lg hover:bg-red-600 transition-colors font-medium cursor-pointer"

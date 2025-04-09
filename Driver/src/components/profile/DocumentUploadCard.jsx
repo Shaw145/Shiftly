@@ -82,7 +82,7 @@ const DocumentUploadCard = ({
           value={number}
           onChange={(e) => onNumberChange(e.target.value)}
           disabled={!isEditing}
-          className="w-full px-4 py-3 rounded-xl border-2 focus:ring-2 focus:ring-red-500 focus:border-transparent disabled:bg-gray-50 cursor-pointer"
+          className="w-full px-4 py-3 rounded-xl border-2 focus:ring-2 focus:ring-red-500 focus:border-transparent disabled:bg-gray-50"
           placeholder={`Enter ${title} Number`}
         />
       )}

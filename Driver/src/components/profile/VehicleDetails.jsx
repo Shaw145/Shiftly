@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   FaTruck,
   FaIdCard,
@@ -18,9 +18,99 @@ import {
   FaImage,
 } from "react-icons/fa";
 import DocumentUploadCard from "./DocumentUploadCard";
+import { toast } from "react-hot-toast";
 
 const VehicleDetails = ({ data, onEdit, onUpdate }) => {
-  const [localData, setLocalData] = useState(data);
+  const [localData, setLocalData] = useState({
+    isEditing: false,
+    basic: {
+      type: "",
+      make: "",
+      model: "",
+      year: "",
+      color: "",
+    },
+    registration: {
+      number: "",
+      date: "",
+      rcFront: null,
+      rcBack: null,
+      rcFrontStatus: "pending",
+      rcBackStatus: "pending",
+      fitnessExpiryDate: "",
+      permitType: null,
+      isVerified: false,
+    },
+    specifications: {
+      loadCapacity: "",
+      dimensions: {
+        length: "",
+        width: "",
+        height: "",
+      },
+      photos: {
+        front: "",
+        back: "",
+        left: "",
+        right: "",
+        interior: "",
+      },
+      features: [],
+      fuelType: "",
+    },
+    insurance: {
+      provider: "",
+      policyNumber: "",
+      expiryDate: "",
+      document: null,
+      documentStatus: "pending",
+      isVerified: false,
+    },
+    maintenance: {
+      lastServiceDate: "",
+      nextServiceDue: "",
+      odometer: "",
+      healthScore: 0,
+    },
+  });
+
+  useEffect(() => {
+    if (data) {
+      setLocalData((prev) => ({
+        ...prev,
+        ...data,
+        basic: {
+          ...prev.basic,
+          ...data.basic,
+        },
+        registration: {
+          ...prev.registration,
+          ...data.registration,
+        },
+        specifications: {
+          ...prev.specifications,
+          ...data.specifications,
+          dimensions: {
+            ...prev.specifications.dimensions,
+            ...data.specifications?.dimensions,
+          },
+          photos: {
+            ...prev.specifications.photos,
+            ...data.specifications?.photos,
+          },
+          features: [...(data.specifications?.features || [])],
+        },
+        insurance: {
+          ...prev.insurance,
+          ...data.insurance,
+        },
+        maintenance: {
+          ...prev.maintenance,
+          ...data.maintenance,
+        },
+      }));
+    }
+  }, [data]);
 
   const handleInputChange = (section, field, value) => {
     setLocalData((prev) => ({
@@ -59,12 +149,18 @@ const VehicleDetails = ({ data, onEdit, onUpdate }) => {
         }
       );
 
-      if (response.ok) {
-        onUpdate(localData);
-        onEdit(false);
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || "Failed to update vehicle details");
       }
+
+      toast.success(result.message || "Vehicle details updated successfully");
+      onUpdate(result.data);
+      onEdit(false);
     } catch (error) {
       console.error("Error updating vehicle details:", error);
+      toast.error(error.message || "Failed to update vehicle details");
     }
   };
 
@@ -82,24 +178,34 @@ const VehicleDetails = ({ data, onEdit, onUpdate }) => {
             </span>
           )}
         </div>
-        <button
-          onClick={() => onEdit(!data.isEditing)}
-          className={`px-4 py-2 rounded-xl flex items-center gap-2 transition-all duration-300 cursor-pointer ${
-            data.isEditing
-              ? "bg-gray-100 text-gray-700 hover:bg-gray-200"
-              : "bg-red-50 text-red-600 hover:bg-red-100"
-          }`}
-        >
-          {data.isEditing ? (
-            <>
-              <FaTimes /> Cancel
-            </>
-          ) : (
-            <>
-              <FaPencilAlt /> Edit Details
-            </>
+        <div className="flex items-center gap-2">
+          {data.isEditing && (
+            <button
+              onClick={handleSave}
+              className="px-4 py-2 rounded-xl flex items-center gap-2 transition-all duration-300 cursor-pointer bg-red-600 text-white hover:bg-red-700"
+            >
+              <FaSave /> Save
+            </button>
           )}
-        </button>
+          <button
+            onClick={() => onEdit(!data.isEditing)}
+            className={`px-4 py-2 rounded-xl flex items-center gap-2 transition-all duration-300 cursor-pointer ${
+              data.isEditing
+                ? "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                : "bg-red-50 text-red-600 hover:bg-red-100"
+            }`}
+          >
+            {data.isEditing ? (
+              <>
+                <FaTimes /> Cancel
+              </>
+            ) : (
+              <>
+                <FaPencilAlt /> Edit Details
+              </>
+            )}
+          </button>
+        </div>
       </div>
 
       <div className="p-6 space-y-8">
@@ -141,7 +247,7 @@ const VehicleDetails = ({ data, onEdit, onUpdate }) => {
                   handleInputChange("basic", "make", e.target.value)
                 }
                 disabled={!data.isEditing}
-                className="w-full px-4 py-3 rounded-xl border-2 focus:ring-2 focus:ring-red-500 focus:border-transparent disabled:bg-gray-50 cursor-pointer"
+                className="w-full px-4 py-3 rounded-xl border-2 focus:ring-2 focus:ring-red-500 focus:border-transparent disabled:bg-gray-50"
                 placeholder="Enter vehicle make"
               />
             </div>
@@ -156,7 +262,7 @@ const VehicleDetails = ({ data, onEdit, onUpdate }) => {
                   handleInputChange("basic", "model", e.target.value)
                 }
                 disabled={!data.isEditing}
-                className="w-full px-4 py-3 rounded-xl border-2 focus:ring-2 focus:ring-red-500 focus:border-transparent disabled:bg-gray-50 cursor-pointer"
+                className="w-full px-4 py-3 rounded-xl border-2 focus:ring-2 focus:ring-red-500 focus:border-transparent disabled:bg-gray-50"
                 placeholder="Enter model"
               />
             </div>
@@ -173,7 +279,7 @@ const VehicleDetails = ({ data, onEdit, onUpdate }) => {
                   handleInputChange("basic", "year", e.target.value)
                 }
                 disabled={!data.isEditing}
-                className="w-full px-4 py-3 rounded-xl border-2 focus:ring-2 focus:ring-red-500 focus:border-transparent disabled:bg-gray-50 cursor-pointer"
+                className="w-full px-4 py-3 rounded-xl border-2 focus:ring-2 focus:ring-red-500 focus:border-transparent disabled:bg-gray-50"
                 placeholder="YYYY"
                 min="1900"
                 max={new Date().getFullYear()}
@@ -191,7 +297,7 @@ const VehicleDetails = ({ data, onEdit, onUpdate }) => {
                   handleInputChange("basic", "color", e.target.value)
                 }
                 disabled={!data.isEditing}
-                className="w-full px-4 py-3 rounded-xl border-2 focus:ring-2 focus:ring-red-500 focus:border-transparent disabled:bg-gray-50 cursor-pointer"
+                className="w-full px-4 py-3 rounded-xl border-2 focus:ring-2 focus:ring-red-500 focus:border-transparent disabled:bg-gray-50"
                 placeholder="Enter color"
               />
             </div>
@@ -221,7 +327,7 @@ const VehicleDetails = ({ data, onEdit, onUpdate }) => {
                   )
                 }
                 disabled={!data.isEditing}
-                className="w-full px-4 py-3 rounded-xl border-2 focus:ring-2 focus:ring-red-500 focus:border-transparent uppercase disabled:bg-gray-50 cursor-pointer"
+                className="w-full px-4 py-3 rounded-xl border-2 focus:ring-2 focus:ring-red-500 focus:border-transparent uppercase disabled:bg-gray-50"
                 placeholder="Enter registration number"
               />
             </div>
@@ -238,7 +344,7 @@ const VehicleDetails = ({ data, onEdit, onUpdate }) => {
                   handleInputChange("registration", "date", e.target.value)
                 }
                 disabled={!data.isEditing}
-                className="w-full px-4 py-3 rounded-xl border-2 focus:ring-2 focus:ring-red-500 focus:border-transparent disabled:bg-gray-50 cursor-pointer"
+                className="w-full px-4 py-3 rounded-xl border-2 focus:ring-2 focus:ring-red-500 focus:border-transparent disabled:bg-gray-50"
               />
             </div>
 
@@ -290,12 +396,12 @@ const VehicleDetails = ({ data, onEdit, onUpdate }) => {
                 Permit Type
               </label>
               <select
-                value={localData.registration.permitType}
+                value={localData.registration.permitType || ""}
                 onChange={(e) =>
                   handleInputChange(
                     "registration",
                     "permitType",
-                    e.target.value
+                    e.target.value || null
                   )
                 }
                 disabled={!data.isEditing}
@@ -334,7 +440,7 @@ const VehicleDetails = ({ data, onEdit, onUpdate }) => {
                     )
                   }
                   disabled={!data.isEditing}
-                  className="w-full px-4 py-3 rounded-xl border-2 focus:ring-2 focus:ring-red-500 focus:border-transparent disabled:bg-gray-50 cursor-pointer"
+                  className="w-full px-4 py-3 rounded-xl border-2 focus:ring-2 focus:ring-red-500 focus:border-transparent disabled:bg-gray-50"
                   placeholder="Enter capacity"
                 />
               </div>
@@ -354,7 +460,7 @@ const VehicleDetails = ({ data, onEdit, onUpdate }) => {
                     })
                   }
                   disabled={!data.isEditing}
-                  className="w-full px-4 py-3 rounded-xl border-2 focus:ring-2 focus:ring-red-500 focus:border-transparent disabled:bg-gray-50 cursor-pointer"
+                  className="w-full px-4 py-3 rounded-xl border-2 focus:ring-2 focus:ring-red-500 focus:border-transparent disabled:bg-gray-50"
                   placeholder="Length"
                   step="0.1"
                 />
@@ -374,7 +480,7 @@ const VehicleDetails = ({ data, onEdit, onUpdate }) => {
                     })
                   }
                   disabled={!data.isEditing}
-                  className="w-full px-4 py-3 rounded-xl border-2 focus:ring-2 focus:ring-red-500 focus:border-transparent disabled:bg-gray-50 cursor-pointer"
+                  className="w-full px-4 py-3 rounded-xl border-2 focus:ring-2 focus:ring-red-500 focus:border-transparent disabled:bg-gray-50"
                   placeholder="Width"
                   step="0.1"
                 />
@@ -394,7 +500,7 @@ const VehicleDetails = ({ data, onEdit, onUpdate }) => {
                     })
                   }
                   disabled={!data.isEditing}
-                  className="w-full px-4 py-3 rounded-xl border-2 focus:ring-2 focus:ring-red-500 focus:border-transparent disabled:bg-gray-50 cursor-pointer"
+                  className="w-full px-4 py-3 rounded-xl border-2 focus:ring-2 focus:ring-red-500 focus:border-transparent disabled:bg-gray-50"
                   placeholder="Height"
                   step="0.1"
                 />
@@ -514,7 +620,7 @@ const VehicleDetails = ({ data, onEdit, onUpdate }) => {
                           );
                         }}
                         disabled={!data.isEditing}
-                        className="rounded text-red-500 focus:ring-red-500"
+                        className="rounded text-red-500 focus:ring-red-500 cursor-pointer"
                       />
                       <span className="text-sm text-gray-700">{feature}</span>
                     </label>
@@ -568,7 +674,7 @@ const VehicleDetails = ({ data, onEdit, onUpdate }) => {
                   handleInputChange("insurance", "provider", e.target.value)
                 }
                 disabled={!data.isEditing}
-                className="w-full px-4 py-3 rounded-xl border-2 focus:ring-2 focus:ring-red-500 focus:border-transparent disabled:bg-gray-50 cursor-pointer"
+                className="w-full px-4 py-3 rounded-xl border-2 focus:ring-2 focus:ring-red-500 focus:border-transparent disabled:bg-gray-50"
                 placeholder="Enter provider name"
               />
             </div>
@@ -584,7 +690,7 @@ const VehicleDetails = ({ data, onEdit, onUpdate }) => {
                   handleInputChange("insurance", "policyNumber", e.target.value)
                 }
                 disabled={!data.isEditing}
-                className="w-full px-4 py-3 rounded-xl border-2 focus:ring-2 focus:ring-red-500 focus:border-transparent disabled:bg-gray-50 cursor-pointer"
+                className="w-full px-4 py-3 rounded-xl border-2 focus:ring-2 focus:ring-red-500 focus:border-transparent disabled:bg-gray-50"
                 placeholder="Enter policy number"
               />
             </div>
@@ -600,7 +706,7 @@ const VehicleDetails = ({ data, onEdit, onUpdate }) => {
                   handleInputChange("insurance", "expiryDate", e.target.value)
                 }
                 disabled={!data.isEditing}
-                className="w-full px-4 py-3 rounded-xl border-2 focus:ring-2 focus:ring-red-500 focus:border-transparent disabled:bg-gray-50 cursor-pointer"
+                className="w-full px-4 py-3 rounded-xl border-2 focus:ring-2 focus:ring-red-500 focus:border-transparent disabled:bg-gray-50"
               />
             </div>
 
@@ -679,7 +785,7 @@ const VehicleDetails = ({ data, onEdit, onUpdate }) => {
                   handleInputChange("maintenance", "odometer", e.target.value)
                 }
                 disabled={!data.isEditing}
-                className="w-full px-4 py-3 rounded-xl border-2 focus:ring-2 focus:ring-red-500 focus:border-transparent disabled:bg-gray-50 cursor-pointer"
+                className="w-full px-4 py-3 rounded-xl border-2 focus:ring-2 focus:ring-red-500 focus:border-transparent disabled:bg-gray-50"
                 placeholder="Enter reading"
               />
             </div>

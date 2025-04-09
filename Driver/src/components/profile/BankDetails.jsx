@@ -14,6 +14,7 @@ import {
   FaFileAlt,
 } from "react-icons/fa";
 import DocumentUploadCard from "./DocumentUploadCard";
+import { toast } from "react-hot-toast";
 
 const BankDetails = ({ data, onEdit, onUpdate }) => {
   const [localData, setLocalData] = useState({
@@ -24,19 +25,18 @@ const BankDetails = ({ data, onEdit, onUpdate }) => {
     bankName: "",
     ifscCode: "",
     branchDetails: "",
-    accountType: "",
-    payoutFrequency: "",
+    payoutFrequency: "monthly",
     isVerified: false,
     documents: {
       passbook: {
-        image: "",
-        isVerified: false,
+        file: null,
+        status: "pending",
       },
     },
-    ...data,
   });
   const [showAccountNumber, setShowAccountNumber] = useState(false);
   const [showConfirmNumber, setShowConfirmNumber] = useState(false);
+  const [accountError, setAccountError] = useState("");
 
   useEffect(() => {
     if (data) {
@@ -56,9 +56,35 @@ const BankDetails = ({ data, onEdit, onUpdate }) => {
       ...prev,
       [field]: value,
     }));
+
+    // Validate confirm account number
+    if (field === "confirmAccountNumber") {
+      if (value !== localData.accountNumber) {
+        setAccountError("Account numbers do not match");
+      } else {
+        setAccountError("");
+      }
+    }
+    if (field === "accountNumber") {
+      if (
+        localData.confirmAccountNumber &&
+        value !== localData.confirmAccountNumber
+      ) {
+        setAccountError("Account numbers do not match");
+      } else if (
+        localData.confirmAccountNumber &&
+        value === localData.confirmAccountNumber
+      ) {
+        setAccountError("");
+      }
+    }
   };
 
   const handleSave = async () => {
+    if (accountError) {
+      toast.error("Please fix the account number mismatch");
+      return;
+    }
     try {
       const response = await fetch(
         `${import.meta.env.VITE_BACKEND_URL}/api/driver/profile/bank`,
@@ -72,19 +98,57 @@ const BankDetails = ({ data, onEdit, onUpdate }) => {
         }
       );
 
-      if (response.ok) {
-        onUpdate(localData);
-        onEdit(false);
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || "Failed to update bank details");
       }
+
+      toast.success(result.message || "Bank details updated successfully");
+      onUpdate(result.data);
+      onEdit(false);
     } catch (error) {
       console.error("Error updating bank details:", error);
+      toast.error(error.message || "Failed to update bank details");
     }
   };
 
-  const maskAccountNumber = (number) => {
-    if (!number) return "";
-    const last4 = number.slice(-4);
-    return `XXXX-XXXX-${last4}`;
+  // const maskAccountNumber = (number) => {
+  //   if (!number) return "";
+  //   const last4 = number.slice(-4);
+  //   return `XXXX-XXXX-${last4}`;
+  // };
+
+  // Add this function to fetch bank details from IFSC code
+  const fetchBankDetailsFromIFSC = async (ifsc) => {
+    try {
+      // Only proceed with valid IFSC code format
+      const ifscPattern = /^[A-Z]{4}0[A-Z0-9]{6}$/;
+      if (!ifscPattern.test(ifsc)) {
+        return;
+      }
+
+      const response = await fetch(`https://ifsc.razorpay.com/${ifsc}`);
+      if (!response.ok) {
+        return;
+      }
+
+      const data = await response.json();
+
+      // Update the bank name and branch details
+      setLocalData((prev) => ({
+        ...prev,
+        bankName: data.BANK || prev.bankName,
+        branchDetails: data.BRANCH
+          ? `${data.BRANCH}, ${data.CITY}, ${data.STATE}`
+          : prev.branchDetails,
+      }));
+
+      // Don't show a toast here since it will be distracting during typing
+    } catch (error) {
+      console.error("Error fetching bank details:", error);
+      // Silently fail
+    }
   };
 
   return (
@@ -101,24 +165,34 @@ const BankDetails = ({ data, onEdit, onUpdate }) => {
             </span>
           )}
         </div>
-        <button
-          onClick={() => onEdit(!data.isEditing)}
-          className={`px-4 py-2 rounded-xl flex items-center gap-2 transition-all duration-300 cursor-pointer ${
-            data.isEditing
-              ? "bg-gray-100 text-gray-700 hover:bg-gray-200"
-              : "bg-red-50 text-red-600 hover:bg-red-100"
-          }`}
-        >
-          {data.isEditing ? (
-            <>
-              <FaTimes /> Cancel
-            </>
-          ) : (
-            <>
-              <FaPencilAlt /> Edit Details
-            </>
+        <div className="flex items-center gap-2">
+          {data.isEditing && (
+            <button
+              onClick={handleSave}
+              className="px-4 py-2 rounded-xl flex items-center gap-2 transition-all duration-300 cursor-pointer bg-red-600 text-white hover:bg-red-700"
+            >
+              <FaSave /> Save
+            </button>
           )}
-        </button>
+          <button
+            onClick={() => onEdit(!data.isEditing)}
+            className={`px-4 py-2 rounded-xl flex items-center gap-2 transition-all duration-300 cursor-pointer ${
+              data.isEditing
+                ? "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                : "bg-red-50 text-red-600 hover:bg-red-100"
+            }`}
+          >
+            {data.isEditing ? (
+              <>
+                <FaTimes /> Cancel
+              </>
+            ) : (
+              <>
+                <FaPencilAlt /> Edit Details
+              </>
+            )}
+          </button>
+        </div>
       </div>
 
       <div className="p-6 space-y-8">
@@ -160,7 +234,7 @@ const BankDetails = ({ data, onEdit, onUpdate }) => {
                 value={localData.bankName}
                 onChange={(e) => handleInputChange("bankName", e.target.value)}
                 disabled={!data.isEditing}
-                className="w-full pl-12 py-3 rounded-xl border-2 focus:ring-2 focus:ring-red-500 focus:border-transparent disabled:bg-gray-50 cursor-pointer"
+                className="w-full pl-12 py-3 rounded-xl border-2 focus:ring-2 focus:ring-red-500 focus:border-transparent disabled:bg-gray-50"
                 placeholder="Bank Name"
               />
             </div>
@@ -178,12 +252,19 @@ const BankDetails = ({ data, onEdit, onUpdate }) => {
               <input
                 type="text"
                 value={localData.ifscCode}
-                onChange={(e) =>
-                  handleInputChange("ifscCode", e.target.value.toUpperCase())
-                }
+                onChange={(e) => {
+                  const value = e.target.value.toUpperCase();
+                  handleInputChange("ifscCode", value);
+
+                  // If the IFSC code is 11 characters long, fetch bank details immediately
+                  if (value.length === 11) {
+                    fetchBankDetailsFromIFSC(value);
+                  }
+                }}
                 disabled={!data.isEditing}
                 className="w-full pl-12 py-3 rounded-xl border-2 focus:ring-2 focus:ring-red-500 focus:border-transparent uppercase disabled:bg-gray-50"
                 placeholder="Enter IFSC code"
+                autoComplete="off"
               />
             </div>
             {localData.branchDetails && (
@@ -249,6 +330,9 @@ const BankDetails = ({ data, onEdit, onUpdate }) => {
                   {showConfirmNumber ? <FaEyeSlash /> : <FaEye />}
                 </button>
               </div>
+              {accountError && (
+                <p className="text-sm text-red-600 mt-1">{accountError}</p>
+              )}
             </div>
           )}
 
