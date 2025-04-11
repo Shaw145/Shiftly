@@ -14,6 +14,8 @@ import { ProfileProvider } from "./context/ProfileContext";
 import PublicRoute from "./components/PublicRoute";
 import DriverProfile from "./pages/DriverProfile";
 import Settings from "./pages/Settings";
+import AvailableBookings from "./pages/AvailableBookings";
+import BookingDetails from "./pages/BookingDetails";
 
 function App() {
   return (
@@ -72,6 +74,22 @@ function App() {
             element={
               <PublicRoute protected={true}>
                 <Settings />
+              </PublicRoute>
+            }
+          />
+          <Route
+            path="/available-bookings"
+            element={
+              <PublicRoute protected={true}>
+                <AvailableBookings />
+              </PublicRoute>
+            }
+          />
+          <Route
+            path="/available-bookings/:bookingId"
+            element={
+              <PublicRoute protected={true}>
+                <BookingDetails />
               </PublicRoute>
             }
           />

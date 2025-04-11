@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import TopNavbar from "./dashboard/TopNavbar";
 import Sidebar from "./dashboard/Sidebar";
+import { Toaster } from 'react-hot-toast';
 
 // Layout component to wrap all dashboard pages
 const DashboardLayout = ({ children }) => {
@@ -56,6 +57,7 @@ const DashboardLayout = ({ children }) => {
       <main className="transition-all duration-200 ease-in-out md:ml-24 mt-16 p-4">
         {children}
       </main>
+      <Toaster />
     </div>
   );
 };

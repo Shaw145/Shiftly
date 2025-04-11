@@ -8,11 +8,14 @@ import BookingsOverview from "../components/dashboard/BookingsOverview";
 import PerformanceMetrics from "../components/dashboard/PerformanceMetrics";
 import EarningsSummary from "../components/dashboard/EarningsSummary";
 import VehicleStatus from "../components/dashboard/VehicleStatus";
+import ProfileUpdateModal from "../components/ProfileUpdateModal";
 import { FaSpinner } from "react-icons/fa";
 
 const Dashboard = () => {
   const [driver, setDriver] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [hasAddress, setHasAddress] = useState(true); // Default to true to avoid flash of modal
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -41,12 +44,55 @@ const Dashboard = () => {
 
       const data = await response.json();
       setDriver(data);
+
+      // After getting basic info, fetch the full profile to check for address
+      fetchDriverProfile(data.username);
     } catch (error) {
       console.error("Error:", error);
       navigate("/login");
     } finally {
       setLoading(false);
     }
+  };
+
+  const fetchDriverProfile = async (username) => {
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_BACKEND_URL}/api/driver/me/profile`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("driverToken")}`,
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch profile details");
+      }
+
+      const profileData = await response.json();
+
+      // Check if driver has complete address
+      const addressExists =
+        profileData?.personalDetails?.address?.current?.addressLine1 &&
+        profileData?.personalDetails?.address?.current?.city &&
+        profileData?.personalDetails?.address?.current?.state &&
+        profileData?.personalDetails?.address?.current?.pincode;
+
+      setHasAddress(addressExists);
+
+      // Show modal if address not found
+      if (!addressExists) {
+        setIsProfileModalOpen(true);
+      }
+    } catch (error) {
+      console.error("Error fetching profile details:", error);
+    }
+  };
+
+  const handleCloseModal = () => {
+    setIsProfileModalOpen(false);
+    document.body.style.overflow = "auto"; // Re-enable scrolling
   };
 
   if (loading) {
@@ -95,6 +141,13 @@ const Dashboard = () => {
       <div className="mt-6">
         <VehicleStatus vehicle={driver?.vehicle} />
       </div>
+
+      {/* Profile Update Modal */}
+      <ProfileUpdateModal
+        isOpen={isProfileModalOpen}
+        onClose={handleCloseModal}
+        username={driver?.username}
+      />
     </DashboardLayout>
   );
 };
