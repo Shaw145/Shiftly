@@ -20,7 +20,7 @@ import {
   FaChevronRight,
   FaTimes,
 } from "react-icons/fa";
-import { toast } from "react-hot-toast";
+import { toast, Toaster } from "react-hot-toast";
 import DashboardLayout from "../components/DashboardLayout";
 import LoadingSpinner from "../components/LoadingSpinner";
 import BidForm from "../components/bookings/BidForm";
@@ -454,6 +454,9 @@ const BookingDetails = () => {
           </div>
         </div>
       </div>
+
+      {/* Toaster for notifications */}
+      <Toaster />
     </DashboardLayout>
   );
 };

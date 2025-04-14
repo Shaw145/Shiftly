@@ -72,6 +72,21 @@ const BidForm = ({ booking, currentBid, onSubmitBid, isBidLocked }) => {
     }
   };
 
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+    if (currentBid) {
+      setBidAmount(currentBid.amount.toString());
+      setNote(currentBid.note || "");
+    } else {
+      setBidAmount(
+        Math.floor(
+          (booking.priceRange.min + booking.priceRange.max) / 2
+        ).toString()
+      );
+      setNote("");
+    }
+  };
+
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     return date.toLocaleString("en-IN", {
@@ -141,7 +156,9 @@ const BidForm = ({ booking, currentBid, onSubmitBid, isBidLocked }) => {
               className="px-3 py-1.5 rounded-lg bg-blue-100 text-blue-600 hover:bg-blue-200 hover:text-blue-700 transition-all flex items-center gap-1 text-sm font-medium cursor-pointer"
               disabled={isBidLocked}
             >
-              <FaEdit className="text-xs" /> Edit Bid
+              <>
+              <FaEdit className="text-xs"/> Edit Bid 
+              </>
             </button>
           </div>
 
@@ -279,46 +296,55 @@ const BidForm = ({ booking, currentBid, onSubmitBid, isBidLocked }) => {
             ></textarea>
           </div>
 
-          {/* Submit Button */}
-          <button
-            onClick={handleBidSubmit}
-            disabled={isSubmitting}
-            className={`w-full py-3 px-4 rounded-xl text-white font-medium flex items-center justify-center gap-2 ${
-              isSubmitting
-                ? "bg-gray-400 cursor-not-allowed"
-                : "bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 cursor-pointer"
-            }`}
-          >
-            {isSubmitting ? (
-              <>
-                <svg
-                  className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                >
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                  ></circle>
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                  ></path>
-                </svg>
-                Processing...
-              </>
-            ) : (
-              <>
-                <FaMoneyBillWave /> {currentBid ? "Update Bid" : "Submit Bid"}
-              </>
-            )}
-          </button>
+          {/* Action Buttons */}
+          <div className="flex gap-3 mb-4">
+            <button
+              onClick={handleCancelEdit}
+              className="w-1/3 py-3 px-4 rounded-xl font-medium flex items-center justify-center gap-2 border-2 border-gray-300 text-gray-700 hover:bg-gray-50 transition-all cursor-pointer"
+              disabled={isSubmitting}
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleBidSubmit}
+              disabled={isSubmitting}
+              className={`w-2/3 py-3 px-4 rounded-xl text-white font-medium flex items-center justify-center gap-2 ${
+                isSubmitting
+                  ? "bg-gray-400 cursor-not-allowed"
+                  : "bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 cursor-pointer"
+              }`}
+            >
+              {isSubmitting ? (
+                <>
+                  <svg
+                    className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    ></path>
+                  </svg>
+                  Processing...
+                </>
+              ) : (
+                <>
+                  <FaMoneyBillWave /> {currentBid ? "Update Bid" : "Submit Bid"}
+                </>
+              )}
+            </button>
+          </div>
 
           {/* Bid guidelines */}
           <div className="mt-4 p-3 bg-blue-50 rounded-lg text-sm text-blue-800">

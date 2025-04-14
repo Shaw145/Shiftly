@@ -268,7 +268,7 @@ const AvailableBookings = () => {
 
                 <button
                   onClick={() => setFilterActive(!filterActive)}
-                  className={`flex items-center gap-2 px-4 py-3 rounded-xl border-2 ${
+                  className={`flex items-center gap-2 px-4 py-3 rounded-xl border-2 cursor-pointer hover:bg-gray-50 hover:shadow-md ${
                     filterActive
                       ? "bg-red-50 border-red-500 text-red-600"
                       : "border-gray-200 text-gray-700"
@@ -351,7 +351,7 @@ const AvailableBookings = () => {
                     <div className="md:col-span-2 lg:col-span-4 flex justify-end">
                       <button
                         onClick={handleResetFilters}
-                        className="px-4 py-2 bg-gray-200 text-gray-700 hover:bg-gray-300 transition rounded-lg"
+                        className="px-4 py-2 bg-gray-200 text-gray-700 hover:bg-gray-300 transition rounded-lg cursor-pointer hover:shadow-md"
                       >
                         Reset Filters
                       </button>
