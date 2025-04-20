@@ -28,6 +28,8 @@ import { ProfileProvider } from "./context/ProfileContext";
 import Settings from "./pages/Settings";
 import NotificationsPage from "./pages/NotificationsPage";
 import PublicRoute from "./components/PublicRoute";
+import { WebSocketProvider } from "./context/WebSocketContext";
+import { Toaster } from "react-hot-toast";
 
 const AppWrapper = () => {
   const location = useLocation();
@@ -136,6 +138,33 @@ const AppWrapper = () => {
       </Routes>
       {/* Show Footer for all routes except dashboard routes */}
       {!isDashboardRoute && <Footer />}
+
+      {/* Toast container for notifications */}
+      <Toaster
+        position="top-right"
+        toastOptions={{
+          duration: 3000,
+          style: {
+            background: "#fff",
+            color: "#333",
+            boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
+            borderRadius: "8px",
+            padding: "12px 16px",
+          },
+          success: {
+            style: {
+              border: "1px solid #10B981",
+              borderLeft: "4px solid #10B981",
+            },
+          },
+          error: {
+            style: {
+              border: "1px solid #EF4444",
+              borderLeft: "4px solid #EF4444",
+            },
+          },
+        }}
+      />
     </>
   );
 };
@@ -143,9 +172,11 @@ const AppWrapper = () => {
 export default function App() {
   return (
     <ProfileProvider>
-      <Router>
-        <AppWrapper />
-      </Router>
+      <WebSocketProvider>
+        <Router>
+          <AppWrapper />
+        </Router>
+      </WebSocketProvider>
     </ProfileProvider>
   );
 }

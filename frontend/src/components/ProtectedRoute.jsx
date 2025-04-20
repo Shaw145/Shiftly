@@ -22,6 +22,7 @@ const ProtectedRoute = ({ children }) => {
       localStorage.removeItem("token");
       localStorage.removeItem("fullName");
       localStorage.removeItem("rememberMe");
+      localStorage.removeItem("username");
       navigate("/login");
     }
   }, [navigate]);

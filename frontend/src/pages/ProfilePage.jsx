@@ -210,6 +210,7 @@ const ProfilePage = () => {
         }));
         setShowEditModal(false);
         showToast("Profile updated successfully", "success");
+        localStorage.setItem("fullName", result.user.fullName);
 
         // Refresh the profile data
         await fetchProfile();

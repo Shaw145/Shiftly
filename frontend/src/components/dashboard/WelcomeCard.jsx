@@ -1,10 +1,39 @@
 import { FaTruck, FaMapMarkedAlt, FaArrowRight } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
+import { useEffect } from "react";
+import { useProfile } from "../../context/ProfileContext";
 
 const WelcomeCard = () => {
   const navigate = useNavigate();
-  const fullName = localStorage.getItem("fullName") || "User";
+  //const fullName = localStorage.getItem("fullName") || "User";
+
+  const { userDetails, updateUserDetails } = useProfile();
+  const fullName = userDetails?.fullName || "User";
   const firstName = fullName.split(" ")[0] || "User";
+
+  useEffect(() => {
+    fetchUserDetails();
+  }, []);
+
+  const fetchUserDetails = async () => {
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_BACKEND_URL}/api/users/me`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
+      const data = await response.json();
+      if (data.success) {
+        updateUserDetails(data.user);
+      }
+    } catch (error) {
+      console.error("Error fetching user details:", error);
+    }
+  };
+
 
   return (
     <div className="bg-white rounded-xl shadow-lg p-4 sm:p-8 relative overflow-hidden border border-gray-100">

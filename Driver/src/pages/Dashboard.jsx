@@ -5,11 +5,14 @@ import WelcomeCard from "../components/dashboard/WelcomeCard";
 import StatsCard from "../components/dashboard/StatsCard";
 import QuickActions from "../components/dashboard/QuickActions";
 import BookingsOverview from "../components/dashboard/BookingsOverview";
+import BidActivity from "../components/dashboard/BidActivity";
 import PerformanceMetrics from "../components/dashboard/PerformanceMetrics";
 import EarningsSummary from "../components/dashboard/EarningsSummary";
 import VehicleStatus from "../components/dashboard/VehicleStatus";
 import ProfileUpdateModal from "../components/ProfileUpdateModal";
 import { FaSpinner } from "react-icons/fa";
+import { isTokenExpired, clearDriverAuth } from "../utils/authUtils";
+
 
 const Dashboard = () => {
   const [driver, setDriver] = useState(null);
@@ -24,6 +27,17 @@ const Dashboard = () => {
       navigate("/login");
       return;
     }
+
+
+    // Check if token is expired
+    if (isTokenExpired(token)) {
+      // Token is expired, clean up localStorage
+      clearDriverAuth();
+      navigate("/login");
+      return;
+    }
+
+
     fetchDriver();
   }, [navigate]);
 
@@ -122,9 +136,17 @@ const Dashboard = () => {
         <QuickActions />
       </div>
 
-      {/* Bookings Overview */}
-      <div className="mt-6">
-        <BookingsOverview />
+      {/* Two column grid for Bookings Overview and Bid Activity */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+        {/* Bookings Overview */}
+        <div>
+          <BookingsOverview />
+        </div>
+
+        {/* Bid Activity */}
+        <div>
+          <BidActivity />
+        </div>
       </div>
 
       {/* Earnings Summary */}

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import {
   FaMoneyBillWave,
   FaInfoCircle,
@@ -6,364 +6,477 @@ import {
   FaEdit,
   FaLock,
   FaHistory,
+  FaExclamationTriangle,
+  FaWifi,
+  FaRupeeSign,
+  FaSync,
+  FaBell,
+  FaClock,
+  FaUser,
+  FaThumbsUp,
+  FaExclamationCircle,
 } from "react-icons/fa";
+import { useWebSocket } from "../../context/WebSocketContext";
 import { toast } from "react-hot-toast";
 
-const BidForm = ({ booking, currentBid, onSubmitBid, isBidLocked }) => {
+/**
+ * Component for placing and updating bids on bookings
+ * @param {Object} booking - The booking object
+ * @param {Object} currentBid - The driver's current bid on this booking, if any
+ * @param {Function} onBidSubmit - Callback function when bid is submitted
+ * @param {Boolean} isLocked - Whether bidding is locked (24h before pickup)
+ */
+const BidForm = ({ booking, currentBid, onBidSubmit, isLocked = false }) => {
+  const { isConnected, placeBid } = useWebSocket();
   const [bidAmount, setBidAmount] = useState("");
-  const [note, setNote] = useState("");
+  const [bidNote, setBidNote] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isEditing, setIsEditing] = useState(!currentBid);
+  const [offlineMode, setOfflineMode] = useState(!isConnected);
+  const [lastBid, setLastBid] = useState(null);
 
+  // Load last bid from localStorage if exists
   useEffect(() => {
-    if (currentBid) {
-      setBidAmount(currentBid.amount.toString());
-      setNote(currentBid.note || "");
-      setIsEditing(false);
-    } else {
-      setBidAmount(
-        Math.floor(
-          (booking.priceRange.min + booking.priceRange.max) / 2
-        ).toString()
-      );
-      setIsEditing(true);
+    // Check localStorage for previous bid on this booking
+    try {
+      const storedBids = JSON.parse(localStorage.getItem("driverBids") || "{}");
+      const bookingId = booking._id || booking.id || booking.bookingId;
+
+      if (bookingId && storedBids[bookingId]) {
+        const storedBid = storedBids[bookingId];
+        setLastBid(storedBid);
+
+        // If no current bid is set through props, use the stored bid as initial value
+        if (!currentBid && storedBid) {
+          if (storedBid.amount) {
+            setBidAmount(storedBid.amount);
+          }
+          if (storedBid.note) {
+            setBidNote(storedBid.note);
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Error reading stored bids:", error);
     }
   }, [booking, currentBid]);
 
-  const handleBidSubmit = async () => {
-    const numericBidAmount = bidAmount ? parseInt(bidAmount, 10) : 0;
+  // Update offline mode state when connection changes
+  useEffect(() => {
+    setOfflineMode(!isConnected);
+  }, [isConnected]);
 
-    if (
-      !bidAmount ||
-      numericBidAmount < booking.priceRange.min ||
-      numericBidAmount > booking.priceRange.max
-    ) {
-      toast.error(
-        `Bid must be between ₹${booking.priceRange.min} and ₹${booking.priceRange.max}`,
-        {
-          duration: 4000,
-          position: "top-center",
+  // Set initial bid amount from current bid if exists
+  useEffect(() => {
+    if (currentBid && currentBid.amount) {
+      setBidAmount(currentBid.amount);
+    }
+    if (currentBid && currentBid.note) {
+      setBidNote(currentBid.note);
+    }
+  }, [currentBid]);
+
+  // Add this useEffect to BidForm to listen for bid updates directly
+  useEffect(() => {
+    // Handler for real-time bid updates
+    const handleBidUpdate = (event) => {
+      const data = event.detail;
+
+      // Make sure we have the right bid for this booking
+      if (
+        data &&
+        data.bookingId === (booking._id || booking.id || booking.bookingId)
+      ) {
+        const bidData = data.bid;
+        const currentDriverId = localStorage.getItem("driverId");
+
+        // Only update if it's our own bid
+        if (bidData && bidData.driverId === currentDriverId) {
+          console.log("BidForm received a bid update event:", bidData);
+
+          // Update the form values with the new bid data
+          setBidAmount(bidData.amount);
+          if (bidData.note) {
+            setBidNote(bidData.note);
+          }
+
+          // Update the lastBid state to refresh the "Your Current Bid" section
+          setLastBid(bidData);
         }
+      }
+    };
+
+    // Listen for both custom events
+    document.addEventListener("bid:update", handleBidUpdate);
+    document.addEventListener("ws:message", (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (data.type === "bid_update" || data.type === "new_bid") {
+          handleBidUpdate({ detail: data });
+        }
+      } catch (err) {
+        // Ignore parsing errors
+      }
+    });
+
+    return () => {
+      document.removeEventListener("bid:update", handleBidUpdate);
+      document.removeEventListener("ws:message", handleBidUpdate);
+    };
+  }, [booking]);
+
+  // If bidding is locked, show message
+  if (isLocked) {
+    return (
+      <div className="bg-orange-50 text-orange-600 rounded-xl p-5 mb-4 border border-orange-200 shadow-sm">
+        <div className="flex items-center gap-3 mb-3">
+          <div className="bg-orange-100 p-2 rounded-full">
+            <FaLock className="text-xl text-orange-500" />
+          </div>
+          <h3 className="text-lg font-medium">Bidding Locked</h3>
+        </div>
+        <p className="ml-10 text-orange-700">
+          Bids can only be placed more than 24 hours before the scheduled pickup
+          time. Contact support if you need assistance.
+        </p>
+      </div>
+    );
+  }
+
+  // Handle form submission
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    // Validate bid amount
+    if (!bidAmount || isNaN(bidAmount) || Number(bidAmount) <= 0) {
+      toast.error("Please enter a valid bid amount");
+      return;
+    }
+
+    // Validate against booking's price range if available
+    const numericBidAmount = Number(bidAmount);
+    const minPrice =
+      booking.priceRange?.min || booking.estimatedPrice?.min || 0;
+    const maxPrice = booking.priceRange?.max || booking.estimatedPrice?.max;
+
+    // Check if bid is below minimum price
+    if (minPrice && numericBidAmount < minPrice) {
+      toast.error(
+        `Your bid (₹${numericBidAmount}) is below the minimum estimated price (₹${minPrice})`
+      );
+      return;
+    }
+
+    // Check if bid exceeds maximum price by more than 15%
+    if (maxPrice && numericBidAmount > maxPrice * 1.15) {
+      toast.error(
+        `Your bid (₹${numericBidAmount}) is too high compared to the maximum estimated price (₹${maxPrice})`
       );
       return;
     }
 
     setIsSubmitting(true);
 
+    // Use MongoDB ObjectId if available, otherwise use the formatted booking ID
+    const bidBookingId = booking._id || booking.id || booking.bookingId;
+
+    if (!bidBookingId) {
+      toast.error("Invalid booking reference");
+      setIsSubmitting(false);
+      return;
+    }
+
+    // Prepare bid data
+    const bidData = {
+      amount: numericBidAmount,
+      note: bidNote || "",
+      bookingId: bidBookingId,
+      offlineMode: !isConnected,
+    };
+
     try {
-      await onSubmitBid(numericBidAmount, note);
-      toast.success(
-        currentBid
-          ? "Your bid has been updated successfully!"
-          : "Your bid has been submitted successfully!",
-        {
-          duration: 4000,
-          position: "top-center",
-        }
+      // Use our placeBid function from WebSocketContext
+      const result = await placeBid(
+        bidData.bookingId,
+        Number(bidData.amount),
+        bidData.note
       );
-      setIsEditing(false);
+
+      if (!result || !result.success) {
+        throw new Error(result?.message || "Failed to place bid");
+      }
+
+      // If offline, save bid to localStorage for later submission
+      if (!isConnected) {
+        const offlineBids = JSON.parse(
+          localStorage.getItem("offlineBids") || "[]"
+        );
+        offlineBids.push({
+          ...bidData,
+          timestamp: new Date().toISOString(),
+        });
+        localStorage.setItem("offlineBids", JSON.stringify(offlineBids));
+
+        // Keep only this offline-specific toast
+        toast.success("Bid saved for submission when back online", {
+          id: "offline-bid-saved",
+        });
+      }
+
+      // Update lastBid state to show the new bid immediately in your current bid section
+      const driverId = localStorage.getItem("driverId");
+      const updatedBid = {
+        ...bidData,
+        driverId,
+        bidTime: new Date().toISOString(),
+      };
+      setLastBid(updatedBid);
+
+      // Immediately update the current bid in the form
+      if (!currentBid) {
+        // If it's a new bid, clear the form
+        setBidAmount("");
+        setBidNote("");
+      } else {
+        // If updating an existing bid, keep the value so it's visible in the form
+        setBidAmount(numericBidAmount);
+        setBidNote(bidData.note);
+      }
+
+      // Notify parent component
+      if (onBidSubmit) {
+        onBidSubmit(bidData);
+      }
     } catch (error) {
-      toast.error("There was an error submitting your bid. Please try again.", {
-        duration: 4000,
-        position: "top-center",
+      console.error("Error submitting bid:", error);
+      toast.error(error.message || "Error submitting bid. Please try again.", {
+        id: "bid-submit-error",
       });
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleCancelEdit = () => {
-    setIsEditing(false);
-    if (currentBid) {
-      setBidAmount(currentBid.amount.toString());
-      setNote(currentBid.note || "");
-    } else {
-      setBidAmount(
-        Math.floor(
-          (booking.priceRange.min + booking.priceRange.max) / 2
-        ).toString()
-      );
-      setNote("");
+  // Function to attempt reconnection
+  const attemptReconnect = () => {
+    // We'll use window reload as a simple way to reconnect
+    window.location.reload();
+  };
+
+  // Get the price range display
+  const getPriceRangeDisplay = () => {
+    const minPrice =
+      booking.priceRange?.min || booking.estimatedPrice?.min || 0;
+    const maxPrice = booking.priceRange?.max || booking.estimatedPrice?.max;
+
+    if (minPrice && maxPrice) {
+      return `₹${minPrice.toLocaleString("en-IN")} - ₹${maxPrice.toLocaleString(
+        "en-IN"
+      )}`;
+    } else if (minPrice) {
+      return `Min: ₹${minPrice.toLocaleString("en-IN")}`;
+    } else if (maxPrice) {
+      return `Max: ₹${maxPrice.toLocaleString("en-IN")}`;
     }
+
+    return "Price range not available";
   };
 
-  const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    return date.toLocaleString("en-IN", {
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  };
+  // Determine which bid to display (current bid takes precedence, then lastBid from localStorage)
+  const displayBid = currentBid || lastBid;
 
-  if (isBidLocked) {
-    return (
-      <div className="bg-orange-50 border-2 border-orange-100 rounded-xl p-6 sticky top-6">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center">
-            <FaLock className="text-orange-500" />
+  return (
+    <div className={isLocked ? "opacity-50 pointer-events-none" : ""}>
+      {/* Enhanced Current Bid Information */}
+      <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl p-5 mb-5 border border-gray-200 shadow-sm">
+        <h2 className="font-semibold text-gray-800 mb-2 flex items-center gap-2">
+          <div className="bg-indigo-100 p-2 rounded-full">
+            <FaMoneyBillWave className="text-indigo-500" />
           </div>
-          <h3 className="text-lg font-medium text-orange-800">
-            Bidding Locked
-          </h3>
-        </div>
-        <p className="text-orange-700 mb-4">
-          Bidding is locked as the pickup date is less than 24 hours away. You
-          can no longer place or modify bids for this booking.
-        </p>
+          <span>Your Current Bid</span>
+        </h2>
 
-        {currentBid ? (
-          <div className="bg-white rounded-lg p-4 border border-orange-200">
-            <div className="text-sm text-gray-500 mb-1">Your current bid:</div>
-            <div className="text-2xl font-bold text-gray-800 mb-2">
-              ₹{currentBid.amount}
+        {displayBid?.amount ? (
+          <div className="ml-9">
+            <div className="flex items-center gap-2">
+              <span className="text-2xl font-bold text-gray-800">
+                ₹{displayBid.amount.toLocaleString("en-IN")}
+              </span>
+              {displayBid?.isOffline && (
+                <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full">
+                  Offline mode
+                </span>
+              )}
             </div>
-            <div className="text-xs text-gray-500 flex items-center gap-1 mb-3">
-              <FaHistory /> Submitted on {formatDate(currentBid.createdAt)}
+            <div className="flex items-center mt-1">
+              <div className="text-sm text-gray-600 flex items-center gap-1">
+                <FaCheck className="text-green-500" />
+                <span>You can update your bid until the deadline</span>
+              </div>
             </div>
-            {currentBid.note && (
-              <div className="border-t border-gray-100 pt-3 mt-3">
-                <div className="text-sm text-gray-700">{currentBid.note}</div>
+            {displayBid.note && (
+              <div className="mt-2 bg-white p-2 rounded-md text-sm text-gray-700 border border-gray-200">
+                <span className="font-medium">Note:</span> {displayBid.note}
               </div>
             )}
           </div>
         ) : (
-          <div className="text-orange-700 text-center p-4 bg-white rounded-lg border border-orange-200">
-            You have not placed a bid for this booking.
+          <div className="ml-9 flex items-center">
+            <div className="text-lg font-semibold text-gray-500">
+              No bid placed yet
+            </div>
           </div>
         )}
       </div>
-    );
-  }
 
-  return (
-    <div className="bg-gradient-to-br from-white to-gray-50 rounded-xl shadow-lg p-6 border border-gray-200 hover:shadow-xl transition-shadow duration-300 relative overflow-hidden">
-      <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-red-500 via-yellow-500 to-green-500"></div>
-      {!isEditing && currentBid ? (
-        // Current Bid View
-        <div className="relative">
-          <div className="absolute -top-10 -right-10 w-20 h-20 bg-green-100 rounded-full opacity-50 blur-xl"></div>
-          <div className="absolute -bottom-10 -left-10 w-20 h-20 bg-blue-100 rounded-full opacity-50 blur-xl"></div>
-
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-lg font-medium text-gray-800 flex items-center gap-2">
-              <FaCheck className="text-green-500" /> Your Bid
-            </h3>
-            <button
-              onClick={() => setIsEditing(true)}
-              className="px-3 py-1.5 rounded-lg bg-blue-100 text-blue-600 hover:bg-blue-200 hover:text-blue-700 transition-all flex items-center gap-1 text-sm font-medium cursor-pointer"
-              disabled={isBidLocked}
-            >
-              <>
-              <FaEdit className="text-xs"/> Edit Bid 
-              </>
-            </button>
-          </div>
-
-          <div className="p-4 bg-green-50 rounded-lg border border-green-100 mb-4">
-            <div className="text-sm text-gray-600 mb-1">Your bid amount:</div>
-            <div className="text-2xl font-bold text-gray-800 mb-1">
-              ₹{currentBid.amount}
+      {/* Price Range Card */}
+      {(booking.priceRange || booking.estimatedPrice) && (
+        <div className="mb-5 p-4 bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl border border-gray-200 shadow-sm">
+          <div className="flex items-center gap-2 mb-2">
+            <div className="bg-gray-200 p-1.5 rounded-full">
+              <FaMoneyBillWave className="text-gray-700" />
             </div>
-            <div className="text-xs text-gray-500 flex items-center gap-1">
-              <FaHistory /> Last updated: {formatDate(currentBid.createdAt)}
+            <h3 className="font-medium text-gray-800">Suggested Price Range</h3>
+          </div>
+          <div className="ml-9 flex items-center">
+            <div className="text-2xl font-bold text-gray-800">
+              {getPriceRangeDisplay()}
             </div>
-          </div>
-
-          {currentBid.note && (
-            <div className="mb-4">
-              <h4 className="text-sm font-medium text-gray-700 mb-2">
-                Your Note:
-              </h4>
-              <div className="p-3 bg-gray-50 rounded-lg text-gray-700 text-sm">
-                {currentBid.note}
-              </div>
-            </div>
-          )}
-
-          <div className="p-3 bg-blue-50 rounded-lg text-sm text-blue-800 mb-4">
-            <h4 className="font-medium flex items-center gap-1 mb-1">
-              <FaInfoCircle /> Bidding Information
-            </h4>
-            <ul className="list-disc ml-5 space-y-1 text-blue-700">
-              <li>You can update your bid until 24 hours before pickup</li>
-              <li>Lower bids have a higher chance of being selected</li>
-              <li>Customer will be notified when you place/update a bid</li>
-            </ul>
-          </div>
-        </div>
-      ) : (
-        // Edit Bid Form
-        <div className="relative">
-          <div className="absolute -top-10 -right-10 w-20 h-20 bg-red-100 rounded-full opacity-50 blur-xl"></div>
-          <div className="absolute -bottom-10 -left-10 w-20 h-20 bg-orange-100 rounded-full opacity-50 blur-xl"></div>
-
-          <h3 className="text-lg font-medium text-gray-800 mb-4 flex items-center gap-2">
-            <FaMoneyBillWave className="text-red-500" />{" "}
-            {currentBid ? "Update Your Bid" : "Place Your Bid"}
-          </h3>
-
-          {/* Price Range Card */}
-          <div className="mb-6 p-4 bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl border border-gray-200">
-            <h4 className="text-sm font-medium text-gray-600 mb-3">
-              Price Range:
-            </h4>
-            <div className="flex items-center justify-between">
-              <div className="text-center">
-                <div className="text-sm text-gray-500 mb-1">Minimum</div>
-                <div className="text-xl font-bold text-green-600">
-                  ₹{booking.priceRange.min}
-                </div>
-              </div>
-              <div className="h-px w-16 bg-gradient-to-r from-green-500 to-red-500"></div>
-              <div className="text-center">
-                <div className="text-sm text-gray-500 mb-1">Maximum</div>
-                <div className="text-xl font-bold text-red-600">
-                  ₹{booking.priceRange.max}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Bid Amount Input */}
-          <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Your Bid Amount
-            </label>
-            <div className="relative">
-              <input
-                type="text"
-                value={bidAmount}
-                onChange={(e) => {
-                  const value = e.target.value.replace(/\D/g, "");
-                  setBidAmount(value);
-                }}
-                className="block w-full px-4 py-3 text-2xl font-bold text-gray-700 bg-white border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all appearance-none"
-                placeholder="Enter bid amount"
-              />
-              <div className="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none">
-                <span className="text-gray-500">INR</span>
-              </div>
-            </div>
-
-            {/* Bid Range Indicator */}
-            <div className="mt-4">
-              <div className="mb-2 flex justify-between items-center">
-                <span className="text-xs font-medium text-green-600">
-                  Best Value
-                </span>
-                <span className="text-xs font-medium text-red-600">
-                  Higher Price
-                </span>
-              </div>
-              <div className="h-3 bg-gray-200 rounded-full overflow-hidden shadow-inner">
-                <div
-                  className="h-full transition-all duration-300 relative"
-                  style={{
-                    width: `${
-                      bidAmount
-                        ? ((parseInt(bidAmount, 10) - booking.priceRange.min) /
-                            (booking.priceRange.max - booking.priceRange.min)) *
-                          100
-                        : 0
-                    }%`,
-                    background: `linear-gradient(90deg, #4ade80 0%, #fbbf24 50%, #ef4444 100%)`,
-                  }}
-                >
-                  <span className="absolute right-0 top-0 h-full w-2 bg-white rounded-full shadow-md transform translate-x-1/2"></span>
-                </div>
-              </div>
-              <div className="flex justify-between mt-1 text-xs text-gray-600">
-                <span>₹{booking.priceRange.min}</span>
-                <span>₹{booking.priceRange.max}</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Add Note */}
-          <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Additional Note (Optional)
-            </label>
-            <textarea
-              rows="3"
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-              className="focus:ring-red-500 focus:border-red-500 block w-full sm:text-sm border-2 border-gray-300 rounded-md p-2"
-              placeholder="Any special conditions or notes about your bid..."
-            ></textarea>
-          </div>
-
-          {/* Action Buttons */}
-          <div className="flex gap-3 mb-4">
-            <button
-              onClick={handleCancelEdit}
-              className="w-1/3 py-3 px-4 rounded-xl font-medium flex items-center justify-center gap-2 border-2 border-gray-300 text-gray-700 hover:bg-gray-50 transition-all cursor-pointer"
-              disabled={isSubmitting}
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleBidSubmit}
-              disabled={isSubmitting}
-              className={`w-2/3 py-3 px-4 rounded-xl text-white font-medium flex items-center justify-center gap-2 ${
-                isSubmitting
-                  ? "bg-gray-400 cursor-not-allowed"
-                  : "bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 cursor-pointer"
-              }`}
-            >
-              {isSubmitting ? (
-                <>
-                  <svg
-                    className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                  >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    ></circle>
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                    ></path>
-                  </svg>
-                  Processing...
-                </>
-              ) : (
-                <>
-                  <FaMoneyBillWave /> {currentBid ? "Update Bid" : "Submit Bid"}
-                </>
-              )}
-            </button>
-          </div>
-
-          {/* Bid guidelines */}
-          <div className="mt-4 p-3 bg-blue-50 rounded-lg text-sm text-blue-800">
-            <h4 className="font-medium flex items-center gap-1 mb-1">
-              <FaInfoCircle /> Bidding Guidelines
-            </h4>
-            <ul className="list-disc ml-5 space-y-1 text-blue-700">
-              <li>Your bid must be within the customer's price range</li>
-              <li>
-                You can update your bid anytime until 24 hours before pickup
-              </li>
-              <li>
-                Lower bids typically have a higher chance of being selected
-              </li>
-              <li>If your bid is accepted, you'll be notified right away</li>
-            </ul>
           </div>
         </div>
       )}
+
+      {/* Bid Form */}
+      <form
+        onSubmit={handleSubmit}
+        className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm mb-5"
+      >
+        <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+          <FaMoneyBillWave className="text-red-500" />
+          {displayBid ? "Update Your Bid" : "Place Your Bid"}
+        </h3>
+
+        <div className="mb-4">
+          <label
+            htmlFor="bidAmount"
+            className="block text-sm font-medium text-gray-700 mb-1"
+          >
+            Bid Amount (₹)
+          </label>
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <FaRupeeSign className="text-gray-400" />
+            </div>
+            <input
+              type="number"
+              id="bidAmount"
+              value={bidAmount}
+              onChange={(e) => setBidAmount(e.target.value)}
+              className="w-full pl-10 px-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 cursor-text text-lg"
+              placeholder="Enter your bid amount"
+              min="1"
+              required
+              aria-label="Bid amount in Indian Rupees"
+            />
+          </div>
+
+          {/* Connection warning only if disconnected */}
+          {!isConnected && (
+            <div className="flex items-center justify-between mt-2">
+              <div className="text-xs text-red-600 flex items-center gap-1">
+                <FaWifi className="inline-block" /> Disconnected from server
+              </div>
+              <button
+                type="button"
+                onClick={attemptReconnect}
+                className="text-xs text-red-600 flex items-center gap-1 hover:text-red-700 cursor-pointer"
+              >
+                <FaSync className="inline-block" /> Reconnect
+              </button>
+            </div>
+          )}
+        </div>
+
+        <div className="mb-4">
+          <label
+            htmlFor="bidNote"
+            className="block text-sm font-medium text-gray-700 mb-1"
+          >
+            Note (Optional)
+          </label>
+          <textarea
+            id="bidNote"
+            value={bidNote}
+            onChange={(e) => setBidNote(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 cursor-text"
+            placeholder="Add any additional information about your bid"
+            rows="2"
+            aria-label="Bid note"
+          ></textarea>
+        </div>
+
+        <button
+          type="submit"
+          disabled={isSubmitting}
+          className={`w-full py-3 px-4 rounded-lg text-white font-medium transition-colors cursor-pointer flex items-center justify-center gap-2 ${
+            isSubmitting
+              ? "bg-gray-400 cursor-not-allowed"
+              : offlineMode
+              ? "bg-orange-500 hover:bg-orange-600"
+              : "bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 shadow-md"
+          }`}
+          aria-label={isSubmitting ? "Submitting bid" : "Submit bid"}
+        >
+          {isSubmitting ? (
+            <>
+              <FaSync className="animate-spin" /> Processing...
+            </>
+          ) : displayBid ? (
+            <>
+              <FaEdit /> Update Bid {offlineMode ? "(Offline Mode)" : ""}
+            </>
+          ) : (
+            <>
+              <FaMoneyBillWave /> Submit Bid{" "}
+              {offlineMode ? "(Offline Mode)" : ""}
+            </>
+          )}
+        </button>
+
+        {offlineMode && (
+          <p className="text-xs text-orange-600 mt-2 flex items-center gap-1">
+            <FaWifi className="text-xs" />
+            You are currently offline. Your bid will be saved locally and
+            submitted when your connection is restored.
+          </p>
+        )}
+      </form>
+
+      {/* Bidding Information Card */}
+      <div className="bg-gradient-to-r from-blue-50 to-blue-100 rounded-xl p-5 border border-gray-200 shadow-sm">
+        <h3 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
+          <FaInfoCircle className="text-blue-500" /> Bidding Information
+        </h3>
+        <ul className="space-y-3">
+          <li className="flex items-start gap-2 text-sm text-gray-700">
+            <FaClock className="text-blue-500 mt-1 flex-shrink-0" />
+            <span>You can update your bid until 24 hours before pickup</span>
+          </li>
+          <li className="flex items-start gap-2 text-sm text-gray-700">
+            <FaThumbsUp className="text-blue-500 mt-1 flex-shrink-0" />
+            <span>Lower bids have a higher chance of being selected</span>
+          </li>
+          <li className="flex items-start gap-2 text-sm text-gray-700">
+            <FaBell className="text-blue-500 mt-1 flex-shrink-0" />
+            <span>Customer will be notified when you place/update a bid</span>
+          </li>
+          <li className="flex items-start gap-2 text-sm text-gray-700 font-medium">
+            <FaExclamationCircle className="text-red-500 mt-1 flex-shrink-0" />
+            <span>
+              You must be 100% sure about the shipment before submitting any bid
+            </span>
+          </li>
+        </ul>
+      </div>
     </div>
   );
 };

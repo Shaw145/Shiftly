@@ -9,6 +9,7 @@ import {
   FaCog,
   FaSignOutAlt,
   FaBell,
+  FaGavel,
 } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import useSwipe from "../../hooks/useSwipe";
@@ -32,6 +33,7 @@ const Sidebar = forwardRef(({ isSidebarOpen, toggleSidebar }, ref) => {
       link: "/available-bookings",
     },
     { icon: <FaCalendarAlt />, title: "My Bookings", link: "/my-bookings" },
+    // { icon: <FaGavel />, title: "My Bids", link: "/my-bids" },
     {
       icon: <FaMapMarkedAlt />,
       title: "Live Tracking",

@@ -1,4 +1,5 @@
 const Booking = require("../models/Booking");
+const Driver = require("../models/Driver");
 const jwt = require("jsonwebtoken");
 
 exports.validatePaymentAccess = async (req, res, next) => {
@@ -10,7 +11,7 @@ exports.validatePaymentAccess = async (req, res, next) => {
       bookingId,
       driverId,
       userId: req.user._id,
-      token,
+      token: token ? "Token present" : "No token",
     });
 
     if (!token) {
@@ -24,22 +25,56 @@ exports.validatePaymentAccess = async (req, res, next) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     console.log("Decoded payment token:", decoded);
 
-    // Check if booking exists and belongs to user
-    const booking = await Booking.findOne({
-      _id: bookingId,
-      userId: req.user._id,
-      status: "pending",
-    });
+    // Check if booking exists using static method
+    const booking = await Booking.findByAnyId(bookingId);
 
     if (!booking) {
       return res.status(404).json({
         success: false,
-        error: "Booking not found or unauthorized",
+        error: "Booking not found",
       });
     }
 
-    // Skip driver validation since we're using a dummy driver
+    // Check if booking belongs to user
+    if (booking.userId.toString() !== req.user._id.toString()) {
+      return res.status(403).json({
+        success: false,
+        error: "Not authorized to access this booking",
+      });
+    }
+
+    // Check if booking is in valid state for payment
+    if (booking.status !== "pending") {
+      return res.status(400).json({
+        success: false,
+        error: "This booking cannot be processed for payment",
+        status: booking.status,
+      });
+    }
+
+    // Validate driver exists
+    let driver = null;
+
+    if (decoded.driverId) {
+      // Try to find the driver from the token
+      driver = await Driver.findById(decoded.driverId);
+    } else if (driverId) {
+      // Or use the driverId from the request body
+      driver = await Driver.findById(driverId);
+    } else {
+      // If neither is provided, create a dummy driver ID
+      console.log("No driver ID provided, using dummy ID");
+    }
+
+    if (driver) {
+      console.log(`Driver found: ${driver.fullName} (${driver._id})`);
+    }
+
+    // Store booking and driver in request for controller
     req.booking = booking;
+    req.driver = driver;
+    req.paymentToken = decoded;
+
     next();
   } catch (error) {
     console.error("Payment validation error:", error);
@@ -50,6 +85,14 @@ exports.validatePaymentAccess = async (req, res, next) => {
         error: "Payment session expired",
       });
     }
+
+    if (error.name === "JsonWebTokenError") {
+      return res.status(401).json({
+        success: false,
+        error: "Invalid payment token",
+      });
+    }
+
     res.status(500).json({
       success: false,
       error: "Error validating payment access",

@@ -7,6 +7,7 @@ import {
   FaBell,
   FaCog,
   FaSignOutAlt,
+  FaGavel,
 } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 
@@ -91,6 +92,19 @@ const ProfileDropdown = ({ userName, userDetails, onClose }) => {
             My Bookings
           </span>
         </li>
+        <li
+          onClick={() => {
+            navigate("/my-bids");
+            onClose();
+          }}
+          className="px-4 py-2 hover:bg-gray-50 cursor-pointer flex items-center space-x-3 group"
+        >
+          <FaGavel className="w-4 h-4 text-gray-600 group-hover:text-red-500" />
+          <span className="text-gray-700 group-hover:text-gray-900">
+            My Bids
+          </span>
+        </li>
+
         <li
           onClick={() => {
             navigate("/earnings-history");

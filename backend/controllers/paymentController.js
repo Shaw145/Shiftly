@@ -10,36 +10,33 @@ const mongoose = require("mongoose");
 
 exports.initiatePayment = async (req, res) => {
   try {
-    const { bookingId, driverId, amount, paymentMethod } = req.body;
-    const token = req.headers["x-payment-token"];
+    const { bookingId, amount, paymentMethod } = req.body;
+
+    // Use the booking and driver from middleware
+    const booking = req.booking;
+    let driverId = req.body.driverId;
+
+    // If we have a driver from the middleware, use that
+    if (req.driver) {
+      driverId = req.driver._id;
+    } else if (!driverId) {
+      // If no driverId provided, create a dummy one
+      driverId = new mongoose.Types.ObjectId();
+    }
 
     console.log("Payment initiation request:", {
-      bookingId,
+      bookingId: booking._id,
       driverId,
       amount,
       paymentMethod,
       userId: req.user._id,
     });
 
-    if (!token) {
-      return res.status(401).json({
-        success: false,
-        error: "Payment token is required",
-      });
-    }
-
-    // Verify token and session
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    console.log("Decoded token:", decoded);
-
-    // Create a valid ObjectId for the dummy driver
-    const dummyDriverId = new mongoose.Types.ObjectId();
-
-    // Create payment record with the dummy driver ID
+    // Create payment record
     const payment = await Payment.create({
-      bookingId,
+      bookingId: booking._id,
       userId: req.user._id,
-      driverId: dummyDriverId, // Use the dummy ObjectId
+      driverId: driverId,
       amount,
       transactionId:
         "TXN" + Date.now() + Math.random().toString(36).substr(2, 9),
@@ -47,7 +44,11 @@ exports.initiatePayment = async (req, res) => {
       status: "pending",
     });
 
-    console.log("Payment initiated successfully:", payment);
+    console.log("Payment initiated successfully:", {
+      id: payment._id,
+      bookingId: payment.bookingId,
+      status: payment.status,
+    });
 
     res.status(200).json({
       success: true,
@@ -87,21 +88,111 @@ exports.verifyPayment = async (req, res) => {
     payment.status = "success";
     await payment.save();
 
-    // Update booking status and driver
-    await Booking.findByIdAndUpdate(payment.bookingId, {
-      status: "confirmed",
-      driverId: payment.driverId,
-      paymentId: payment._id,
-    });
+    // Find the booking
+    const booking = await Booking.findById(payment.bookingId);
+    if (!booking) {
+      return res.status(404).json({
+        success: false,
+        error: "Booking not found",
+      });
+    }
+
+    // Find the selected driver's bid
+    const selectedBid =
+      booking.driverBids && booking.driverBids.length > 0
+        ? booking.driverBids.find(
+            (bid) =>
+              bid.driverId &&
+              payment.driverId &&
+              bid.driverId.toString() === payment.driverId.toString()
+          )
+        : null;
+
+    // Update other bids to rejected
+    if (selectedBid) {
+      selectedBid.status = "accepted";
+
+      if (booking.driverBids && booking.driverBids.length > 0) {
+        booking.driverBids.forEach((bid) => {
+          if (
+            bid.driverId &&
+            payment.driverId &&
+            bid.driverId.toString() !== payment.driverId.toString()
+          ) {
+            bid.status = "rejected";
+          }
+        });
+      }
+    }
+
+    // Update booking status, driver and payment ID
+    booking.status = "confirmed";
+    booking.driverId = payment.driverId;
+    booking.paymentId = payment._id;
+    booking.finalPrice = payment.amount;
+    booking.confirmedAt = new Date();
+
+    await booking.save();
+
+    // Notify the driver via WebSocket if available
+    try {
+      const { broadcast } = require("../websocket/server");
+
+      // Notify selected driver
+      broadcast(
+        {
+          type: "booking_confirmed",
+          payload: {
+            bookingId: booking._id.toString(),
+            bookingNumber: booking.bookingId,
+            amount: payment.amount,
+          },
+        },
+        (client) =>
+          client.role === "driver" &&
+          client.user.toString() === payment.driverId.toString()
+      );
+
+      // Notify other drivers who bid
+      booking.driverBids.forEach((bid) => {
+        if (bid.driverId.toString() !== payment.driverId.toString()) {
+          broadcast(
+            {
+              type: "bid_rejected",
+              payload: {
+                bookingId: booking._id.toString(),
+                bookingNumber: booking.bookingId,
+              },
+            },
+            (client) =>
+              client.role === "driver" &&
+              client.user.toString() === bid.driverId.toString()
+          );
+        }
+      });
+
+      console.log("WebSocket notifications sent for booking confirmation");
+    } catch (wsError) {
+      console.error("Error sending WebSocket notifications:", wsError);
+      // Continue with the response even if WebSocket notifications fail
+    }
 
     res.status(200).json({
       success: true,
       payment,
+      booking: {
+        _id: booking._id,
+        bookingId: booking.bookingId,
+        status: booking.status,
+        driverId: booking.driverId,
+      },
     });
   } catch (error) {
+    console.error("Error verifying payment:", error);
     res.status(500).json({
       success: false,
       error: "Error verifying payment",
+      details: error.message,
     });
   }
 };

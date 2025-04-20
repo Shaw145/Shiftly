@@ -133,7 +133,7 @@ const BookTransport = () => {
       // Format delivery address with more specific location details
       const deliveryAddress = `${formData.deliveryStreet}, ${formData.deliveryCity}, ${formData.deliveryState}, ${formData.deliveryPincode}, India`;
 
-      console.log("Searching addresses:", { pickupAddress, deliveryAddress });
+      // console.log("Searching addresses:", { pickupAddress, deliveryAddress });
 
       const API_KEY = import.meta.env.VITE_OPENROUTE_API;
 

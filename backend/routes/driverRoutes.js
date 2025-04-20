@@ -4,6 +4,7 @@ const { protectDriver } = require("../middleware/driverAuthMiddleware");
 const Driver = require("../models/Driver");
 const driverProfileController = require("../controllers/driverProfileController");
 const upload = require("../middleware/uploadMiddleware");
+const driverController = require("../controllers/driverController");
 
 router.get("/me", protectDriver, async (req, res) => {
   try {
@@ -94,6 +95,81 @@ router.put(
   driverProfileController.updateVehicleDetails
 );
 
+// Quick address update endpoint
+router.put("/profile/address", protectDriver, async (req, res) => {
+  try {
+    console.log("Quick address update requested");
+
+    // Validate the request
+    if (!req.body.address || !req.body.address.current) {
+      return res.status(400).json({
+        success: false,
+        error: "Address data is required",
+      });
+    }
+
+    // Get the required fields
+    const { city, state, pincode, addressLine1 } = req.body.address.current;
+
+    // Make sure required fields are present
+    if (!city || !state || !pincode) {
+      return res.status(400).json({
+        success: false,
+        error: "City, state, and pincode are required",
+      });
+    }
+
+    // Get the driver
+    const driver = req.driver;
+
+    // Initialize the personalDetails and address objects if they don't exist
+    if (!driver.personalDetails) {
+      driver.personalDetails = {};
+    }
+
+    if (!driver.personalDetails.address) {
+      driver.personalDetails.address = {};
+    }
+
+    if (!driver.personalDetails.address.current) {
+      driver.personalDetails.address.current = {};
+    }
+
+    // Update the address fields
+    driver.personalDetails.address.current.city = city;
+    driver.personalDetails.address.current.state = state;
+    driver.personalDetails.address.current.pincode = pincode;
+
+    // Add address line if provided
+    if (addressLine1) {
+      driver.personalDetails.address.current.addressLine1 = addressLine1;
+    }
+
+    // Save the driver
+    await driver.save();
+
+    console.log("Address updated successfully:", {
+      city,
+      state,
+      pincode,
+      addressLine1,
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "Address updated successfully",
+      address: driver.personalDetails.address.current,
+    });
+  } catch (error) {
+    console.error("Error updating address:", error);
+    res.status(500).json({
+      success: false,
+      error: "Failed to update address",
+      details: error.message,
+    });
+  }
+});
+
 router.post(
   "/upload-photo",
   protectDriver,
@@ -105,5 +181,7 @@ router.delete(
   protectDriver,
   driverProfileController.removeProfilePhoto
 );
+
+router.get("/:driverId/public", driverController.getPublicDriverInfo);
 
 module.exports = router;
