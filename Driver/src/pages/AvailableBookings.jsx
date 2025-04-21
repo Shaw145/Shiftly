@@ -177,7 +177,7 @@ const AvailableBookings = () => {
       if (data.bookings && Array.isArray(data.bookings)) {
         // Log the first booking for debugging purposes
         if (data.bookings.length > 0) {
-          console.log("Sample booking data format:", data.bookings[0]);
+          // console.log("Sample booking data format:", data.bookings[0]);
         }
 
         setBookings(data.bookings);

@@ -70,4 +70,15 @@ router.post("/place", protectDriver, bidController.placeBid);
  */
 router.delete("/:bidId", protectDriver, bidController.cancelBid);
 
+/**
+ * @route   GET /api/bids/driver/booking/:bookingId/current
+ * @desc    Get current driver's bid for a specific booking
+ * @access  Private (drivers only)
+ */
+router.get(
+  "/driver/booking/:bookingId/current",
+  protectDriver,
+  bidController.getCurrentDriverBid
+);
+
 module.exports = router;

@@ -22,13 +22,13 @@ class WebSocketClient {
   handleVisibilityChange() {
     if (document.visibilityState === "visible") {
       if (!this.isConnected) {
-        console.log("Page became visible, attempting to reconnect WebSocket");
+        // console.log("Page became visible, attempting to reconnect WebSocket");
         this.visibilityReconnecting = true;
         this.reconnect(true);
       }
     } else {
       // Page is hidden, might be navigating away or refreshing
-      console.log("Page hidden, WebSocket might disconnect temporarily");
+      // console.log("Page hidden, WebSocket might disconnect temporarily");
     }
   }
 
@@ -44,7 +44,7 @@ class WebSocketClient {
       this.socket = new WebSocket(this.url);
 
       this.socket.onopen = () => {
-        console.log("WebSocket connected");
+        // console.log("WebSocket connected");
         this.isConnected = true;
         this.reconnectAttempts = 0;
         this.visibilityReconnecting = false;
@@ -136,9 +136,9 @@ class WebSocketClient {
         ); // Cap at 5 seconds
       }
 
-      console.log(
-        `Attempting to reconnect (${this.reconnectAttempts}/${this.maxReconnectAttempts}) in ${delay}ms`
-      );
+      // console.log(
+      //   `Attempting to reconnect (${this.reconnectAttempts}/${this.maxReconnectAttempts}) in ${delay}ms`
+      // );
 
       this.reconnectTimeout = setTimeout(() => {
         if (document.visibilityState === "visible") {

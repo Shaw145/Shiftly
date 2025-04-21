@@ -538,3 +538,66 @@ exports.cancelBid = async (req, res) => {
     });
   }
 };
+
+/**
+ * Get current driver's bid for a specific booking
+ * @route GET /api/bids/driver/booking/:bookingId/current
+ */
+exports.getCurrentDriverBid = async (req, res) => {
+  try {
+    const { bookingId } = req.params;
+    const driverId = req.driver._id;
+
+    // First check if it's a MongoDB ID format
+    let query = {};
+
+    if (mongoose.Types.ObjectId.isValid(bookingId)) {
+      // If it's a valid MongoDB ID, search directly
+      query = { booking: bookingId, driver: driverId, isActive: true };
+    } else {
+      // If it's a formatted ID (like B123456789), first find the booking
+      const booking = await Booking.findOne({ bookingId: bookingId });
+
+      if (!booking) {
+        return res.status(404).json({
+          success: false,
+          message: "Booking not found with the provided ID",
+        });
+      }
+
+      // Then construct query using the MongoDB _id
+      query = { booking: booking._id, driver: driverId, isActive: true };
+    }
+
+    // Find the driver's current bid
+    const bid = await Bid.findOne(query);
+
+    if (!bid) {
+      return res.status(200).json({
+        success: true,
+        message: "No current bid found for this booking",
+        data: null,
+      });
+    }
+
+    // Return the bid data
+    return res.status(200).json({
+      success: true,
+      data: {
+        id: bid._id,
+        amount: bid.amount,
+        notes: bid.notes,
+        status: bid.status,
+        bidTime: bid.createdAt,
+        driverId: driverId.toString(),
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching current bid:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch current bid",
+      error: error.message,
+    });
+  }
+};

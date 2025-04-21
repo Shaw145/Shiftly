@@ -67,7 +67,7 @@ export const WebSocketProvider = ({ children }) => {
         import.meta.env.VITE_WS_URL || "ws://localhost:5000"
       }?token=${token}&role=user`;
 
-      console.log("Connecting to WebSocket:", wsUrl);
+      // console.log("Connecting to WebSocket:", wsUrl);
 
       // Create a new WebSocket instance with proper error handling
       const socket = new WebSocket(wsUrl);
@@ -154,7 +154,7 @@ export const WebSocketProvider = ({ children }) => {
           const message = JSON.parse(event.data);
           // Skip logging heartbeat messages to reduce console noise
           if (message.type !== "heartbeat") {
-            console.log("Received WebSocket message:", message);
+            // console.log("Received WebSocket message:", message);
           }
 
           // Handle event listeners

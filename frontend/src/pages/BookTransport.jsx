@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import StepProgress from "../components/booking/StepProgress";
 import AddressStep from "../components/booking/AddressStep";
 import GoodsStep from "../components/booking/GoodsStep";
@@ -6,10 +7,16 @@ import VehicleStep from "../components/booking/VehicleStep";
 import ScheduleStep from "../components/booking/ScheduleStep";
 import ConfirmationModal from "../components/booking/ConfirmationModal";
 import BookingSuccess from "../components/booking/BookingSuccess";
+import ProfileUpdateModal from "../components/ProfileUpdateModal";
 import { calculateBookingPrice } from "../utils/priceCalculator";
 import axios from "axios";
+import useProfileCheck from "../hooks/useProfileCheck";
+import { FaExclamationCircle } from "react-icons/fa";
 
 const BookTransport = () => {
+  const navigate = useNavigate();
+  const { isProfileComplete, user, loading } = useProfileCheck();
+  const [showProfileModal, setShowProfileModal] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState({
     // Address details
@@ -47,6 +54,13 @@ const BookTransport = () => {
   const [bookingId, setBookingId] = useState(null);
   const [savedAddresses, setSavedAddresses] = useState([]);
   const [distance, setDistance] = useState(null);
+
+  useEffect(() => {
+    // Show the modal if profile is not complete (after initial loading)
+    if (!loading && !isProfileComplete) {
+      setShowProfileModal(true);
+    }
+  }, [isProfileComplete, loading]);
 
   const validateStep = (step) => {
     const newErrors = {};
@@ -387,88 +401,134 @@ const BookTransport = () => {
     }
   };
 
+  // Navigate to profile page
+  const goToProfile = () => {
+    if (user && user.username) {
+      navigate(`/user/${user.username}`);
+    }
+  };
+
   return (
     <div className="p-4 sm:p-6 mt-20 md:ml-20 lg:ml-24">
-      <div className="max-w-6xl mx-auto">
-        <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-6">
-          Book Transport
-        </h1>
 
-        {/* Progress Steps */}
-        <div className="bg-white rounded-xl shadow-lg p-4">
-          <StepProgress
-            currentStep={currentStep}
-            setCurrentStep={setCurrentStep}
-          />
-        </div>
-
-        {/* Step Content */}
-        <div className="mt-6 bg-white rounded-xl shadow-lg">
-          <div className="p-6">
-            {currentStep === 1 && (
-              <AddressStep
-                formData={formData}
-                setFormData={setFormData}
-                errors={errors}
-                savedAddresses={savedAddresses}
-                setSavedAddresses={setSavedAddresses}
-              />
-            )}
-            {currentStep === 2 && (
-              <GoodsStep
-                formData={formData}
-                setFormData={setFormData}
-                errors={errors}
-              />
-            )}
-            {currentStep === 3 && (
-              <VehicleStep
-                formData={formData}
-                setFormData={setFormData}
-                errors={errors}
-              />
-            )}
-            {currentStep === 4 && (
-              <ScheduleStep
-                formData={formData}
-                setFormData={setFormData}
-                errors={errors}
-              />
-            )}
+      {/* Profile Update */}
+      {!loading && !isProfileComplete && !showProfileModal ? (
+        <div className="max-w-6xl mx-auto mt-5">
+          <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-6">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <FaExclamationCircle className="h-5 w-5 text-red-500" />
+              </div>
+              <div className="ml-3">
+                <h3 className="text-sm font-medium text-red-800">Profile Update Required</h3>
+                <div className="mt-2 text-sm text-red-700">
+                  <p>Please update your mobile number in your profile to book transport services.</p>
+                </div>
+                <div className="mt-4">
+                  <button
+                    type="button"
+                    // onClick={() => user && user.username && (window.location.href = `/user/${user.username}`)}
+                    onClick={goToProfile}
+                    className="ml-1 rounded-md bg-red-500 px-3 py-2 text-sm font-medium text-white hover:bg-red-600 focus:outline-none cursor-pointer hover:scale-110 transition-all duration-200 hover:shadow-lg hover:shadow-red-300"
+                  >
+                    Update Profile
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
+      ) : (
+        <div className="max-w-6xl mx-auto">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-6">
+            Book Transport
+          </h1>
 
-        {/* Navigation Buttons */}
-        <div className="flex justify-between mt-6">
-          {currentStep > 1 && (
+          {/* Progress Steps */}
+          <div className="bg-white rounded-xl shadow-lg p-4">
+            <StepProgress
+              currentStep={currentStep}
+              setCurrentStep={setCurrentStep}
+            />
+          </div>
+
+          {/* Step Content */}
+          <div className="mt-6 bg-white rounded-xl shadow-lg">
+            <div className="p-6">
+              {currentStep === 1 && (
+                <AddressStep
+                  formData={formData}
+                  setFormData={setFormData}
+                  errors={errors}
+                  savedAddresses={savedAddresses}
+                  setSavedAddresses={setSavedAddresses}
+                />
+              )}
+              {currentStep === 2 && (
+                <GoodsStep
+                  formData={formData}
+                  setFormData={setFormData}
+                  errors={errors}
+                />
+              )}
+              {currentStep === 3 && (
+                <VehicleStep
+                  formData={formData}
+                  setFormData={setFormData}
+                  errors={errors}
+                />
+              )}
+              {currentStep === 4 && (
+                <ScheduleStep
+                  formData={formData}
+                  setFormData={setFormData}
+                  errors={errors}
+                />
+              )}
+            </div>
+          </div>
+
+          {/* Navigation Buttons */}
+          <div className="flex justify-between mt-6">
+            {currentStep > 1 && (
+              <button
+                onClick={() => setCurrentStep(currentStep - 1)}
+                className="px-6 py-2 bg-gray-100 text-gray-700 rounded-lg cursor-pointer hover:bg-gray-200"
+              >
+                Previous
+              </button>
+            )}
             <button
-              onClick={() => setCurrentStep(currentStep - 1)}
-              className="px-6 py-2 bg-gray-100 text-gray-700 rounded-lg cursor-pointer hover:bg-gray-200"
+              onClick={handleNext}
+              className={`px-6 py-2 bg-red-500 text-white rounded-lg cursor-pointer hover:bg-red-600 ${
+                currentStep === 1 ? "ml-auto" : ""
+              }`}
             >
-              Previous
+              {currentStep === 4 ? "Book Now" : "Next"}
             </button>
-          )}
-          <button
-            onClick={handleNext}
-            className={`px-6 py-2 bg-red-500 text-white rounded-lg cursor-pointer hover:bg-red-600 ${
-              currentStep === 1 ? "ml-auto" : ""
-            }`}
-          >
-            {currentStep === 4 ? "Book Now" : "Next"}
-          </button>
-        </div>
+          </div>
 
-        {/* Modals */}
-        {showConfirmation && (
-          <ConfirmationModal
-            isOpen={showConfirmation}
-            onClose={() => setShowConfirmation(false)}
-            onConfirm={handleConfirmBooking}
-            bookingDetails={getBookingDetails()}
-          />
-        )}
-        {showSuccess && <BookingSuccess bookingId={bookingId} />}
-      </div>
+          {/* Modals */}
+          {showConfirmation && (
+            <ConfirmationModal
+              isOpen={showConfirmation}
+              onClose={() => setShowConfirmation(false)}
+              onConfirm={handleConfirmBooking}
+              bookingDetails={getBookingDetails()}
+            />
+          )}
+          {showSuccess && <BookingSuccess bookingId={bookingId} />}
+        </div>
+      )}
+
+      {/* Profile Update Modal */}
+      {!loading && user && (
+        <ProfileUpdateModal 
+          isOpen={showProfileModal} 
+          onClose={() => setShowProfileModal(false)}
+          username={user.username}
+        />
+      )}
     </div>
   );
 };

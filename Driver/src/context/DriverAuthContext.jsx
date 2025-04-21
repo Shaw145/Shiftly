@@ -40,6 +40,8 @@ export const DriverAuthProvider = ({ children }) => {
   // Logout function - clear token and auth state
   const logout = useCallback(() => {
     localStorage.removeItem("driverToken");
+    localStorage.removeItem("driverId");
+    localStorage.removeItem("driverBids");
     setIsAuth(false);
     setDriverId(null);
   }, []);

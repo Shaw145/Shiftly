@@ -159,7 +159,7 @@ const TopBidders = ({
 
     // Handle the new custom driver:bid_update event
     const handleDriverBidUpdate = (event) => {
-      console.log("TopBidders received driver:bid_update event:", event.detail);
+      // console.log("TopBidders received driver:bid_update event:", event.detail);
       if (event.detail && event.detail.bid) {
         processBidData(event.detail.bid);
       }

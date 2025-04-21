@@ -40,11 +40,11 @@ export const WebSocketProvider = ({ children }) => {
       return;
     }
 
-    console.log("Initializing WebSocket with driver token");
+    // console.log("Initializing WebSocket with driver token");
 
     // Setup connection event handlers
     const handleConnect = () => {
-      console.log("WebSocket connected event received");
+      // console.log("WebSocket connected event received");
       setIsConnected(true);
       setReconnectCount(0);
 
@@ -132,7 +132,7 @@ export const WebSocketProvider = ({ children }) => {
   const send = useCallback(
     (eventType, data) => {
       if (!isConnected) {
-        console.log("Not connected, cannot send websocket message");
+        // console.log("Not connected, cannot send websocket message");
         return false;
       }
 
@@ -153,7 +153,7 @@ export const WebSocketProvider = ({ children }) => {
   const placeBid = async (bookingId, amount, note) => {
     // Check if there's already a bid submission in progress
     if (bidData && bidData.pending) {
-      console.log("Bid submission already in progress");
+      // console.log("Bid submission already in progress");
       return { success: false, message: "Bid submission in progress" };
     }
 
@@ -166,7 +166,7 @@ export const WebSocketProvider = ({ children }) => {
       timestamp: Date.now(),
     };
 
-    console.log("Placing bid:", bidData);
+    // console.log("Placing bid:", bidData);
 
     // Try WebSocket if connected
     if (isConnected) {
@@ -190,7 +190,7 @@ export const WebSocketProvider = ({ children }) => {
 
           // Set up a timeout to switch to REST API if WebSocket doesn't respond
           const timeoutId = setTimeout(() => {
-            console.log("WebSocket bid timed out, switching to REST API");
+            // console.log("WebSocket bid timed out, switching to REST API");
             // Mark the WebSocket attempt as failed
             bidData.wsAttemptFailed = true;
             // Only proceed with REST if we haven't already succeeded via WebSocket
@@ -217,45 +217,25 @@ export const WebSocketProvider = ({ children }) => {
                 // Bid was successful - mark as not pending anymore
                 bidData.pending = false;
 
-                // Update localStorage with the new bid data
-                try {
-                  const driverId = localStorage.getItem("driverId");
-                  const bidDetails = {
+                const driverId = localStorage.getItem("driverId");
+                const bidDetails = {
+                  bookingId,
+                  driverId,
+                  amount,
+                  note,
+                  bidTime: new Date().toISOString(),
+                };
+
+                // Dispatch event for UI updates only after confirmed
+                const event = new CustomEvent("bid:update", {
+                  detail: {
                     bookingId,
-                    driverId,
-                    amount,
-                    note,
-                    bidTime: new Date().toISOString(),
-                  };
+                    bid: bidDetails,
+                  },
+                });
+                document.dispatchEvent(event);
 
-                  // Update localStorage for persistence
-                  const storedBids = JSON.parse(
-                    localStorage.getItem("driverBids") || "{}"
-                  );
-                  storedBids[bookingId] = bidDetails;
-                  localStorage.setItem(
-                    "driverBids",
-                    JSON.stringify(storedBids)
-                  );
-
-                  // Dispatch event for UI updates only after confirmed
-                  const event = new CustomEvent("bid:update", {
-                    detail: {
-                      bookingId,
-                      bid: bidDetails,
-                    },
-                  });
-                  document.dispatchEvent(event);
-
-                  resolve({ success: true, data: bidDetails });
-                } catch (error) {
-                  console.error("Error updating bid in localStorage:", error);
-                  resolve({
-                    success: true,
-                    message:
-                      "Bid submitted but local data could not be updated",
-                  });
-                }
+                resolve({ success: true, data: bidDetails });
               } else {
                 // Bid failed
                 bidData.pending = false;
@@ -269,7 +249,7 @@ export const WebSocketProvider = ({ children }) => {
 
           // Send the bid via WebSocket
           wsClient.send(JSON.stringify(payload));
-          console.log("Bid sent via WebSocket:", payload);
+          // console.log("Bid sent via WebSocket:", payload);
         } catch (error) {
           console.error("WebSocket bid error:", error);
           bidData.pending = false;
@@ -285,7 +265,7 @@ export const WebSocketProvider = ({ children }) => {
   // Submit bid via REST API as a fallback
   const submitBidViaRest = async (bookingId, amount, note) => {
     try {
-      console.log("Submitting bid via REST API");
+      // console.log("Submitting bid via REST API");
 
       // Get fresh token from localStorage to ensure we have the latest
       const token = localStorage.getItem("driverToken");
@@ -333,37 +313,25 @@ export const WebSocketProvider = ({ children }) => {
         !bidData.wsAttemptFailed ||
         (bidData.wsAttemptFailed && bidData.pending)
       ) {
-        // Update localStorage with the new bid data
-        try {
-          const bidDetails = {
+        const bidDetails = {
+          bookingId,
+          driverId,
+          amount,
+          note,
+          bidTime: new Date().toISOString(),
+        };
+
+        // Dispatch event for UI updates
+        const event = new CustomEvent("bid:update", {
+          detail: {
             bookingId,
-            driverId,
-            amount,
-            note,
-            bidTime: new Date().toISOString(),
-          };
-
-          // Update localStorage for persistence
-          const storedBids = JSON.parse(
-            localStorage.getItem("driverBids") || "{}"
-          );
-          storedBids[bookingId] = bidDetails;
-          localStorage.setItem("driverBids", JSON.stringify(storedBids));
-
-          // Dispatch event for UI updates
-          const event = new CustomEvent("bid:update", {
-            detail: {
-              bookingId,
-              bid: bidDetails,
-            },
-          });
-          document.dispatchEvent(event);
-        } catch (error) {
-          console.error("Error updating bid in localStorage:", error);
-        }
+            bid: bidDetails,
+          },
+        });
+        document.dispatchEvent(event);
       }
 
-      console.log("REST API bid successful:", data);
+      // console.log("REST API bid successful:", data);
       return { success: true, data };
     } catch (error) {
       console.error("REST API bid error:", error);

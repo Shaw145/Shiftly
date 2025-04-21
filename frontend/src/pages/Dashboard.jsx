@@ -1,4 +1,4 @@
-// import { useState } from "react";
+import { useState, useEffect } from "react";
 // import TopNavbar from "../components/dashboard/TopNavbar";
 // import Sidebar from "../components/dashboard/Sidebar";
 import WelcomeCard from "../components/dashboard/WelcomeCard";
@@ -7,8 +7,20 @@ import QuickActions from "../components/dashboard/QuickActions";
 import LiveTrackingCard from "../components/dashboard/LiveTrackingCard";
 import UpcomingBookings from "../components/dashboard/UpcomingBookings";
 import RecentOrdersTable from "../components/dashboard/RecentOrdersTable";
+import ProfileUpdateModal from "../components/ProfileUpdateModal";
+import useProfileCheck from "../hooks/useProfileCheck";
 
 const Dashboard = () => {
+  const { isProfileComplete, user, loading } = useProfileCheck();
+  const [showProfileModal, setShowProfileModal] = useState(false);
+
+  useEffect(() => {
+    // Show the modal if profile is not complete (after initial loading)
+    if (!loading && !isProfileComplete) {
+      setShowProfileModal(true);
+    }
+  }, [isProfileComplete, loading]);
+
   return (
     <main className="flex-1 overflow-x-hidden overflow-y-auto p-4 sm:p-6 mt-20 lg:ml-24 md:ml-22">
       {/* Welcome Section */}
@@ -36,6 +48,15 @@ const Dashboard = () => {
       <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6">
         <RecentOrdersTable />
       </div>
+
+      {/* Profile Update Modal */}
+      {!loading && user && (
+        <ProfileUpdateModal
+          isOpen={showProfileModal}
+          onClose={() => setShowProfileModal(false)}
+          username={user.username}
+        />
+      )}
     </main>
   );
 };

@@ -185,7 +185,7 @@ const BookingDetailPage = () => {
   // Fetch driver bids for the booking - with better error handling
   const fetchDriverBids = async (bookingId, token) => {
     try {
-      console.log(`Fetching bids for booking: ${bookingId}`);
+      // console.log(`Fetching bids for booking: ${bookingId}`);
 
       // Try to fetch bids from the proper API endpoint
       const response = await fetch(
@@ -221,13 +221,13 @@ const BookingDetailPage = () => {
         }
 
         const fallbackData = await fallbackResponse.json();
-        console.log("Bid API fallback response:", fallbackData);
+        // console.log("Bid API fallback response:", fallbackData);
 
         if (fallbackData.success) {
           if (fallbackData.bids && fallbackData.bids.length > 0) {
-            console.log(
-              `Found ${fallbackData.bids.length} bids from fallback API`
-            );
+            // console.log(
+            //   `Found ${fallbackData.bids.length} bids from fallback API`
+            // );
 
             // Process bids to ensure they have consistent properties
             const processedBids = fallbackData.bids.map((bid) => ({
@@ -251,7 +251,7 @@ const BookingDetailPage = () => {
       }
 
       const data = await response.json();
-      console.log("Bid API primary response:", data);
+      // console.log("Bid API primary response:", data);
 
       if (data.success) {
         let bidsData = [];
@@ -266,7 +266,7 @@ const BookingDetailPage = () => {
         }
 
         if (bidsData.length > 0) {
-          console.log(`Found ${bidsData.length} bids from API`);
+          // console.log(`Found ${bidsData.length} bids from API`);
 
           // Process bids to ensure they have consistent properties
           const processedBids = bidsData.map((bid) => ({
@@ -284,7 +284,7 @@ const BookingDetailPage = () => {
           setDriverBids(processedBids);
           return true;
         } else {
-          console.log("No bids found from API");
+          // console.log("No bids found from API");
           return false;
         }
       } else {
@@ -302,7 +302,7 @@ const BookingDetailPage = () => {
     // This will run when the component mounts or when the URL changes
     const handleVisibilityChange = () => {
       if (document.visibilityState === "visible" && bookingId) {
-        console.log("Page is now visible, refreshing bids");
+        // console.log("Page is now visible, refreshing bids");
         fetchDriverBids(bookingId, localStorage.getItem("token"));
       }
     };
@@ -313,7 +313,7 @@ const BookingDetailPage = () => {
     // Also refresh bids if we return via browser history
     window.addEventListener("popstate", () => {
       if (bookingId) {
-        console.log("User navigated back, refreshing bids");
+        // console.log("User navigated back, refreshing bids");
         fetchDriverBids(bookingId, localStorage.getItem("token"));
       }
     });

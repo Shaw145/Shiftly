@@ -91,7 +91,7 @@ const BidForm = ({ booking, currentBid, onBidSubmit, isLocked = false }) => {
 
         // Only update if it's our own bid
         if (bidData && bidData.driverId === currentDriverId) {
-          console.log("BidForm received a bid update event:", bidData);
+          // console.log("BidForm received a bid update event:", bidData);
 
           // Update the form values with the new bid data
           setBidAmount(bidData.amount);
@@ -284,6 +284,45 @@ const BidForm = ({ booking, currentBid, onBidSubmit, isLocked = false }) => {
   // Determine which bid to display (current bid takes precedence, then lastBid from localStorage)
   const displayBid = currentBid || lastBid;
 
+  useEffect(() => {
+    const fetchCurrentBid = async () => {
+      if (!booking || !booking._id) return;
+
+      const driverToken = localStorage.getItem("driverToken");
+      if (!driverToken) return;
+
+      try {
+        const bookingId = booking._id || booking.id || booking.bookingId;
+        const response = await fetch(
+          `${
+            import.meta.env.VITE_BACKEND_URL
+          }/api/bids/driver/booking/${bookingId}/current`,
+          {
+            headers: {
+              Authorization: `Bearer ${driverToken}`,
+            },
+          }
+        );
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && data.data) {
+            // Update form with fetched bid
+            setBidAmount(data.data.amount);
+            if (data.data.notes) {
+              setBidNote(data.data.notes);
+            }
+            setLastBid(data.data);
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching current bid:", error);
+      }
+    };
+
+    fetchCurrentBid();
+  }, [booking]);
+
   return (
     <div className={isLocked ? "opacity-50 pointer-events-none" : ""}>
       {/* Enhanced Current Bid Information */}
@@ -310,7 +349,7 @@ const BidForm = ({ booking, currentBid, onBidSubmit, isLocked = false }) => {
             <div className="flex items-center mt-1">
               <div className="text-sm text-gray-600 flex items-center gap-1">
                 <FaCheck className="text-green-500" />
-                <span>You can update your bid until the deadline</span>
+                <span>You can update your bid until 24 hours before the pickup time</span>
               </div>
             </div>
             {displayBid.note && (

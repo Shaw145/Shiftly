@@ -20,6 +20,8 @@ const ProfileDropdown = ({ userName, userDetails, onClose }) => {
     localStorage.removeItem("driverName");
     localStorage.removeItem("driverUsername");
     localStorage.removeItem("rememberMe");
+    localStorage.removeItem("driverId");
+    localStorage.removeItem("driverBids");
     window.location.href = "/login";
   };
 

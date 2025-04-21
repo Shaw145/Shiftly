@@ -90,7 +90,7 @@ const BidActivity = () => {
           setBidActivity(data.bids || []);
         } else {
           // Use demo data if API fails
-          console.log("Using fallback demo bid activity data");
+          // console.log("Using fallback demo bid activity data");
           setBidActivity(demoBidActivity);
 
           if (response.status === 401) {

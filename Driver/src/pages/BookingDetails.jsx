@@ -113,24 +113,6 @@ const BookingDetails = () => {
         // Store the MongoDB ObjectId for bid submission
         setBookingObjectId(data.booking._id);
 
-        // Get current driver's bid if it exists - check localStorage first
-        let currentDriverBid = null;
-        if (driverId) {
-          try {
-            // Always check localStorage first for most up-to-date bid data
-            const storedBids = JSON.parse(
-              localStorage.getItem("driverBids") || "{}"
-            );
-            if (storedBids[bookingId]) {
-              console.log("Found bid in localStorage:", storedBids[bookingId]);
-              currentDriverBid = storedBids[bookingId];
-              setCurrentBid(currentDriverBid);
-            }
-          } catch (error) {
-            console.error("Error retrieving bid from localStorage:", error);
-          }
-        }
-
         // Fetch existing bids for this booking from server
         const bidsResponse = await fetch(
           `${import.meta.env.VITE_BACKEND_URL}/api/bids/driver/booking/${
@@ -168,25 +150,23 @@ const BookingDetails = () => {
 
           setTopBidders(processedBids);
 
-          // Also check if the current driver's bid is in the fetched bids and not found in localStorage
-          if (driverId && !currentDriverBid) {
-            const myBid = processedBids.find(
-              (bid) => bid.driverId === driverId
+          // Fetch current driver's bid
+          if (driverId) {
+            const currentBidResponse = await fetch(
+              `${import.meta.env.VITE_BACKEND_URL}/api/bids/driver/booking/${
+                data.booking._id
+              }/current`,
+              {
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                },
+              }
             );
-            if (myBid) {
-              // This ensures currentBid is in sync with server data if not in localStorage
-              setCurrentBid(myBid);
 
-              // Update localStorage for persistence
-              try {
-                const storedBids = JSON.parse(
-                  localStorage.getItem("driverBids") || "{}"
-                );
-                storedBids[bookingId] = myBid;
-                localStorage.setItem("driverBids", JSON.stringify(storedBids));
-                console.log("Updated localStorage with server bid:", myBid);
-              } catch (error) {
-                console.error("Error updating bid in localStorage:", error);
+            if (currentBidResponse.ok) {
+              const currentBidData = await currentBidResponse.json();
+              if (currentBidData.success && currentBidData.data) {
+                setCurrentBid(currentBidData.data);
               }
             }
           }
@@ -334,7 +314,7 @@ const BookingDetails = () => {
 
     // Cleanup function
     return () => {
-      console.log("Cleaning up WebSocket event listeners");
+      // console.log("Cleaning up WebSocket event listeners");
       if (typeof unsubscribeNewBid === "function") unsubscribeNewBid();
       if (typeof unsubscribeBidUpdate === "function") unsubscribeBidUpdate();
       document.removeEventListener("bid:update", handleBidUpdate);
@@ -601,7 +581,7 @@ const BookingDetails = () => {
               <FaTruck className="text-red-500" />
               Booking Details
             </h1>
-            <p className="text-sm text-gray-500 mt-1 ml-5">
+            <p className="text-sm text-gray-500 mt-1 ml-8">
               ID: {booking.bookingId || booking.id || bookingId}
             </p>
           </div>

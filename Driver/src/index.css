@@ -17,7 +17,7 @@
   --font-body: "GeneralSans", "sans-serif";
 
   /* Breakpoints */
-  --breakpoint-xxs: 350px;
+  --breakpoint-xxs: 340px;
   --breakpoint-xs: 370px;
   --breakpoint-sm: 640px;
   --breakpoint-md: 850px;

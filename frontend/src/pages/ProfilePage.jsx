@@ -384,16 +384,16 @@ const ProfilePage = () => {
         <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
           {/* Profile Header */}
           <div className="bg-white rounded-xl shadow-sm overflow-hidden mb-6">
-            <div className="relative min-h-[16rem] bg-gradient-to-r from-gray-800 to-gray-900 p-4 sm:p-8">
-              <div className="flex flex-col items-center sm:items-start sm:flex-row gap-6 sm:gap-8">
+            <div className="relative min-h-[16rem] bg-gradient-to-r from-red-900 to-blue-900 p-4 sm:p-8">
+              <div className="flex flex-col items-center sm:items-start sm:flex-row gap-6 sm:gap-8 pt-4">
                 {/* Profile Image Section */}
                 <div className="relative shrink-0">
                   {profile.profileImage ? (
                     <div className="relative">
-                      <div className="relative group">
+                      <div className="relative">
                         <div
                           onClick={() => openImageModal()}
-                          className="w-32 h-32 sm:w-40 sm:h-40 rounded-full border-4 border-white shadow-lg overflow-hidden cursor-pointer"
+                          className="group w-32 h-32 sm:w-40 sm:h-40 rounded-full border-4 border-white shadow-lg overflow-hidden cursor-pointer"
                         >
                           <img
                             src={profile.profileImage}
@@ -408,7 +408,7 @@ const ProfilePage = () => {
                           </div>
                         </div>
                         {/* Upload Button */}
-                        <label className="absolute bottom-0 right-0 bg-red-500 text-white p-2 rounded-full cursor-pointer shadow-lg hover:bg-red-600 transition-colors">
+                        <label className="absolute bottom-0 right-0 bg-red-500 text-white p-2 rounded-full cursor-pointer shadow-lg hover:bg-red-600 transition-colors duration-300 hover:scale-130 hover:shadow-lg hover:shadow-gray-800">
                           <FaCamera className="w-4 h-4" />
                           <input
                             type="file"

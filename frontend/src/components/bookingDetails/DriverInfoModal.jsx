@@ -53,7 +53,7 @@ const formatDateTime = (dateTimeInput) => {
         const apiUrl = `${
           import.meta.env.VITE_BACKEND_URL || "http://localhost:5000"
         }/api/drivers/${driver.driverId}/public`;
-        console.log("Fetching driver details from:", apiUrl);
+        // console.log("Fetching driver details from:", apiUrl);
 
         const response = await fetch(apiUrl, {
           headers: {

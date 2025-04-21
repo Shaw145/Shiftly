@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   FaTruck,
   FaRoute,
@@ -8,6 +8,8 @@ import {
 } from "react-icons/fa";
 
 const NotFound = () => {
+  const navigate = useNavigate();
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-gray-50 to-gray-100 px-4 overflow-hidden pt-20">
       <div className="max-w-3xl w-full text-center py-8">
@@ -60,18 +62,18 @@ const NotFound = () => {
         {/* Action Buttons */}
         <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
           <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-            <Link
-              to="/dashboard"
-              className="inline-block bg-red-500 text-white px-6 py-4 rounded-lg font-semibold hover:bg-red-600 transition-colors duration-300"
+            <button
+              onClick={() => navigate(-1)}
+              className="inline-block bg-red-500 text-white px-6 py-4 rounded-lg font-semibold hover:bg-red-600 transition-colors duration-300 cursor-pointer hover:shadow-lg"
             >
-              Back to Dashboard! 🏠
-            </Link>
+              Go Back!
+            </button>
           </motion.div>
 
           <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
             <Link
               to="/contact"
-              className="inline-block bg-gray-200 text-gray-800 px-8 py-4 rounded-lg font-semibold hover:bg-gray-300 transition-colors duration-300"
+              className="inline-block bg-gray-200 text-gray-800 px-8 py-4 rounded-lg font-semibold hover:bg-gray-300 transition-colors duration-300 cursor-pointer"
             >
               Contact Support
             </Link>

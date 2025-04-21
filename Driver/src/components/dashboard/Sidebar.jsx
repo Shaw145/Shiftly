@@ -22,6 +22,8 @@ const Sidebar = forwardRef(({ isSidebarOpen, toggleSidebar }, ref) => {
     localStorage.removeItem("driverName");
     localStorage.removeItem("driverUsername");
     localStorage.removeItem("rememberMe");
+    localStorage.removeItem("driverId");
+    localStorage.removeItem("driverBids");
     navigate("/login");
   };
 
