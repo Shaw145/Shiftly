@@ -30,6 +30,7 @@ import NotificationsPage from "./pages/NotificationsPage";
 import PublicRoute from "./components/PublicRoute";
 import { WebSocketProvider } from "./context/WebSocketContext";
 import { Toaster } from "react-hot-toast";
+import HowItWorks from "./pages/HowItWorks";
 
 const AppWrapper = () => {
   const location = useLocation();
@@ -54,6 +55,7 @@ const AppWrapper = () => {
       <Routes>
         {/* Public Routes */}
         <Route path="/" element={<Home />} />
+        <Route path="/how-it-works" element={<HowItWorks />} />
         <Route
           path="/login"
           element={

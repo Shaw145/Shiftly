@@ -488,45 +488,45 @@ const PendingBookingSection = ({
 
   return (
     <>
-      <div className="mb-6 bg-white rounded-xl shadow-lg overflow-hidden">
-        <div className="p-6 border-b border-gray-100">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between">
-            <div className="mb-4 md:mb-0">
+    <div className="mb-6 bg-white rounded-xl shadow-lg overflow-hidden">
+      <div className="p-6 border-b border-gray-100">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between">
+          <div className="mb-4 md:mb-0">
               <h2 className="text-2xl font-bold text-gray-900">
                 Driver Bidding
               </h2>
-              <p className="mt-2 text-gray-600">
-                Select from available driver bids for your transport
-              </p>
-            </div>
-            <div className="bg-gradient-to-r from-orange-50 to-red-50 p-4 rounded-lg">
+            <p className="mt-2 text-gray-600">
+              Select from available driver bids for your transport
+            </p>
+          </div>
+          <div className="bg-gradient-to-r from-orange-50 to-red-50 p-4 rounded-lg">
               <p className="text-lg font-medium text-gray-900">
                 Estimated Price
               </p>
-              <p className="text-3xl font-bold text-red-600">
+            <p className="text-3xl font-bold text-red-600">
                 ₹{estimatedPriceMin} - ₹{estimatedPriceMax}
-              </p>
-            </div>
+            </p>
           </div>
+        </div>
 
-          <div className="mt-6 bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-r-lg">
-            <div className="flex items-start">
-              <FaInfoCircle className="h-5 w-5 text-yellow-400 mt-0.5" />
-              <div className="ml-3">
-                <p className="text-sm text-yellow-700 font-medium">
-                  Important Notice
-                </p>
-                <p className="mt-1 text-sm text-yellow-600">
+        <div className="mt-6 bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-r-lg">
+          <div className="flex items-start">
+            <FaInfoCircle className="h-5 w-5 text-yellow-400 mt-0.5" />
+            <div className="ml-3">
+              <p className="text-sm text-yellow-700 font-medium">
+                Important Notice
+              </p>
+              <p className="mt-1 text-sm text-yellow-600">
                   To ensure timely service, please select your preferred driver
                   at least 24 hours before your scheduled pickup time. If no
                   selection is made, our system will automatically assign the
                   most suitable driver based on rating and price to ensure your
                   booking proceeds smoothly.
-                </p>
-                <p className="mt-2 text-sm font-medium text-yellow-700">
+              </p>
+              <p className="mt-2 text-sm font-medium text-yellow-700">
                   Pickup scheduled for: {formatDate(pickupDate)} at{" "}
                   {formatTime(pickupTime)}
-                </p>
+              </p>
               </div>
             </div>
           </div>
@@ -592,12 +592,12 @@ const PendingBookingSection = ({
                 >
                   Recent Bids
                 </button>
-              </div>
+      </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-2 xll:grid-cols-3 gap-4">
                 {sortBids(visibleBids, sortOrder).map((driver) => (
-                  <div
-                    key={driver.id}
+            <div
+              key={driver.id}
                     className="bg-white rounded-xl shadow p-4 flex flex-col sm:flex-row gap-4 transition-all border border-transparent hover:border-red-200 hover:shadow-lg"
                   >
                     {/* Driver Photo */}
@@ -720,7 +720,7 @@ const PendingBookingSection = ({
               </div>
               <h3 className="text-xl font-medium text-gray-600 mb-2">
                 No bids yet
-              </h3>
+                  </h3>
               <p className="text-gray-500 max-w-md mx-auto">
                 Drivers will start bidding on your booking soon. Check back
                 later for updates.
@@ -861,15 +861,15 @@ const PendingBookingSection = ({
                           <FaStar className="text-yellow-400 mr-1" />
                           <span>{driver.rating}</span>
                           <span className="mx-1 text-gray-300">•</span>
-                          <span>{driver.trips} trips</span>
-                        </div>
+                    <span>{driver.trips} trips</span>
+                  </div>
                       </div>
 
                       <div className="text-sm text-gray-600 flex flex-wrap gap-y-1">
                         <div className="flex items-center mr-4">
                           <FaTruck className="mr-1 text-gray-500" />
                           <span className="truncate max-w-[150px]">
-                            {driver.vehicle}
+                    {driver.vehicle}
                           </span>
                         </div>
                         <div className="flex items-center">
@@ -893,7 +893,7 @@ const PendingBookingSection = ({
                               </span>
                             )}
                           </div>
-                        </div>
+                  </div>
                         <div className="flex gap-2 w-full sm:w-auto">
                           <button
                             onClick={(e) => {
@@ -904,23 +904,23 @@ const PendingBookingSection = ({
                           >
                             View Details
                           </button>
-                          <button
+                    <button
                             onClick={(e) => {
                               e.stopPropagation();
                               onDriverSelect(driver);
                             }}
                             className="py-1.5 px-4 text-sm bg-red-500 text-white rounded-lg hover:bg-red-600 flex-1 sm:flex-initial"
-                          >
-                            Select
-                          </button>
-                        </div>
-                      </div>
-                    </div>
+                    >
+                      Select
+                    </button>
                   </div>
-                ))}
+                </div>
               </div>
             </div>
-          </div>
+          ))}
+        </div>
+      </div>
+    </div>
         </div>
       )}
     </>

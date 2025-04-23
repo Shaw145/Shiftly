@@ -19,8 +19,12 @@ import AvailableBookings from "./pages/AvailableBookings";
 import BookingDetails from "./pages/BookingDetails";
 import MyBookings from "./pages/MyBookings";
 import AllBids from "./pages/AllBids";
-import WebsocketDebug from "./pages/WebsocketDebug";
 import { WebSocketProvider } from "./context/WebSocketContext";
+import ConfirmedBookingDetails from "./pages/ConfirmedBookingDetails";
+import HowItWorks from "./pages/HowItWorks";
+import RatingsAndFeedback from "./pages/RatingsAndFeedback";
+import EarningsAndPayment from "./pages/EarningsAndPayment";
+
 
 function App() {
   return (
@@ -58,6 +62,7 @@ function App() {
                 }
               />
               <Route path="/terms" element={<Terms />} />
+              <Route path="/how-it-works" element={<HowItWorks />} />
 
               {/* Protected routes */}
               <Route
@@ -125,13 +130,30 @@ function App() {
                 }
               />
               <Route
-                path="/websocket-debug"
+                path="/confirmed-bookings/:bookingId"
                 element={
                   <PublicRoute protected={true}>
-                    <WebsocketDebug />
+                    <ConfirmedBookingDetails />
                   </PublicRoute>
                 }
               />
+              <Route
+                path="/ratings"
+                element={
+                  <PublicRoute protected={true}>
+                    <RatingsAndFeedback />
+                  </PublicRoute>
+                }
+              />
+              <Route
+                path="/earnings"
+                element={
+                  <PublicRoute protected={true}>
+                    <EarningsAndPayment />
+                  </PublicRoute>
+                }
+              />
+              
 
               {/* 404 Route - Must be last */}
               <Route path="*" element={<NotFound />} />

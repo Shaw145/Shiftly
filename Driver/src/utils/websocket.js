@@ -270,7 +270,7 @@ class WebSocketClient {
 }
 
 // Create a singleton instance of the WebSocketClient
-const wsUrl = import.meta.env.VITE_WS_URL || "wss://api.shiftly.app/ws";
+const wsUrl = import.meta.env.VITE_WS_URL || import.meta.env.VITE_WS_URL_PUBLIC;
 const wsClient = new WebSocketClient(wsUrl, {
   maxReconnectAttempts: 15, // Increased max reconnection attempts
 });

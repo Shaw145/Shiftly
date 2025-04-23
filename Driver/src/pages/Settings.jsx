@@ -10,7 +10,7 @@ import {
   FaWifi,
 } from "react-icons/fa";
 import DashboardLayout from "../components/DashboardLayout";
-import { Link } from "react-router-dom";
+// import { Link } from "react-router-dom";
 
 const Settings = () => {
   const [activeSection, setActiveSection] = useState("email");
@@ -420,42 +420,7 @@ const Settings = () => {
                     <div className="bg-gray-50 rounded-xl p-6 md:p-8">
                       {renderSection()}
                     </div>
-                  </div>
-
-                  {/* WebSocket Settings Card */}
-                  <div className="bg-white rounded-xl shadow-sm p-6 mt-6">
-                    <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                      <FaWifi className="text-red-500" /> Connection Settings
-                    </h2>
-                    <div className="space-y-4">
-                      <div>
-                        <p className="text-gray-600 mb-2">
-                          Monitor and troubleshoot your real-time connection to
-                          our servers. This helps when experiencing issues with
-                          bid notifications or live tracking.
-                        </p>
-                        <div className="border border-gray-200 rounded-lg p-4 bg-gray-50 mb-4">
-                          <div className="flex items-center justify-between">
-                            <span className="text-sm font-medium text-gray-700">
-                              WebSocket Status
-                            </span>
-                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                              Active
-                            </span>
-                          </div>
-                        </div>
-                        <div className="flex justify-end">
-                          <Link
-                            to="/websocket-debug"
-                            target="_blank"
-                            className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors cursor-pointer"
-                          >
-                            Advanced Connection Debugging
-                          </Link>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                  </div>               
                 </div>
               </div>
             </div>
