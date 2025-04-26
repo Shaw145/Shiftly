@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { FaGithub, FaLinkedin } from "react-icons/fa";
-import team1 from "../assets/team1.jpg";
+import team1 from "../assets/Team1.jpg";
 import team2 from "../assets/Customer 8.jpg";
 import team3 from "../assets/Customer 5.jpg";
 import team4 from "../assets/Team3.jpg";
