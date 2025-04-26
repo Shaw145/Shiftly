@@ -31,6 +31,13 @@ import PublicRoute from "./components/PublicRoute";
 import { WebSocketProvider } from "./context/WebSocketContext";
 import { Toaster } from "react-hot-toast";
 import HowItWorks from "./pages/HowItWorks";
+import CalculatePricePage from "./pages/CalculatePricePage";
+import AboutUs from "./pages/About";
+import ContactUs from "./pages/Contact";
+import Services from "./pages/Services";
+import PrivacyPolicy from "./pages/Privacypolicy";
+import TermsandConditions from "./pages/TermsConditions";
+import FAQsPage from "./pages/FAQsPage";
 
 const AppWrapper = () => {
   const location = useLocation();
@@ -55,7 +62,16 @@ const AppWrapper = () => {
       <Routes>
         {/* Public Routes */}
         <Route path="/" element={<Home />} />
+        <Route path="/home" element={<Home />} />
         <Route path="/how-it-works" element={<HowItWorks />} />
+        <Route path="/calculate-price" element={<CalculatePricePage />} />
+        <Route path="/services" element={<Services />} />
+        <Route path="/about-us" element={<AboutUs />} />
+        <Route path="/contact-us" element={<ContactUs />} />
+        <Route path="/terms-and-conditions" element={<TermsandConditions />} />
+        <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+        <Route path="/faqs" element={<FAQsPage />} />
+        
         <Route
           path="/login"
           element={

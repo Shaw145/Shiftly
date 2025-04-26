@@ -30,6 +30,22 @@ const ConfirmedBookingDetails = () => {
   const [updateLoading, setUpdateLoading] = useState(false);
   const [shipmentStatus, setShipmentStatus] = useState("");
 
+  // Set dynamic page title when component mounts
+  useEffect(() => {
+    // Update the document title
+    document.title = "Confirmed Job | Transport Assignment | Shiftly - A Seamless Transport System";
+    
+    // Optional: Restore the original title when component unmounts
+    return () => {
+      document.title = "Shiftly | A Seamless Transport System";
+    };
+  }, []);
+
+  useEffect(() => {
+    // Scroll to top when component mounts
+    window.scrollTo(0, 0);
+  }, []);
+
   useEffect(() => {
     console.log(
       "🚨 ConfirmedBookingDetails - Fetching details for bookingId:",

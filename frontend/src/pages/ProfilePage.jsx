@@ -42,15 +42,31 @@ const ProfilePage = () => {
   const [showImageModal, setShowImageModal] = useState(false);
   const { updateProfileImage } = useProfile();
 
+  // Set dynamic page title when component mounts
+  useEffect(() => {
+    // Update the document title
+    document.title = "My Profile | Account Management | Shiftly - A Seamless Transport System";
+    
+    // Optional: Restore the original title when component unmounts
+    return () => {
+      document.title = "Shiftly | A Seamless Transport System";
+    };
+  }, []);
+
+  useEffect(() => {
+    // Scroll to top when component mounts
+    window.scrollTo(0, 0);
+  }, []);
+
+  useEffect(() => {
+    fetchProfile();
+  }, [username]);
+
   // Check if user is logged in
   const token = localStorage.getItem("token");
   if (!token) {
     return <Navigate to="/login" replace />;
   }
-
-  useEffect(() => {
-    fetchProfile();
-  }, [username]);
 
   const fetchProfile = async () => {
     try {

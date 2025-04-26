@@ -12,6 +12,22 @@ const VerifyEmail = () => {
   const email = new URLSearchParams(location.search).get("email");
   const username = new URLSearchParams(location.search).get("username");
 
+  // Set dynamic page title when component mounts
+  useEffect(() => {
+    // Update the document title
+    document.title = "Verify your Email | Complete Registration | Shiftly - A Seamless Transport System";
+    
+    // Optional: Restore the original title when component unmounts
+    return () => {
+      document.title = "Shiftly | A Seamless Transport System";
+    };
+  }, []);
+
+  useEffect(() => {
+    // Scroll to top when component mounts
+    window.scrollTo(0, 0);
+  }, []);
+
   // Redirect if no email or username in URL
   useEffect(() => {
     if (!email || !username) {
@@ -85,7 +101,7 @@ const VerifyEmail = () => {
         {/* Email Display */}
         <div className="text-center mb-6">
           <p className="text-gray-300 text-sm mb-1">
-            We've sent a verification code to:
+            We&apos;ve sent a verification code to:
           </p>
           <p className="text-white font-medium break-all">
             {email || "your email"}

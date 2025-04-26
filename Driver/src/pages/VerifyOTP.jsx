@@ -16,6 +16,22 @@ const VerifyOTP = () => {
   const email = searchParams.get("email");
   const phone = searchParams.get("phone");
 
+  // Set dynamic page title when component mounts
+  useEffect(() => {
+    // Update the document title
+    document.title = "Verify OTP | Security Check | Shiftly - A Seamless Transport System";
+    
+    // Optional: Restore the original title when component unmounts
+    return () => {
+      document.title = "Shiftly | A Seamless Transport System";
+    };
+  }, []);
+
+  useEffect(() => {
+    // Scroll to top when component mounts
+    window.scrollTo(0, 0);
+  }, []);
+
   useEffect(() => {
     // Check if this is a valid verification session
     const checkSession = async () => {

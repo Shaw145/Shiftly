@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   FaTruck,
@@ -10,6 +11,22 @@ import {
 
 const NotFound = () => {
   const navigate = useNavigate();
+
+  // Set dynamic page title when component mounts
+  useEffect(() => {
+    // Update the document title
+    document.title = "Page Not Found | 404 Error | Shiftly - A Seamless Transport System";
+    
+    // Optional: Restore the original title when component unmounts
+    return () => {
+      document.title = "Shiftly | A Seamless Transport System";
+    };
+  }, []);
+
+  useEffect(() => {
+    // Scroll to top when component mounts
+    window.scrollTo(0, 0);
+  }, []);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50 flex items-center justify-center p-4">

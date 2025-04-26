@@ -135,6 +135,23 @@ const DriverProfile = () => {
 
   const { updateProfileImage } = useProfile();
 
+  // Set dynamic page title when component mounts
+  useEffect(() => {
+    // Update the document title
+    document.title = "Driver Profile | Manage Your Account | Shiftly - A Seamless Transport System";
+    
+    // Optional: Restore the original title when component unmounts
+    return () => {
+      document.title = "Shiftly | A Seamless Transport System";
+    };
+  }, []);
+
+  useEffect(() => {
+    // Scroll to top when component mounts
+    window.scrollTo(0, 0);
+  }, []);
+  
+
   useEffect(() => {
     const fetchDriverData = async () => {
       try {

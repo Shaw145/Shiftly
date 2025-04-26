@@ -1,7 +1,6 @@
 import { motion } from "framer-motion";
 import { FaArrowRight, FaGlobe, FaBolt } from "react-icons/fa";
 
-// Correctly import images with the accurate folder structure
 // import heroImage from "../assets/hero-image.jpg";
 import worldMap from "../assets/worldmap.png";
 import heroBadge from "../assets/hero-badge.png";
@@ -52,7 +51,7 @@ export default function Hero() {
             </motion.button>
           </a>
           <a
-            href="/about"
+            href="/about-us"
             className="flex items-center space-x-2 text-gray-900 font-semibold relative group hover:text-primary transition-all"
           >
             <span>Learn More</span>

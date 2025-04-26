@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { FaFacebookF, FaInstagram, FaLinkedin, FaXTwitter, FaArrowRight } from "react-icons/fa6";
 import { motion } from "framer-motion";
 import worldMap from "../assets/worldmap.png";
@@ -68,15 +69,16 @@ export default function Footer() {
           <h3 className="text-xl lg:text-2xl font-bold mb-4 text-text-heading border-b-2 border-primary inline-block">Company</h3>
           <ul className="space-y-3 font-bold">
             {[
-              { name: "About Us", path: "/about" },
+              { name: "About Us", path: "/about-us" },
               { name: "Our Services", path: "/services" },
-              { name: "Calculate Price", path: "#CalculatePrice" },
+              { name: "Calculate Price", path: "/Calculate-Price" },
+              { name: "FAQs", path: "/faqs"},
               { name: "Privacy Policy", path: "/privacy-policy" },
-              { name: "Contact Us", path: "/contact" }
+              { name: "Contact Us", path: "/contact-us" }
             ].map((item, index) => (
               <li key={index}>
                 <span className="text-primary lg:text-2xl">&raquo;</span> 
-                <a href={item.path} className="lg:text-lg hover:text-primary ml-2">{item.name}</a>
+                <Link to={item.path} className="lg:text-lg hover:text-primary ml-2">{item.name}</Link>
               </li>
             ))}
           </ul>

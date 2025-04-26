@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   FaEnvelope,
   FaUser,
@@ -12,6 +12,22 @@ import {
 const Settings = () => {
   const [activeSection, setActiveSection] = useState("email");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  // Set dynamic page title when component mounts
+  useEffect(() => {
+    // Update the document title
+    document.title = "Account Settings | Manage Preferences | Shiftly- A Seamless Transport System";
+    
+    // Optional: Restore the original title when component unmounts
+    return () => {
+      document.title = "Shiftly | A Seamless Transport System";
+    };
+  }, []);
+
+  useEffect(() => {
+    // Scroll to top when component mounts
+    window.scrollTo(0, 0);
+  }, []);
 
   // Form states
   const [emailForm, setEmailForm] = useState({

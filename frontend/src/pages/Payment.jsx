@@ -59,6 +59,23 @@ const Payment = () => {
     setTimeout(() => toast.remove(), 3000);
   };
 
+
+  // Set dynamic page title when component mounts
+  useEffect(() => {
+    // Update the document title
+    document.title = "Secure Payment | Complete Your Booking | Shiftly - A Seamless Transport System";
+    
+    // Optional: Restore the original title when component unmounts
+    return () => {
+      document.title = "Shiftly | A Seamless Transport System";
+    };
+  }, []);
+
+  useEffect(() => {
+    // Scroll to top when component mounts
+    window.scrollTo(0, 0);
+  }, []);
+
   // Handle page reload and navigation
   useEffect(() => {
     // Check if we have valid state
@@ -321,7 +338,7 @@ const Payment = () => {
       <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
         <h3 className="text-xl font-bold mb-4">Leave Payment Page?</h3>
         <p className="text-gray-600 mb-6">
-          Your payment will be cancelled and you'll need to start over. Are you
+          Your payment will be cancelled and you&apos;ll need to start over. Are you
           sure you want to leave?
         </p>
         <div className="flex gap-4">

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Hero from "../components/Hero";
 import Services from "../components/Services";
 import WhyChooseUs from "../components/WhyChooseUs";
@@ -12,6 +12,11 @@ import CalculatePrice from "../components/CalculatePrice";
 
 export default function Home() {
   const [isChatOpen, setIsChatOpen] = useState(false);
+
+  useEffect(() => {
+    // Scroll to top when component mounts
+    window.scrollTo(0, 0);
+  }, []);
 
   const toggleChatbox = () => {
     setIsChatOpen(!isChatOpen);

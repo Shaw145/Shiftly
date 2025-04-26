@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { FaBell, FaCheck, FaTruck, FaCalendarAlt, FaTrash } from "react-icons/fa";
 
 const NotificationsPage = () => {
@@ -32,6 +32,22 @@ const NotificationsPage = () => {
       icon: <FaTruck className="text-green-500" />,
     },
   ]);
+
+  // Set dynamic page title when component mounts
+  useEffect(() => {
+    // Update the document title
+    document.title = "Notifications | Stay Updated | Shiftly - A Seamless Transport System";
+    
+    // Optional: Restore the original title when component unmounts
+    return () => {
+      document.title = "Shiftly | A Seamless Transport System";
+    };
+  }, []);
+
+  useEffect(() => {
+    // Scroll to top when component mounts
+    window.scrollTo(0, 0);
+  }, []);
 
   // Format timestamp to relative time
   const formatTime = (timestamp) => {

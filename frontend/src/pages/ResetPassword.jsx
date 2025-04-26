@@ -11,6 +11,22 @@ const ResetPassword = () => {
   const location = useLocation();
   const token = new URLSearchParams(location.search).get("token");
 
+  // Set dynamic page title when component mounts
+  useEffect(() => {
+    // Update the document title
+    document.title = "Reset Password | Secure Your Account | Shiftly - A Seamless Transport System";
+    
+    // Optional: Restore the original title when component unmounts
+    return () => {
+      document.title = "Shiftly | A Seamless Transport System";
+    };
+  }, []);
+  
+  useEffect(() => {
+    // Scroll to top when component mounts
+    window.scrollTo(0, 0);
+  }, []);
+
   // Redirect if no token in URL
   useEffect(() => {
     if (!token) {

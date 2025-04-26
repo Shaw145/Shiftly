@@ -61,7 +61,7 @@ const reviews = [
   {
     name: "Rohan Mehta",
     text: "Fair pricing, great support, and timely delivery. Highly recommend Shiftly for transportation needs. Reliable service!",
-    rating: 4,
+    rating: 5,
     image: customer8,
   },
   {

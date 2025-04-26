@@ -51,6 +51,22 @@ const BookingDetails = () => {
 
   const { isConnected, on, placeBid } = useWebSocket();
 
+  // Set dynamic page title when component mounts
+  useEffect(() => {
+    // Update the document title
+    document.title = "Booking Information | Job Details | Shiftly - A Seamless Transport System";
+    
+    // Optional: Restore the original title when component unmounts
+    return () => {
+      document.title = "Shiftly | A Seamless Transport System";
+    };
+  }, []);
+
+  useEffect(() => {
+    // Scroll to top when component mounts
+    window.scrollTo(0, 0);
+  }, []);
+
   // Store the driver ID in localStorage
   useEffect(() => {
     if (authDriverId) {

@@ -43,7 +43,7 @@ export default function Navbar() {
   return (
     <nav className="w-full h-20 flex items-center justify-between bg-white shadow-md border-b border-gray-200 z-50 fixed top-0 left-0">
       {/* Left Section: Logo with Dark Blue Background */}
-      <div className="h-full flex items-center bg-body-dark pl-30 pr-16 xxs:pl-15 xs:pl-20 clip-path-angle relative">
+      <div className="h-21 flex items-center bg-body-dark pl-30 pr-16 xxs:pl-15 xs:pl-20 clip-path-angle relative">
         {/* Logo Image */}
         <Link to="/">
           <img
@@ -58,41 +58,41 @@ export default function Navbar() {
 
       {/* Middle Section: Page Links */}
       <div className="hidden lg2:flex flex-grow justify-center space-x-8 items-center">
-        <a
-          href="/"
+        <Link
+          to="/"
           className="text-dark font-bold text-lg hover:text-primary transition-all relative group"
         >
           Home
           <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-primary transition-all group-hover:w-full"></span>
-        </a>
-        <a
-          href="/about"
+        </Link>
+        <Link
+          to="/about-us"
           className="text-dark font-bold text-lg hover:text-primary transition-all relative group"
         >
           About Us
           <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-primary transition-all group-hover:w-full"></span>
-        </a>
-        <a
-          href="/services"
+        </Link>
+        <Link
+          to="/services"
           className="text-dark font-bold text-lg hover:text-primary transition-all relative group"
         >
           Our Services
           <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-primary transition-all group-hover:w-full"></span>
-        </a>
-        <a
-          href="/#CalculatePrice"
+        </Link>
+        <Link
+          to="/Calculate-Price"
           className="text-dark font-bold text-lg hover:text-primary transition-all relative group"
         >
           Calculate Price
           <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-primary transition-all group-hover:w-full"></span>
-        </a>
-        <a
-          href="/contact"
+        </Link>
+        <Link
+          to="/contact-us"
           className="text-dark font-bold text-lg hover:text-primary transition-all relative group"
         >
           Contact Us
           <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-primary transition-all group-hover:w-full"></span>
-        </a>
+        </Link>
       </div>
 
       {/* Right Section: Conditionally render buttons */}
@@ -148,46 +148,62 @@ export default function Navbar() {
           transition={{ duration: 0.3 }}
           className="absolute top-20 left-0 w-full bg-white shadow-lg lg2:hidden z-50"
         >
-          <a
-            href="/"
+          <Link
+            to="/"
             onClick={() => setIsMenuOpen(false)}
             className="block px-6 py-3 text-dark font-bold text-lg hover:bg-accent relative group"
           >
             Home
             <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-primary transition-all group-hover:w-full"></span>
-          </a>
-          <a
-            href="/about"
+          </Link>
+          <Link
+            to="/about-us"
             onClick={() => setIsMenuOpen(false)}
             className="block px-6 py-3 text-dark font-bold text-lg hover:bg-accent relative group"
           >
             About Us
             <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-primary transition-all group-hover:w-full"></span>
-          </a>
-          <a
-            href="/services"
+          </Link>
+          <Link
+            to="/services"
             onClick={() => setIsMenuOpen(false)}
             className="block px-6 py-3 text-dark font-bold text-lg hover:bg-accent relative group"
           >
             Our Services
             <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-primary transition-all group-hover:w-full"></span>
-          </a>
-          <a
-            href="/#CalculatePrice"
+          </Link>
+          <Link
+            to="/Calculate-Price"
             onClick={() => setIsMenuOpen(false)}
             className="block px-6 py-3 text-dark font-bold text-lg hover:bg-accent relative group"
           >
             Calculate Price
             <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-primary transition-all group-hover:w-full"></span>
-          </a>
-          <a
-            href="/contact"
+          </Link>
+          <Link
+            to="/contact-us"
             onClick={() => setIsMenuOpen(false)}
             className="block px-6 py-3 text-dark font-bold text-lg hover:bg-accent relative group"
           >
             Contact Us
             <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-primary transition-all group-hover:w-full"></span>
-          </a>
+          </Link>
+          <Link
+            to="/how-it-works"
+            onClick={() => setIsMenuOpen(false)}
+            className="block px-6 py-3 text-dark font-bold text-lg hover:bg-accent relative group"
+          >
+            See How It Works
+            <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-primary transition-all group-hover:w-full"></span>
+          </Link>
+          <Link
+            to="/faqs"
+            onClick={() => setIsMenuOpen(false)}
+            className="block px-6 py-3 text-dark font-bold text-lg hover:bg-accent relative group"
+          >
+            FAQs
+            <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-primary transition-all group-hover:w-full"></span>
+          </Link>
           {/* Add gap between Contact Us and the button */}
           {!isLoginSignupPage && (
             <div className="mt-4 px-6 mb-4">

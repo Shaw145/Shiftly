@@ -142,6 +142,22 @@ const RatingsAndFeedback = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [isResponding, setIsResponding] = useState(false);
 
+  // Set dynamic page title when component mounts
+  useEffect(() => {
+    // Update the document title
+    document.title = "Ratings & Feedback | Performance Metrics | Shiftly - A Seamless Transport System";
+    
+    // Optional: Restore the original title when component unmounts
+    return () => {
+      document.title = "Shiftly | A Seamless Transport System";
+    };
+  }, []);
+
+  useEffect(() => {
+    // Scroll to top when component mounts
+    window.scrollTo(0, 0);
+  }, []);
+
   // Fetch driver ratings and stats (simulated API call)
   useEffect(() => {
     setLoading(true);

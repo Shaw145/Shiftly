@@ -14,6 +14,22 @@ const MyBookings = () => {
   const [activeFilter, setActiveFilter] = useState("all");
   const navigate = useNavigate();
 
+  // Set dynamic page title when component mounts
+  useEffect(() => {
+    // Update the document title
+    document.title = "My Bookings | View Your Orders | Shiftly - A Seamless Transport System";
+    
+    // Optional: Restore the original title when component unmounts
+    return () => {
+      document.title = "Shiftly | A Seamless Transport System";
+    };
+  }, []);
+
+  useEffect(() => {
+    // Scroll to top when component mounts
+    window.scrollTo(0, 0);
+  }, []);
+
   useEffect(() => {
     // Show the modal if profile is not complete (after initial loading)
     if (!loading && !isProfileComplete) {

@@ -1,21 +1,38 @@
+import { useEffect } from "react";
 import { motion } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
-import {
-  FaTruck,
-  FaRoute,
-  FaMapMarkerAlt,
-  FaCompass
-} from "react-icons/fa";
+// import {
+//   FaTruck,
+//   FaRoute,
+//   FaMapMarkerAlt,
+//   FaCompass
+// } from "react-icons/fa";
 
 const NotFound = () => {
   const navigate = useNavigate();
 
+  // Set dynamic page title when component mounts
+  useEffect(() => {
+    // Update the document title
+    document.title = "Page Not Found | 404 Error | Shiftly - A Seamless Transport System";
+    
+    // Optional: Restore the original title when component unmounts
+    return () => {
+      document.title = "Shiftly | A Seamless Transport System";
+    };
+  }, []);
+
+  useEffect(() => {
+    // Scroll to top when component mounts
+    window.scrollTo(0, 0);
+  }, []);
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-gray-50 to-gray-100 px-4 overflow-hidden pt-20">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-gray-50 to-gray-100 px-4 overflow-hidden pt-10 md:pt-5">
       <div className="max-w-3xl w-full text-center py-8">
 
         {/* Animated Icons Section */}
-        <div className="relative h-48 sm:h-64 mb-8">
+        {/* <div className="relative h-48 sm:h-64 mb-8">
           <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
             <FaRoute className="text-gray-700 text-[180px] sm:text-[250px]" />
           </div>
@@ -37,7 +54,12 @@ const NotFound = () => {
               <FaCompass className="text-blue-400 text-3xl animate-spin relative z-10" />
             </div>
           </div>
-        </div>
+        </div> */}
+        <img
+          src="https://illustrations.popsy.co/red/page-under-construction.svg"
+          alt="Error-404"
+          className="w-60 h-60 md:w-88 md:h-88  mx-auto mb-3"
+        />
 
         {/* Error Message */}
         <motion.h1
@@ -72,7 +94,7 @@ const NotFound = () => {
 
           <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
             <Link
-              to="/contact"
+              to="/contact-us"
               className="inline-block bg-gray-200 text-gray-800 px-8 py-4 rounded-lg font-semibold hover:bg-gray-300 transition-colors duration-300 cursor-pointer"
             >
               Contact Support

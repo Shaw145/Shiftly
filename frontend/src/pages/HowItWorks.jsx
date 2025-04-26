@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
+import { Link } from "react-router-dom";
 import {
   FaSearch,
   FaTruck,
@@ -23,6 +24,22 @@ const HowItWorks = () => {
   const [expandedFeature, setExpandedFeature] = useState(null);
   const [isSmallScreen, setIsSmallScreen] = useState(false);
   const [timelineLoaded, setTimelineLoaded] = useState(false);
+
+  useEffect(() => {
+    // Scroll to top when component mounts
+    window.scrollTo(0, 0);
+  }, []);
+
+  // Set dynamic page title when component mounts
+  useEffect(() => {
+    // Update the document title
+    document.title = "How It Works | Service Process | Shiftly - A Seamless Transport System";
+    
+    // Optional: Restore the original title when component unmounts
+    return () => {
+      document.title = "Shiftly | A Seamless Transport System";
+    };
+  }, []);
 
   // Check for screen size
   useEffect(() => {
@@ -316,12 +333,12 @@ const HowItWorks = () => {
 
             {/* CTA Button */}
             <div className="mt-20 text-center">
-              <a
-                href="/login"
+              <Link
+                to="/login"
                 className="inline-block bg-primary hover:bg-body-dark text-white font-bold py-4 px-8 rounded-lg transition-all duration-300 text-lg shadow-lg transform hover:-translate-y-1 hover:shadow-xl cursor-pointer"
               >
                 Start Booking Now
-              </a>
+              </Link>
             </div>
           </div>
         </section>
@@ -425,18 +442,18 @@ const HowItWorks = () => {
             needs.
           </p>
           <div className="flex flex-col sm:flex-row justify-center space-y-4 sm:space-y-0 sm:space-x-6">
-            <a
-              href="/login"
+            <Link
+              to="/login"
               className="bg-primary text-white hover:bg-white hover:text-primary font-bold py-3 px-8 rounded-lg transition-all duration-300 text-lg shadow-lg transform hover:-translate-y-1 hover:shadow-xl cursor-pointer"
             >
               Get Started
-            </a>
-            <a
-              href="/#CalculatePrice"
+            </Link>
+            <Link
+              to="/Calculate-Price"
               className="bg-transparent border-2 border-white text-white hover:bg-white hover:text-body-dark font-bold py-3 px-8 rounded-lg transition-all duration-300 text-lg cursor-pointer"
             >
               Calculate Price
-            </a>
+            </Link>
           </div>
         </motion.div>
       </section>

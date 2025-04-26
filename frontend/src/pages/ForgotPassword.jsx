@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 // import { useNavigate } from "react-router-dom";
 import authBg from "../assets/auth-bg.jpg";
 
@@ -8,6 +8,22 @@ const ForgotPassword = () => {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false); // Add loading state
   // const navigate = useNavigate();
+
+  // Set dynamic page title when component mounts
+  useEffect(() => {
+    // Update the document title
+    document.title = "Password Recovery | Reset Access | Shiftly - A Seamless Transport System";
+    
+    // Optional: Restore the original title when component unmounts
+    return () => {
+      document.title = "Shiftly | A Seamless Transport System";
+    };
+  }, []);
+
+  useEffect(() => {
+    // Scroll to top when component mounts
+    window.scrollTo(0, 0);
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

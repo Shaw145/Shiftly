@@ -55,6 +55,22 @@ const BookTransport = () => {
   const [savedAddresses, setSavedAddresses] = useState([]);
   const [distance, setDistance] = useState(null);
 
+  // Set dynamic page title when component mounts
+  useEffect(() => {
+    // Update the document title
+    document.title = "Book Transport | Request a Service | Shiftly - A Seamless Transport System";
+    
+    // Optional: Restore the original title when component unmounts
+    return () => {
+      document.title = "Shiftly | A Seamless Transport System";
+    };
+  }, []);
+
+  useEffect(() => {
+    // Scroll to top when component mounts
+    window.scrollTo(0, 0);
+  }, []);
+
   useEffect(() => {
     // Show the modal if profile is not complete (after initial loading)
     if (!loading && !isProfileComplete) {

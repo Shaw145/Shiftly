@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { FaPlus, FaMinus } from "react-icons/fa";
+import { FaPlus, FaMinus, FaArrowRight } from "react-icons/fa";
+import { Link } from "react-router-dom";
 
 const faqData = [
   {
@@ -19,7 +20,7 @@ const faqData = [
       "You can transport both household and industrial goods, including furniture, appliances, office equipment, raw materials, and packaged goods. However, hazardous materials and restricted items are not allowed.",
   },
   {
-    question: "What if I don’t know the weight or volume of my goods?",
+    question: "What if I don't know the weight or volume of my goods?",
     answer:
       "If you're unsure, Shiftly provides an AI-powered estimator where you can describe or upload an image of your items, and the system will suggest an approximate weight and volume to help you choose the right vehicle.",
   },
@@ -31,7 +32,7 @@ const faqData = [
   {
     question: "How do I track my goods during transport?",
     answer:
-      "After booking, you get a live tracking feature where you can monitor your shipment in real-time on the platform. You’ll also receive updates at key checkpoints.",
+      "After booking, you get a live tracking feature where you can monitor your shipment in real-time on the platform. You'll also receive updates at key checkpoints.",
   },
   {
     question: "Does Shiftly offer packing services?",
@@ -46,7 +47,7 @@ const faqData = [
   {
     question: "Can businesses use Shiftly for regular transportation needs?",
     answer:
-      "Absolutely! Businesses can book recurring transport services, track deliveries, and manage logistics efficiently using Shiftly’s platform.",
+      "Absolutely! Businesses can book recurring transport services, track deliveries, and manage logistics efficiently using Shiftly's platform.",
   },
   {
     question: "What if I need to cancel my booking?",
@@ -66,7 +67,7 @@ const faqData = [
 ];
 
 // eslint-disable-next-line react/prop-types
-const FAQSection = ({toggleChatbox}) => {
+const FAQSection = ({ toggleChatbox }) => {
   const [activeIndex, setActiveIndex] = useState(null);
 
   const toggleFAQ = (index) => {
@@ -95,7 +96,7 @@ const FAQSection = ({toggleChatbox}) => {
                 <h3 className=" md:text-xl font-semibold text-gray-900">
                   {faq.question}
                 </h3>
-                <span className="text-gray-700">
+                <span className="text-red-700">
                   {activeIndex === index ? <FaMinus /> : <FaPlus />}
                 </span>
               </button>
@@ -106,15 +107,36 @@ const FAQSection = ({toggleChatbox}) => {
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: "auto" }}
                     exit={{ opacity: 0, height: 0 }}
-                    transition={{ duration: 0.1, ease: "easeOut" }}
-                    className="px-6 pb-6"
+                    transition={{
+                      height: { duration: 0.4, ease: "easeInOut" },
+                      opacity: { duration: 0.25, ease: "easeInOut" },
+                    }}
+                    className="border-t border-gray-100"
                   >
-                    <p className="text-gray-600 lg:text-lg">{faq.answer}</p>
+                    <div className="px-6 pb-6 pt-4 bg-gray-100">
+                      <p className="text-gray-600 lg:text-lg">{faq.answer}</p>
+                    </div>
                   </motion.div>
                 )}
               </AnimatePresence>
             </motion.div>
           ))}
+          <div className="text-right mt-6">
+            <Link
+              to="/faqs"
+              className="inline-flex items-center py-2 px-4 text-red-600 font-medium rounded-lg hover:bg-red-100 group hover:scale-105 transition-all duration-200"
+            >
+              See all FAQs
+              <motion.span
+                className="ml-2"
+                initial={{ x: 0 }}
+                whileHover={{ x: 5 }}
+                transition={{ type: "spring", stiffness: 500 }}
+              >
+                <FaArrowRight />
+              </motion.span>
+            </Link>
+          </div>
         </div>
 
         <div className="mt-10 text-center lg:text-lg">

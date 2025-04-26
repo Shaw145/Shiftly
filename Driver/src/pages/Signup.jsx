@@ -22,6 +22,22 @@ const Signup = () => {
   const [isUsernameAvailable, setIsUsernameAvailable] = useState(null);
   const navigate = useNavigate();
 
+  // Set dynamic page title when component mounts
+  useEffect(() => {
+    // Update the document title
+    document.title = "Create Account | Join Our Network | Shiftly - A Seamless Transport System";
+    
+    // Optional: Restore the original title when component unmounts
+    return () => {
+      document.title = "Shiftly | A Seamless Transport System";
+    };
+  }, []);
+
+  useEffect(() => {
+    // Scroll to top when component mounts
+    window.scrollTo(0, 0);
+  }, []);
+
   // Username availability check
   useEffect(() => {
     if (formData.username && formData.username.length >= 3) {

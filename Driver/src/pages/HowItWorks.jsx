@@ -25,6 +25,22 @@ const HowItWorks = () => {
   const [timelineLoaded, setTimelineLoaded] = useState(false);
   const [expandedFeature, setExpandedFeature] = useState(null);
 
+  // Set dynamic page title when component mounts
+  useEffect(() => {
+    // Update the document title
+    document.title = "How Shiftly Works | Driver Guide | Shiftly - A Seamless Transport System";
+    
+    // Optional: Restore the original title when component unmounts
+    return () => {
+      document.title = "Shiftly | A Seamless Transport System";
+    };
+  }, []);
+
+  useEffect(() => {
+    // Scroll to top when component mounts
+    window.scrollTo(0, 0);
+  }, []);
+
   // Check for screen size
   useEffect(() => {
     const handleResize = () => {

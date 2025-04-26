@@ -21,6 +21,23 @@ const Signup = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const navigate = useNavigate();
 
+  // Set dynamic page title when component mounts
+  useEffect(() => {
+    // Update the document title
+    document.title = "Create Account | Join Shiftly | Shiftly - A Seamless Transport System";
+    
+    // Optional: Restore the original title when component unmounts
+    return () => {
+      document.title = "Shiftly | A Seamless Transport System";
+    };
+  }, []);
+
+  useEffect(() => {
+    // Scroll to top when component mounts
+    window.scrollTo(0, 0);
+  }, []);
+
+
   // Enhanced username availability check
   useEffect(() => {
     if (username && username.length >= 3) {
@@ -147,7 +164,7 @@ const Signup = () => {
     >
       <div className="w-full max-w-md bg-[#151616af] p-8 rounded-lg shadow-lg mx-4 mt-29 mb-8">
         <h1 className="text-3xl font-bold text-center mb-6 text-white">
-          Sign Up
+          Create Account
         </h1>
 
         {error && <p className="text-red-500 text-sm mb-4">{error}</p>}
@@ -293,9 +310,9 @@ const Signup = () => {
             />
             <span className="text-base text-white">
               I accept the{" "}
-              <a href="/terms" className="text-red-500 hover:underline">
+              <Link to="/terms-and-conditions" target="_blank" className="text-red-500 hover:underline">
                 terms and conditions
-              </a>
+              </Link>
             </span>
           </div>
           <button

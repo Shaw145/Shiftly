@@ -47,6 +47,22 @@ const BookingDetailPage = () => {
   /** @type {[DriverBid[], Function]} */
   const [driverBids, setDriverBids] = useState([]);
 
+  // Set dynamic page title when component mounts
+  useEffect(() => {
+    // Update the document title
+    document.title = "Booking Details | Your Transport Request | Shiftly - A Seamless Transport System";
+    
+    // Optional: Restore the original title when component unmounts
+    return () => {
+      document.title = "Shiftly | A Seamless Transport System";
+    };
+  }, []);
+
+  useEffect(() => {
+    // Scroll to top when component mounts
+    window.scrollTo(0, 0);
+  }, []);
+
   // Handle real-time bid updates via WebSocket
   useEffect(() => {
     if (!isConnected || !bookingId) return;

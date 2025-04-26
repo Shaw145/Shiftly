@@ -21,6 +21,22 @@ const Dashboard = () => {
   const [hasAddress, setHasAddress] = useState(true); // Default to true to avoid flash of modal
   const navigate = useNavigate();
 
+  // Set dynamic page title when component mounts
+  useEffect(() => {
+    // Update the document title
+    document.title = "Driver Dashboard | Service Overview | Shiftly - A Seamless Transport System";
+    
+    // Optional: Restore the original title when component unmounts
+    return () => {
+      document.title = "Shiftly | A Seamless Transport System";
+    };
+  }, []);
+
+  useEffect(() => {
+    // Scroll to top when component mounts
+    window.scrollTo(0, 0);
+  }, []);
+
   useEffect(() => {
     const token = localStorage.getItem("driverToken");
     if (!token) {
