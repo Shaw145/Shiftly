@@ -12,7 +12,7 @@ const DriverDetailsCard = ({ booking }) => {
     };
 
   return (
-    <div className="bg-gradient-to-br from-red-50 to-orange-50 rounded-xl p-6">
+    <div className="bg-gradient-to-br from-red-50 to-orange-50 rounded-xl p-6 overflow-y-auto">
       <h3 className="text-lg font-semibold text-gray-900 mb-3">
         Driver Details
       </h3>

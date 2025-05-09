@@ -28,7 +28,7 @@ const NotFound = () => {
   }, []);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-gray-50 to-gray-100 px-4 overflow-hidden pt-10 md:pt-5">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-gray-50 to-gray-100 px-4 overflow-hidden pt-20 md:pt-5">
       <div className="max-w-3xl w-full text-center py-8">
 
         {/* Animated Icons Section */}

@@ -152,7 +152,7 @@ export default function Footer() {
       {/* Copyright Section */}
       <div className="bg-body-dark text-white text-center py-6 lg:text-[17px] relative z-10">
         <span>© {new Date().getFullYear()} Shiftly, All Rights Reserved. Design By </span>
-        <a href="https://linkedin.com/in/codecrafters" target="_blank" 
+        <a href="#"  
            className="text-primary font-bold cursor-pointer underline inline-block">
            @CodeCrafters
         </a>

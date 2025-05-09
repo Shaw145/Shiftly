@@ -53,10 +53,10 @@ const Services = () => {
 
   // Core service offerings
   const coreServices = [
-    {
-      id: 1,
+  {
+    id: 1,
       title: "Household Shifting",
-      description:
+    description:
         "Professional and reliable household relocation services. We handle everything from packing and loading to transportation and unpacking, ensuring your belongings reach safely.",
       image: houseShifting,
       features: [
@@ -67,9 +67,9 @@ const Services = () => {
       ],
       icon: <FaBoxOpen />,
       color: "from-blue-500 to-blue-600",
-    },
-    {
-      id: 2,
+  },
+  {
+    id: 2,
       title: "Office Shifting",
       description:
         "Minimize downtime with our efficient office relocation services. Our team ensures your business gets back up and running quickly with minimal disruption to your operations.",
@@ -95,7 +95,7 @@ const Services = () => {
         "Specialized equipment fleet",
         "Project management included",
       ],
-      icon: <FaTruck />,
+    icon: <FaTruck />,
       color: "from-amber-500 to-amber-600",
     },
   ];
@@ -114,52 +114,52 @@ const Services = () => {
       id: 2,
       icon: <FaMoneyBillWave />,
       title: "Fair & Transparent Pricing",
-      description:
+    description:
         "Shiftly uses a smart pricing system that considers distance, goods category, urgency, and toll fees to generate a price range. This ensures users get an honest estimate before booking, with no hidden charges later on.",
       color: "#10B981",
-    },
-    {
-      id: 3,
+  },
+  {
+    id: 3,
       icon: <FaTruckMoving />,
       title: "Vehicle Recommendation Based on Goods",
-      description:
+    description:
         "Users don't need to guess which vehicle they need. Based on inputs (or image analysis in future), the system suggests the most suitable vehicle size — saving money and avoiding under- or over-sized transport.",
       color: "#F59E0B",
-    },
-    {
-      id: 4,
+  },
+  {
+    id: 4,
       icon: <FaMapMarkedAlt />,
       title: "Live Tracking of Your Shipment",
-      description:
+    description:
         "Once the goods are picked up, users can track the exact location of the vehicle in real time. This ensures better coordination, transparency, and peace of mind throughout the delivery journey.",
       color: "#EC4899",
-    },
-    {
-      id: 5,
+  },
+  {
+    id: 5,
       icon: <FaLock />,
       title: "Secure User Accounts & Bookings",
-      description:
+    description:
         "All user data and bookings are protected with secure login (Firebase) and token-based authentication. Users can safely manage their orders, history, and preferences through their personal dashboard.",
       color: "#8B5CF6",
-    },
-    {
-      id: 6,
+  },
+  {
+    id: 6,
       icon: <FaCalculator />,
       title: "Instant Price Calculator (No Login Needed)",
-      description:
+    description:
         "Before even signing up, users can access a calculator tool to get an estimated delivery cost. This helps users plan better and decide whether to proceed with booking.",
       color: "#0EA5E9",
-    },
-    {
-      id: 7,
+  },
+  {
+    id: 7,
       icon: <FaUserShield />,
       title: "Verified Drivers & Rating System",
-      description:
+    description:
         "Only drivers who pass document verification and profile checks can bid on transport jobs. After delivery, users can rate and review drivers — helping others make informed decisions and keeping service quality high.",
       color: "#EF4444",
-    },
-    {
-      id: 8,
+  },
+  {
+    id: 8,
       icon: <FaHeadset />,
       title: "24/7 Customer Support",
       description:
@@ -178,34 +178,34 @@ const Services = () => {
       id: 10,
       icon: <FaShieldAlt />,
       title: "Secure Transportation",
-      description:
+    description:
         "Shiftly ensures your goods are transported safely with trusted drivers, live tracking, and optional insurance coverage — giving users complete confidence throughout the delivery process.",
       color: "#0891B2",
-    },
-  ];
+  },
+];
 
   // Testimonials
   const testimonials = [
-    {
-      id: 1,
+  {
+    id: 1,
       name: "Ritwik Sen",
       position: "Business Owner",
       content:
         "Professional and punctual service! The driver arrived on time and handled my goods with care. Will be using again soon!",
       rating: 4,
       image: customer6,
-    },
-    {
-      id: 2,
+  },
+  {
+    id: 2,
       name: "Ipsita Dutta",
       position: "Homeowner",
       content:
         "The best transport service I've ever used! The drivers were professional, and the process was hassle-free. Highly recommend!",
       rating: 5,
       image: customer5,
-    },
-    {
-      id: 3,
+  },
+  {
+    id: 3,
       name: "Rohan Mehta",
       position: "Factory Manager",
       content:
@@ -245,7 +245,7 @@ const Services = () => {
               </span>
               <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-8 text-white leading-tight">
                 Professional Transport & Shifting Services
-              </h1>
+        </h1>
               <p className="text-lg md:text-xl text-gray-200 mb-10 leading-relaxed">
                 Expert solutions for household, office, and industrial
                 transportation needs with real-time tracking, secure handling,
@@ -385,11 +385,11 @@ const Services = () => {
               Our transport platform is designed with cutting-edge features that
               make your shipping experience seamless, secure, and stress-free.
             </motion.p>
-          </div>
+      </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8">
             {platformFeatures.map((feature, index) => (
-              <motion.div
+        <motion.div
                 key={feature.id}
                 className="bg-white rounded-xl shadow-xl overflow-hidden border border-gray-100 hover:shadow-2xl transition-all duration-300 flex"
                 initial={{ opacity: 0, y: 30 }}
@@ -429,11 +429,11 @@ const Services = () => {
             <div className="order-2 lg:order-1">
               <motion.span
                 className="inline-block bg-red-100 text-red-700 px-4 py-1 rounded-full text-sm font-semibold mb-4"
-                initial={{ opacity: 0 }}
+          initial={{ opacity: 0 }}
                 whileInView={{ opacity: 1 }}
                 viewport={{ once: true }}
-                transition={{ duration: 0.5 }}
-              >
+          transition={{ duration: 0.5 }}
+        >
                 SIMPLE PROCESS
               </motion.span>
               <motion.h2
@@ -581,8 +581,8 @@ const Services = () => {
                       </div>
                     </div>
                   </div>
-                </motion.div>
-              ))}
+            </motion.div>
+          ))}
             </div>
 
             <motion.div
@@ -600,8 +600,8 @@ const Services = () => {
                 <span className="mx-2 text-gray-400">|</span>
                 <span>Based on 500+ verified customer reviews</span>
               </div>
-            </motion.div>
-          </div>
+        </motion.div>
+      </div>
         </div>
       </section>
 

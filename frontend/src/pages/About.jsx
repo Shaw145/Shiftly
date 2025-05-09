@@ -60,8 +60,8 @@ const AboutUs = () => {
           <div className="flex flex-col lg:flex-row items-center justify-between gap-16">
             <motion.div
               className="lg:w-1/2"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.7 }}
             >
               <span className="inline-block bg-red-100 text-red-600 px-4 py-1 rounded-full text-sm font-semibold mb-6">
@@ -92,7 +92,7 @@ const AboutUs = () => {
               </div>
             </motion.div>
 
-            <motion.div
+        <motion.div
               className="lg:w-1/2 flex justify-center"
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -324,9 +324,9 @@ const AboutUs = () => {
                 Contact Us
                 <FaArrowRight className="ml-2" />
               </button>
-            </motion.div>
+          </motion.div>
 
-            <motion.div
+          <motion.div
               className="md:w-1/2 flex justify-center"
               initial={{ opacity: 0, scale: 0.9 }}
               whileInView={{ opacity: 1, scale: 1 }}
@@ -338,7 +338,7 @@ const AboutUs = () => {
                 alt="Business Success Chart"
                 className="max-w-md w-full"
               />
-            </motion.div>
+          </motion.div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-8 max-w-7xl mx-auto mt-16">
@@ -349,7 +349,7 @@ const AboutUs = () => {
               { number: 32, suffix: "+", label: "Cities Covered" },
               { number: 98, suffix: "%", label: "Customer Satisfaction" },
             ].map((stat, index) => (
-              <motion.div
+          <motion.div
                 key={index}
                 className="bg-white rounded-xl shadow-md p-8 text-center hover:shadow-lg transition-all duration-300 border border-gray-100"
                 initial={{ opacity: 0, y: 30 }}
@@ -368,7 +368,7 @@ const AboutUs = () => {
                   )}
                 </h3>
                 <p className="text-gray-600">{stat.label}</p>
-              </motion.div>
+          </motion.div>
             ))}
           </div>
         </div>
@@ -463,11 +463,11 @@ const AboutUs = () => {
           <div className="max-w-6xl mx-auto">
             <motion.div
               className="text-center mb-16"
-              initial={{ opacity: 0 }}
+          initial={{ opacity: 0 }}
               whileInView={{ opacity: 1 }}
               viewport={{ once: true }}
-              transition={{ duration: 0.5 }}
-            >
+          transition={{ duration: 0.5 }}
+        >
               <span className="inline-block bg-red-100 text-red-600 px-4 py-1 rounded-full text-sm font-semibold mb-4">
                 OUR ADVANTAGES
               </span>

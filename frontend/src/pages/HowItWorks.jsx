@@ -222,7 +222,7 @@ const HowItWorks = () => {
       </section>
 
       {/* Tab Navigation */}
-      <div className="bg-white border-b border-gray-200 sticky top-20 z-40">
+      <div className="bg-white border-b border-gray-200 top-20 z-40">
         <div className="max-w-6xl mx-auto flex flex-wrap justify-center">
           <button
             onClick={() => setSelectedTab("booking")}

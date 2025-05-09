@@ -1,8 +1,8 @@
 import { motion } from "framer-motion";
 import { FaGithub, FaLinkedin } from "react-icons/fa";
 import team1 from "../assets/Team1.jpg";
-import team2 from "../assets/Customer 8.jpg";
-import team3 from "../assets/Customer 5.jpg";
+import team2 from "../assets/Team5.jpeg";
+import team3 from "../assets/Team4.jpeg";
 import team4 from "../assets/Team3.jpg";
 import team5 from "../assets/Team2.jpg";
 
@@ -21,8 +21,8 @@ const teamMembers = [
     role: "Backend Developer",
     image: team2,
     bio: "Handles server-side logic, database management, and API integrations including payment gateways and authentication.",
-    linkedin: "#",
-    github: "#",
+    linkedin: "https://www.linkedin.com/in/sudipto-das-sudi369",
+    github: "https://github.com/sudiptodas369",
     twitter: "#",
   },
   {
@@ -30,8 +30,8 @@ const teamMembers = [
     role: "UI/UX Designer",
     image: team3,
     bio: "Creates user interface designs, wireframes, prototypes, and ensures a seamless user experience across all platform touchpoints.",
-    linkedin: "#",
-    github: "#",
+    linkedin: "https://www.linkedin.com/in/swarnali-das-b087a0288",
+    github: "https://github.com/swarnali03",
     twitter: "#",
   },
   {
@@ -39,8 +39,8 @@ const teamMembers = [
     role: "Frontend Developer",
     image: team4,
     bio: "Implements responsive UI components, state management, and client-side features using React.js and modern web technologies.",
-    linkedin: "#",
-    github: "#",
+    linkedin: "https://www.linkedin.com/in/sujashdas1210",
+    github: "https://github.com/Sujash-1210",
     twitter: "#",
   },
   {
@@ -48,8 +48,8 @@ const teamMembers = [
     role: "Frontend Developer",
     image: team5,
     bio: "Focuses on performance optimization, responsive design implementation, and frontend testing across different devices.",
-    linkedin: "#",
-    github: "#",
+    linkedin: "https://www.linkedin.com/in/subhodeep-dutta-636229270/",
+    github: "https://github.com/Subhodeep142002",
     twitter: "#",
   },
 ];
