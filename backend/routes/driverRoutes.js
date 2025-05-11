@@ -184,4 +184,22 @@ router.delete(
 
 router.get("/:driverId/public", driverController.getPublicDriverInfo);
 
+// Driver bookings endpoints
+router.get("/bookings", protectDriver, driverController.getDriverBookings);
+router.get(
+  "/bookings/:bookingId",
+  protectDriver,
+  driverController.getDriverBookingDetails
+);
+router.put(
+  "/bookings/:bookingId/status",
+  protectDriver,
+  driverController.updateBookingStatus
+);
+router.post(
+  "/bookings/:bookingId/accept",
+  protectDriver,
+  driverController.acceptBooking
+);
+
 module.exports = router;

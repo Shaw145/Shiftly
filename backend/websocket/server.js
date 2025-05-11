@@ -122,7 +122,7 @@ function initializeWebSocket(server) {
 // Handle different types of WebSocket messages
 async function handleWebSocketMessage(data, user, role) {
   try {
-    const { type, payload } = data;
+    const { type, payload, messageId } = data;
     const client = clients.get(user._id.toString());
 
     if (!client) {
@@ -157,11 +157,25 @@ async function handleWebSocketMessage(data, user, role) {
             JSON.stringify({
               type: "error",
               message: "Only drivers can place bids",
+              messageId,
             })
           );
           return;
         }
-        await handleBidPlacement(payload, user);
+
+        // Process the bid and get the response
+        const bidResponse = await handleBidPlacement(payload, user);
+
+        // Always send a direct response back to the driver who placed the bid
+        client.ws.send(
+          JSON.stringify({
+            type: "bid_response",
+            status: bidResponse.success ? "success" : "error",
+            message: bidResponse.message,
+            bid: bidResponse.success ? bidResponse.bid : null,
+            messageId, // Echo back the messageId if provided
+          })
+        );
         break;
 
       case "accept_bid":
@@ -170,6 +184,7 @@ async function handleWebSocketMessage(data, user, role) {
             JSON.stringify({
               type: "error",
               message: "Only customers can accept bids",
+              messageId,
             })
           );
           return;
@@ -186,6 +201,7 @@ async function handleWebSocketMessage(data, user, role) {
           JSON.stringify({
             type: "error",
             message: "Unknown message type: " + type,
+            messageId,
           })
         );
     }
@@ -199,6 +215,7 @@ async function handleWebSocketMessage(data, user, role) {
             type: "error",
             message: "Server error processing message",
             details: error.message,
+            messageId: data?.messageId,
           })
         );
       }
@@ -209,10 +226,11 @@ async function handleWebSocketMessage(data, user, role) {
   }
 }
 
+// Store recent bids to prevent duplicate processing
+const recentBids = new Map();
+
 // Handle bid placement with improved validation
 async function handleBidPlacement(payload, driver) {
-  console.log("Handling bid placement:", payload);
-
   try {
     const { bookingId, amount, note } = payload;
 
@@ -220,7 +238,18 @@ async function handleBidPlacement(payload, driver) {
       return {
         success: false,
         error: "Booking ID and amount are required",
+        message: "Booking ID and amount are required",
       };
+    }
+
+    // Generate a unique key for this bid
+    const bidKey = `${driver._id.toString()}_${bookingId}_${amount}`;
+
+    // Check if we've recently processed this exact bid (debounce)
+    const recentBid = recentBids.get(bidKey);
+    if (recentBid && Date.now() - recentBid.timestamp < 5000) {
+      // Return the cached response if the bid was placed within the last 5 seconds
+      return recentBid.response;
     }
 
     // Find booking (using either MongoDB ID or custom ID)
@@ -232,18 +261,34 @@ async function handleBidPlacement(payload, driver) {
     }
 
     if (!booking) {
-      return {
+      const response = {
         success: false,
-        error: "Booking not found",
+        message: "Booking not found",
       };
+
+      // Cache the response
+      recentBids.set(bidKey, {
+        timestamp: Date.now(),
+        response,
+      });
+
+      return response;
     }
 
     // Verify booking status allows bidding
     if (booking.status !== "pending") {
-      return {
+      const response = {
         success: false,
-        error: "This booking is not available for bidding",
+        message: "This booking is not available for bidding",
       };
+
+      // Cache the response
+      recentBids.set(bidKey, {
+        timestamp: Date.now(),
+        response,
+      });
+
+      return response;
     }
 
     // Check if bidding is locked (24h before pickup)
@@ -252,19 +297,35 @@ async function handleBidPlacement(payload, driver) {
     const hoursBeforePickup = (pickupDate - now) / (1000 * 60 * 60);
 
     if (hoursBeforePickup < 24) {
-      return {
+      const response = {
         success: false,
-        error: "Bidding is locked 24 hours before pickup",
+        message: "Bidding is locked 24 hours before pickup",
       };
+
+      // Cache the response
+      recentBids.set(bidKey, {
+        timestamp: Date.now(),
+        response,
+      });
+
+      return response;
     }
 
     // Parse and validate amount
     const bidAmount = Number(amount);
     if (isNaN(bidAmount) || bidAmount <= 0) {
-      return {
+      const response = {
         success: false,
-        error: "Bid amount must be a positive number",
+        message: "Bid amount must be a positive number",
       };
+
+      // Cache the response
+      recentBids.set(bidKey, {
+        timestamp: Date.now(),
+        response,
+      });
+
+      return response;
     }
 
     // Validate against price range
@@ -272,17 +333,33 @@ async function handleBidPlacement(payload, driver) {
     const maxPrice = booking.estimatedPrice?.max;
 
     if (minPrice && bidAmount < minPrice) {
-      return {
+      const response = {
         success: false,
-        error: `Bid amount (₹${bidAmount}) is below the minimum estimated price (₹${minPrice})`,
+        message: `Bid amount (₹${bidAmount}) is below the minimum estimated price (₹${minPrice})`,
       };
+
+      // Cache the response
+      recentBids.set(bidKey, {
+        timestamp: Date.now(),
+        response,
+      });
+
+      return response;
     }
 
     if (maxPrice && bidAmount > maxPrice * 1.15) {
-      return {
+      const response = {
         success: false,
-        error: `Bid amount (₹${bidAmount}) is too high compared to the maximum estimated price`,
+        message: `Bid amount (₹${bidAmount}) is too high compared to the maximum estimated price`,
       };
+
+      // Cache the response
+      recentBids.set(bidKey, {
+        timestamp: Date.now(),
+        response,
+      });
+
+      return response;
     }
 
     // Start database transaction
@@ -361,89 +438,92 @@ async function handleBidPlacement(payload, driver) {
       };
 
       // Create response for client
+      const bidDetails = {
+        id: bid._id,
+        driverId: driverId.toString(),
+        amount: bidAmount,
+        note: note || "",
+        status: "pending",
+        bidTime: bid.createdAt,
+        driverRating: driverInfo.rating,
+        isCurrentDriver: true,
+      };
+
       const response = {
         success: true,
         message: isUpdate
           ? "Bid updated successfully"
           : "Bid placed successfully",
-        bid: {
-          id: bid._id,
-          driverId: driverId.toString(),
-          amount: bidAmount,
-          note: note || "",
-          status: "pending",
-          bidTime: bid.createdAt,
-          driverRating: driverInfo.rating,
-          isCurrentDriver: true,
-        },
+        bid: bidDetails,
       };
 
-      // Notify user about the new bid
-      broadcast(
-        {
-          type: "new_bid",
-          payload: {
-            bookingId: booking._id.toString(),
-            bookingRefId: booking.bookingId,
-            bid: {
-              id: bid._id.toString(),
-              driverId: driverId.toString(),
-              amount: bidAmount,
-              note: note || "",
-              bidTime: new Date().toISOString(),
-              // Include driver details
-              name: driverInfo.name,
-              driverName: driverInfo.name,
-              profilePhoto: driverInfo.profilePhoto,
-              rating: driverInfo.rating,
-              driverRating: driverInfo.rating,
-              trips: driverInfo.trips,
-              vehicle: driverInfo.vehicle,
-              isVerified: driverInfo.isVerified,
-              experience: driverInfo.experience,
-            },
-          },
-        },
-        (client) =>
-          client.role === "user" &&
-          client.user.toString() === booking.userId.toString()
+      // Cache the response to prevent duplicate processing
+      recentBids.set(bidKey, {
+        timestamp: Date.now(),
+        response,
+        notified: false,
+      });
+
+      // Only notify user with bid if they're connected (avoid unnecessary broadcasts)
+      const userClient = Array.from(clients.values()).find(
+        (client) => client.role === "user" && client.user.equals(booking.userId)
       );
 
-      // Notify other drivers (anonymized)
-      broadcast(
-        {
-          type: "new_bid",
-          payload: {
-            bookingId: booking._id.toString(),
-            bid: {
-              id: bid._id.toString(),
-              amount: bidAmount,
-              driverRating: driverInfo.rating,
-              bidTime: bid.createdAt,
+      if (userClient) {
+        userClient.ws.send(
+          JSON.stringify({
+            type: "new_bid",
+            payload: {
+              bookingId: booking._id.toString(),
+              bookingRefId: booking.bookingId,
+              bid: {
+                id: bid._id.toString(),
+                driverId: driverId.toString(),
+                amount: bidAmount,
+                note: note || "",
+                bidTime: new Date().toISOString(),
+                name: driverInfo.name,
+                driverName: driverInfo.name,
+                profilePhoto: driverInfo.profilePhoto,
+                rating: driverInfo.rating,
+                driverRating: driverInfo.rating,
+                trips: driverInfo.trips,
+                vehicle: driverInfo.vehicle,
+                isVerified: driverInfo.isVerified,
+              },
             },
-          },
-        },
-        (client) =>
-          client.role === "driver" &&
-          client.user.toString() !== driverId.toString()
-      );
+          })
+        );
 
-      // When driver profile is updated, broadcast to all clients
-      await broadcastDriverUpdate(driverId);
+        // Mark as notified
+        const cachedBid = recentBids.get(bidKey);
+        if (cachedBid) {
+          cachedBid.notified = true;
+        }
+      }
 
       return response;
-    } catch (dbError) {
-      // If any error occurs, abort the transaction
+    } catch (error) {
+      // Abort transaction on error
       await session.abortTransaction();
-      throw dbError;
+      throw error;
     } finally {
-      session.endSession();
+      // End session
+      await session.endSession();
+
+      // Clean up old entries from the recentBids map
+      const now = Date.now();
+      for (const [key, value] of recentBids.entries()) {
+        if (now - value.timestamp > 60000) {
+          // Remove entries older than 1 minute
+          recentBids.delete(key);
+        }
+      }
     }
   } catch (error) {
-    console.error("Error handling bid placement:", error);
     return {
       success: false,
-      error: error.message || "Failed to place bid",
+      message: error.message || "Failed to place bid",
     };
   }
 }
@@ -605,6 +685,25 @@ function broadcast(message, filter = null) {
 // Function to broadcast driver updates to all users
 async function broadcastDriverUpdate(driverId) {
   try {
+    // Return early if the driver ID is not valid
+    if (!driverId || !mongoose.Types.ObjectId.isValid(driverId)) {
+      return;
+    }
+
+    // Check if we have active user clients before proceeding
+    let hasUserClients = false;
+    for (const client of clients.values()) {
+      if (client.role === "user") {
+        hasUserClients = true;
+        break;
+      }
+    }
+
+    // If no users are connected, skip the broadcast completely
+    if (!hasUserClients) {
+      return;
+    }
+
     // Fetch the driver data
     const driver = await Driver.findById(driverId);
     if (!driver) return;
@@ -635,18 +734,26 @@ async function broadcastDriverUpdate(driverId) {
       isVerified: driver.isVerified,
     };
 
-    // Broadcast to all users
-    broadcast({
-      type: "driver_updated",
-      payload: {
-        driverId: driver._id.toString(),
-        driver: publicDriverInfo,
-      },
-    });
-
-    console.log(`Broadcasted driver update for driver ${driver._id}`);
+    // Only broadcast to user clients
+    for (const client of clients.values()) {
+      if (client.role === "user") {
+        try {
+          client.ws.send(
+            JSON.stringify({
+              type: "driver_updated",
+              payload: {
+                driverId: driver._id.toString(),
+                driver: publicDriverInfo,
+              },
+            })
+          );
+        } catch (error) {
+          // Silently handle any send errors
+        }
+      }
+    }
   } catch (error) {
-    console.error("Error broadcasting driver update:", error);
+    // Don't log the broadcast error to prevent console spam
   }
 }
 

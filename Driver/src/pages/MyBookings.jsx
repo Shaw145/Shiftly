@@ -39,8 +39,9 @@ const MyBookings = () => {
   // Set dynamic page title when component mounts
   useEffect(() => {
     // Update the document title
-    document.title = "Assigned Bookings | Your Transport Jobs | Shiftly - A Seamless Transport System";
-    
+    document.title =
+      "Assigned Bookings | Your Transport Jobs | Shiftly - A Seamless Transport System";
+
     // Optional: Restore the original title when component unmounts
     return () => {
       document.title = "Shiftly | A Seamless Transport System";
@@ -86,18 +87,16 @@ const MyBookings = () => {
         if (data.success && Array.isArray(data.bookings)) {
           setBookings(data.bookings);
         } else {
-          // If no bookings are returned or format is unexpected, use demo data
-          console.log("Using demo booking data due to unexpected API response");
-          setBookings(getDemoBookings());
+          // If no bookings are returned or format is unexpected, show empty state
+          console.log("No bookings returned from API");
+          setBookings([]);
         }
       } catch (error) {
         console.error("Error fetching bookings:", error);
         setError(error.message || "Failed to load bookings");
-        // Use demo data as fallback
-        setBookings(getDemoBookings());
-        toast.error(
-          "Failed to fetch bookings from server, showing sample data"
-        );
+        // Don't use demo data, show empty state instead
+        setBookings([]);
+        toast.error("Failed to fetch bookings from server");
       } finally {
         setLoading(false);
       }
@@ -106,133 +105,13 @@ const MyBookings = () => {
     fetchBookings();
   }, [navigate]);
 
-  // Get demo bookings if API fails
-  const getDemoBookings = () => {
-    return [
-      {
-        _id: "booking1",
-        bookingId: "B123456789",
-        status: "confirmed",
-        pickup: {
-          city: "Mumbai",
-          state: "Maharashtra",
-        },
-        delivery: {
-          city: "Pune",
-          state: "Maharashtra",
-        },
-        schedule: {
-          date: new Date().setDate(new Date().getDate() + 2),
-          time: "14:00",
-        },
-        estimatedPrice: {
-          min: 2500,
-          max: 3000,
-        },
-        goods: {
-          type: "household_medium",
-        },
-        distance: "150 km",
-        customer: {
-          name: "Rahul Sharma",
-          phone: "+91 9823456789",
-        },
-        createdAt: new Date().setDate(new Date().getDate() - 1),
-      },
-      {
-        _id: "booking2",
-        bookingId: "B987654321",
-        status: "in_transit",
-        pickup: {
-          city: "Delhi",
-          state: "Delhi",
-        },
-        delivery: {
-          city: "Gurgaon",
-          state: "Haryana",
-        },
-        schedule: {
-          date: new Date().setDate(new Date().getDate() - 1),
-          time: "10:00",
-        },
-        estimatedPrice: {
-          min: 1200,
-          max: 1500,
-        },
-        finalPrice: 1350,
-        goods: {
-          type: "light",
-        },
-        distance: "30 km",
-        customer: {
-          name: "Priya Patel",
-          phone: "+91 9876543210",
-        },
-        createdAt: new Date().setDate(new Date().getDate() - 3),
-      },
-      {
-        _id: "booking3",
-        bookingId: "B456789123",
-        status: "delivered",
-        pickup: {
-          city: "Bengaluru",
-          state: "Karnataka",
-        },
-        delivery: {
-          city: "Mysore",
-          state: "Karnataka",
-        },
-        schedule: {
-          date: new Date().setDate(new Date().getDate() - 5),
-          time: "09:30",
-        },
-        finalPrice: 3200,
-        goods: {
-          type: "household_large",
-        },
-        distance: "145 km",
-        customer: {
-          name: "Amit Kumar",
-          phone: "+91 9765432180",
-        },
-        createdAt: new Date().setDate(new Date().getDate() - 7),
-        completedAt: new Date().setDate(new Date().getDate() - 5),
-      },
-      {
-        _id: "booking4",
-        bookingId: "B789123456",
-        status: "confirmed",
-        pickup: {
-          city: "Chennai",
-          state: "Tamil Nadu",
-        },
-        delivery: {
-          city: "Coimbatore",
-          state: "Tamil Nadu",
-        },
-        schedule: {
-          date: new Date().setDate(new Date().getDate() + 3),
-          time: "11:00",
-        },
-        estimatedPrice: {
-          min: 4000,
-          max: 4500,
-        },
-        goods: {
-          type: "heavy",
-        },
-        distance: "500 km",
-        customer: {
-          name: "Sneha Reddy",
-          phone: "+91 9712345678",
-        },
-        createdAt: new Date(),
-      },
-    ];
-  };
-
   // Filter bookings based on selected filter
   const getFilteredBookings = () => {
+    // If there are no bookings at all, return empty array
+    if (!bookings || bookings.length === 0) {
+      return [];
+    }
+
     if (activeFilter === "all") return bookings;
 
     if (activeFilter === "upcoming") {
@@ -351,7 +230,7 @@ const MyBookings = () => {
 
   // Navigate to booking details
   const handleViewDetails = (bookingId) => {
-    navigate(`/booking-details/${bookingId}`);
+    navigate(`/confirmed-bookings/${bookingId}`);
   };
 
   // Render bookings in grid view
@@ -595,7 +474,7 @@ const MyBookings = () => {
         </h3>
         <p className="text-gray-500 max-w-md mx-auto">
           {activeFilter === "all"
-            ? "You don't have any bookings assigned yet. Check back later or contact support if you believe this is an error."
+            ? "You don't have any bookings assigned yet. Please place a bid on a booking to see it here once it's confirmed."
             : `You don't have any ${activeFilter} bookings at the moment.`}
         </p>
         {!isConnected && (

@@ -2,6 +2,68 @@ import { FaClock, FaShieldAlt, FaInfoCircle } from "react-icons/fa";
 import { format } from "date-fns";
 
 const ScheduleSection = ({ booking }) => {
+  // Helper to safely format dates
+  const formatDate = (dateString) => {
+    if (!dateString) return null;
+    
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return String(dateString);
+      return format(date, "PPP");
+    } catch (error) {
+      console.error("Error formatting date:", error);
+      return null;
+    }
+  };
+  
+  // Safely access schedule data with fallbacks
+  const getScheduleData = () => {
+    try {
+      // Handle missing schedule entirely
+      if (!booking || !booking.schedule) {
+        return {
+          date: null,
+          time: "Not specified",
+          urgency: "standard",
+          insurance: "none",
+          specialInstructions: null
+        };
+      }
+      
+      // Handle MongoDB document objects
+      if (booking.schedule.documents) {
+        console.warn("Found MongoDB document in schedule, using safe values");
+        return {
+          date: null,
+          time: "Not specified",
+          urgency: "standard",
+          insurance: "none",
+          specialInstructions: null
+        };
+      }
+      
+      // Safely extract each property
+      return {
+        date: booking.schedule.date || null,
+        time: booking.schedule.time || "Not specified",
+        urgency: booking.schedule.urgency || "standard",
+        insurance: booking.schedule.insurance || "none",
+        specialInstructions: booking.schedule.specialInstructions || null
+      };
+    } catch (error) {
+      console.error("Error accessing schedule data:", error);
+      return {
+        date: null,
+        time: "Not specified",
+        urgency: "standard",
+        insurance: "none",
+        specialInstructions: null
+      };
+    }
+  };
+  
+  const schedule = getScheduleData();
+
   return (
     <div className="bg-white rounded-xl shadow-lg p-6">
       <div className="space-y-6">
@@ -15,8 +77,7 @@ const ScheduleSection = ({ booking }) => {
               <div>
                 <p className="font-medium text-gray-900">Pickup Time</p>
                 <p className="text-gray-600">
-                  {format(new Date(booking.schedule.date), "PPP")} at{" "}
-                  {booking.schedule.time}
+                  {formatDate(schedule.date)} at {schedule.time}
                 </p>
               </div>
             </div>
@@ -25,15 +86,14 @@ const ScheduleSection = ({ booking }) => {
               <div>
                 <p className="font-medium text-gray-900">Service Type</p>
                 <p className="text-gray-600">
-                  {booking.schedule.urgency} • {booking.schedule.insurance}{" "}
-                  Insurance
+                  {schedule.urgency} • {schedule.insurance} Insurance
                 </p>
               </div>
             </div>
           </div>
         </div>
 
-        {booking.schedule.specialInstructions && (
+        {schedule.specialInstructions && (
           <div className="bg-blue-50 rounded-lg p-4">
             <div className="flex items-start gap-3">
               <FaInfoCircle className="text-blue-500 mt-1" />
@@ -42,7 +102,7 @@ const ScheduleSection = ({ booking }) => {
                   Special Instructions
                 </p>
                 <p className="mt-1 text-blue-600">
-                  {booking.schedule.specialInstructions}
+                  {schedule.specialInstructions}
                 </p>
               </div>
             </div>

@@ -1,13 +1,50 @@
 import { calculateBookingPrice } from "../../utils/priceCalculator";
 
 const PriceDetailsCard = ({ booking }) => {
+  // Helper function to safely get payment amount
+  const safelyGetAmount = () => {
+    try {
+      // If we have a payment ID with an amount
+      if (booking.paymentId) {
+        // Handle case where paymentId is an object with amount
+        if (typeof booking.paymentId === "object") {
+          // Check if it's a MongoDB document with documents field
+          if (booking.paymentId.documents) {
+            return 0; // Can't render MongoDB document object
+          }
+          return booking.paymentId.amount || 0;
+        }
+        // It might be a reference ID (string)
+        return 0;
+      }
+
+      // Try to get price from driver's bid
+      if (booking.driverId) {
+        if (typeof booking.driverId === "object") {
+          // Handle MongoDB document
+          if (booking.driverId.documents) {
+            return 0; // Can't render MongoDB document
+          }
+          return booking.driverId.price || 0;
+        }
+      }
+
+      // Try the finalPrice field
+      if (booking.finalPrice && typeof booking.finalPrice !== "object") {
+        return booking.finalPrice;
+      }
+
+      // Default fallback price
+      return booking.price || 0;
+    } catch (error) {
+      console.error("Error extracting price information", error);
+      return 0;
+    }
+  };
 
   // Get the total price based on booking status
   const totalPrice =
-    booking.status === "confirmed"
-      ? booking.paymentId?.amount || booking.driverId?.price || 40772
-      : 0;
-
+    booking.status === "confirmed" ? safelyGetAmount() || 0 : 0;
 
   // Only show price range for pending bookings
   if (booking.status === "pending") {

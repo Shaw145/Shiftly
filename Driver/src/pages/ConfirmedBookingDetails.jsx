@@ -264,7 +264,7 @@ const ConfirmedBookingDetails = () => {
         <div className="mb-6">
           <button
             onClick={() => navigate("/my-bookings")}
-            className="mb-4 flex items-center gap-2 text-gray-600 hover:text-gray-900"
+            className="mb-4 flex items-center gap-2 text-gray-600 hover:text-red-500 cursor-pointer"
           >
             <FaArrowLeft size={14} />
             <span>Back to My Bookings</span>

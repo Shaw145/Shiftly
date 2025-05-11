@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   useNavigate,
   useParams,
@@ -26,7 +26,6 @@ const Payment = () => {
   const [showWarningModal, setShowWarningModal] = useState(false);
   const [transactionDetails, setTransactionDetails] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
   const [timeLeft, setTimeLeft] = useState(() => {
     const token = location.state?.paymentToken;
     if (!token) return 0;
@@ -38,16 +37,11 @@ const Payment = () => {
       const expiryTime = payload.exp * 1000; // Convert to milliseconds
       const now = Date.now();
       return Math.max(0, Math.floor((expiryTime - now) / 1000));
-    } catch (error) {
+    } catch {
       return 0;
     }
   });
-  const [isLeavingPage, setIsLeavingPage] = useState(false);
-  const [isRefreshing, setIsRefreshing] = useState(false);
   const [isBlocked, setIsBlocked] = useState(true);
-
-  // Add a ref to track if we're handling navigation
-  const isHandlingNavigation = useRef(false);
 
   const showToast = (message, type = "error") => {
     const toast = document.createElement("div");
@@ -59,12 +53,12 @@ const Payment = () => {
     setTimeout(() => toast.remove(), 3000);
   };
 
-
   // Set dynamic page title when component mounts
   useEffect(() => {
     // Update the document title
-    document.title = "Secure Payment | Complete Your Booking | Shiftly - A Seamless Transport System";
-    
+    document.title =
+      "Secure Payment | Complete Your Booking | Shiftly - A Seamless Transport System";
+
     // Optional: Restore the original title when component unmounts
     return () => {
       document.title = "Shiftly | A Seamless Transport System";
@@ -197,7 +191,6 @@ const Payment = () => {
 
   const handlePaymentSubmit = async () => {
     setLoading(true);
-    setError(null);
 
     try {
       const paymentToken = location.state?.paymentToken;
@@ -208,13 +201,36 @@ const Payment = () => {
       // Use the booking's MongoDB _id
       const bookingMongoId = booking._id;
 
-      console.log("Submitting payment with:", {
-        bookingId: bookingMongoId,
-        amount: driver.price,
-        booking,
-        paymentToken,
-      });
+      // Extract proper driver ID - simplified approach
+      let actualDriverId;
 
+      // Check flat driverId first (most common case)
+      if (typeof driver.driverId === "string") {
+        actualDriverId = driver.driverId;
+      }
+      // Check nested object .driverId._id
+      else if (driver.driverId?._id) {
+        actualDriverId = driver.driverId._id;
+      }
+      // Check nested object .driverId.driverId
+      else if (driver.driverId?.driverId) {
+        actualDriverId = driver.driverId.driverId;
+      }
+      // Fallback to _id
+      else if (driver._id) {
+        actualDriverId = driver._id;
+      }
+      // Final fallback to id
+      else if (driver.id) {
+        actualDriverId = driver.id;
+      }
+
+      // Check if we have a valid ID
+      if (!actualDriverId) {
+        throw new Error("Could not determine driver ID. Please try again.");
+      }
+
+      // Initiate payment
       const initiateResponse = await fetch(
         `${import.meta.env.VITE_BACKEND_URL}/api/payments/initiate`,
         {
@@ -226,21 +242,26 @@ const Payment = () => {
           },
           body: JSON.stringify({
             bookingId: bookingMongoId,
+            driverId: actualDriverId,
             amount: driver.price,
             paymentMethod: "card",
           }),
         }
       );
 
-      const initiateData = await initiateResponse.json();
-
       if (!initiateResponse.ok) {
-        throw new Error(initiateData.error || "Payment initiation failed");
+        const errorData = await initiateResponse.json();
+        throw new Error(
+          errorData.error || errorData.message || "Payment initiation failed"
+        );
       }
+
+      const initiateData = await initiateResponse.json();
 
       // Simulate payment processing
       await new Promise((resolve) => setTimeout(resolve, 1500));
 
+      // Verify payment with improved error handling
       const verifyResponse = await fetch(
         `${import.meta.env.VITE_BACKEND_URL}/api/payments/verify`,
         {
@@ -251,17 +272,26 @@ const Payment = () => {
             "X-Payment-Token": paymentToken,
           },
           body: JSON.stringify({
-            transactionId: initiateData.payment.transactionId,
-            bookingId: booking._id,
+            token: paymentToken,
+            paymentDetails: {
+              bookingId: bookingMongoId,
+              driverId: actualDriverId,
+              amount: driver.price,
+              paymentMethod: "card",
+            },
           }),
         }
       );
 
-      const verifyData = await verifyResponse.json();
-
       if (!verifyResponse.ok) {
-        throw new Error(verifyData.error || "Payment verification failed");
+        const errorData = await verifyResponse.json();
+        throw new Error(
+          errorData.message || errorData.error || "Payment verification failed"
+        );
       }
+
+      // We don't need to use the verify data response, just check that it was successful
+      await verifyResponse.json();
 
       setTransactionDetails({
         transactionId: initiateData.payment.transactionId,
@@ -338,8 +368,8 @@ const Payment = () => {
       <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
         <h3 className="text-xl font-bold mb-4">Leave Payment Page?</h3>
         <p className="text-gray-600 mb-6">
-          Your payment will be cancelled and you&apos;ll need to start over. Are you
-          sure you want to leave?
+          Your payment will be cancelled and you&apos;ll need to start over. Are
+          you sure you want to leave?
         </p>
         <div className="flex gap-4">
           <button

@@ -37,7 +37,6 @@ const BookingDetailPage = () => {
   const [loading, setLoading] = useState(true);
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [cancelling, setCancelling] = useState(false);
-  const [cancelError, setCancelError] = useState(null);
   const [cancelReason, setCancelReason] = useState("");
   const [selectedDriver, setSelectedDriver] = useState(null);
   const [showDriverModal, setShowDriverModal] = useState(false);
@@ -50,8 +49,9 @@ const BookingDetailPage = () => {
   // Set dynamic page title when component mounts
   useEffect(() => {
     // Update the document title
-    document.title = "Booking Details | Your Transport Request | Shiftly - A Seamless Transport System";
-    
+    document.title =
+      "Booking Details | Your Transport Request | Shiftly - A Seamless Transport System";
+
     // Optional: Restore the original title when component unmounts
     return () => {
       document.title = "Shiftly | A Seamless Transport System";
@@ -169,20 +169,109 @@ const BookingDetailPage = () => {
           throw new Error("No booking data received");
         }
 
-        // Ensure the booking has the correct ID format and driver details
-        const bookingData = {
-          ...data.booking,
-          bookingId: data.booking.bookingId || bookingId,
-          driver: data.booking.driverId || {
-            name: "Test Driver",
-            vehicle: "Tata Ace",
-            rating: 4.5,
-            trips: 150,
-          },
-          payment: data.booking.payment,
+        // Sanitize the booking data to handle MongoDB document objects
+        const sanitizeBookingData = (booking) => {
+          if (!booking) return {};
+
+          try {
+            // First, perform a deep conversion to a plain JS object to remove MongoDB document references
+            let sanitized = JSON.parse(JSON.stringify(booking));
+
+            // Add extra safety check for any remaining document objects at the top level
+            Object.keys(sanitized).forEach((key) => {
+              // Check for MongoDB-like objects with a 'documents' property
+              if (
+                sanitized[key] &&
+                typeof sanitized[key] === "object" &&
+                sanitized[key].documents
+              ) {
+                console.warn(
+                  `Found MongoDB document in booking.${key}, converting to safe value`
+                );
+
+                // Extract the _id or convert to a safe primitive value
+                if (sanitized[key]._id) {
+                  sanitized[key] = sanitized[key]._id;
+                } else {
+                  // If no _id is available, use a string representation or null
+                  sanitized[key] = String(sanitized[key]) || null;
+                }
+              }
+            });
+
+            // Handle common fields that often cause issues
+            return {
+              ...sanitized,
+              bookingId: sanitized.bookingId || bookingId,
+              // Replace problematic MongoDB driver references with something safe
+              driverId:
+                typeof sanitized.driverId === "object"
+                  ? sanitized.driverId._id || sanitized.driverId.id || null
+                  : sanitized.driverId,
+              // Handle driver object - make sure it's a plain object without documents
+              driver:
+                typeof sanitized.driver === "object"
+                  ? {
+                      id: sanitized.driver._id || sanitized.driver.id || null,
+                      name:
+                        sanitized.driver.name ||
+                        sanitized.driver.fullName ||
+                        "Driver",
+                      vehicle: sanitized.driver.vehicle || "Transport Vehicle",
+                      rating: sanitized.driver.rating || 4.5,
+                      trips: sanitized.driver.trips || 150,
+                    }
+                  : null,
+              // Handle payment object
+              paymentId:
+                typeof sanitized.paymentId === "object"
+                  ? {
+                      id:
+                        sanitized.paymentId._id ||
+                        sanitized.paymentId.id ||
+                        null,
+                      amount:
+                        sanitized.paymentId.amount || sanitized.finalPrice || 0,
+                    }
+                  : sanitized.paymentId,
+              // Ensure other common nested objects are safe
+              userId:
+                typeof sanitized.userId === "object"
+                  ? sanitized.userId._id || sanitized.userId.id || null
+                  : sanitized.userId,
+              // Sanitize tracking array if it exists
+              tracking: Array.isArray(sanitized.tracking)
+                ? sanitized.tracking.map((item) => {
+                    if (typeof item === "object" && item.documents) {
+                      return { ...item, documents: undefined };
+                    }
+                    return item;
+                  })
+                : sanitized.tracking,
+              // Ensure schedule object is safe
+              schedule:
+                sanitized.schedule && typeof sanitized.schedule === "object"
+                  ? {
+                      ...sanitized.schedule,
+                      date: sanitized.schedule.date
+                        ? new Date(sanitized.schedule.date).toISOString()
+                        : null,
+                    }
+                  : sanitized.schedule,
+            };
+          } catch (error) {
+            console.error("Error sanitizing booking data:", error);
+            // Return a minimal safe object if sanitization fails
+            return {
+              bookingId: booking.bookingId || bookingId,
+              status: booking.status || "unknown",
+            };
+          }
         };
 
-        setBooking(bookingData);
+        // Apply sanitization to the booking data
+        const sanitizedBooking = sanitizeBookingData(data.booking);
+        setBooking(sanitizedBooking);
 
         // Load bids for the booking
         await fetchDriverBids(bookingId, token);
@@ -363,7 +452,6 @@ const BookingDetailPage = () => {
 
   const handleCancelBooking = async () => {
     setCancelling(true);
-    setCancelError(null);
 
     try {
       const response = await fetch(
@@ -483,7 +571,6 @@ const BookingDetailPage = () => {
   return (
     <div className="flex-1 overflow-x-hidden overflow-y-auto p-4 sm:p-6 mt-20 md:ml-22 lg:ml-24">
       <div className="max-w-6xl mx-auto space-y-6">
-
         {/* Back button */}
         <button
           onClick={() => navigate("/my-bookings")}

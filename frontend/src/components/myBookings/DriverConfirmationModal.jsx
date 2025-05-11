@@ -33,29 +33,29 @@ const DriverConfirmationModal = ({
   }, [isOpen]);
 
   /**
- * Formats a date and time for display
- * @param {string|Date} dateTimeInput - The date and time to format
- * @returns {string} Formatted date and time string
- */
-const formatDateTime = (dateTimeInput) => {
-  if (!dateTimeInput) return "Time not specified";
+   * Formats a date and time for display
+   * @param {string|Date} dateTimeInput - The date and time to format
+   * @returns {string} Formatted date and time string
+   */
+  const formatDateTime = (dateTimeInput) => {
+    if (!dateTimeInput) return "Time not specified";
 
-  try {
-    const date = new Date(dateTimeInput);
-    if (isNaN(date.getTime())) {
+    try {
+      const date = new Date(dateTimeInput);
+      if (isNaN(date.getTime())) {
+        return String(dateTimeInput);
+      }
+      return format(date, "MMM d, yyyy 'at' h:mm aaa");
+    } catch (error) {
+      console.error(
+        "Error formatting date/time:",
+        error,
+        "Input:",
+        dateTimeInput
+      );
       return String(dateTimeInput);
     }
-    return format(date, "MMM d, yyyy 'at' h:mm aaa");
-  } catch (error) {
-    console.error(
-      "Error formatting date/time:",
-      error,
-      "Input:",
-      dateTimeInput
-    );
-    return String(dateTimeInput);
-  }
-};
+  };
 
   useEffect(() => {
     const fetchDriverDetails = async () => {
@@ -151,14 +151,34 @@ const formatDateTime = (dateTimeInput) => {
   const handleConfirm = async () => {
     setIsSubmitting(true);
     try {
-      // Ensure we have a consistent driver ID
-      const driverId = driver._id || driver.id || driver.driverId;
+      // Extract the correct driver ID - prioritize actual driver ID over MongoDB object ID
+      // The actual driver ID (67f0413d1b211c8c96a18554) is stored in driver.driverId
+      // while driver._id/driver.id is often a MongoDB reference (6820ee70528efac97772a9b4)
+      let actualDriverId;
 
-      console.log("Confirming driver with data:", {
+      // Check for nested driver ID (highest priority)
+      if (typeof driver.driverId === "string") {
+        actualDriverId = driver.driverId;
+      }
+      // Handle case where driverId is an object
+      else if (driver.driverId?._id) {
+        actualDriverId = driver.driverId._id;
+      }
+      // Last fallback to _id or id
+      else if (driver._id) {
+        actualDriverId = driver._id;
+      } else if (driver.id) {
+        actualDriverId = driver.id;
+      }
+
+      if (!actualDriverId) {
+        throw new Error("Could not determine driver ID");
+      }
+
+      console.log("Confirming driver with actual driver ID:", {
         bookingId: booking.bookingId,
-        driverId,
+        actualDriverId,
         driver,
-        booking,
       });
 
       const response = await fetch(
@@ -172,7 +192,7 @@ const formatDateTime = (dateTimeInput) => {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
           },
           body: JSON.stringify({
-            driverId: driverId || "1", // Ensure driverId is sent
+            driverId: actualDriverId, // Send the actual driver ID
           }),
         }
       );
@@ -183,6 +203,7 @@ const formatDateTime = (dateTimeInput) => {
         throw new Error(data.error || "Failed to generate payment token");
       }
 
+      // Pass the actual driver ID to the payment page
       onConfirm({
         paymentToken: data.paymentToken,
         booking: {
@@ -192,7 +213,8 @@ const formatDateTime = (dateTimeInput) => {
         },
         driver: {
           ...driver,
-          _id: driverId,
+          _id: actualDriverId, // Ensure payment page gets the correct driver ID
+          driverId: actualDriverId, // Include both for compatibility
         },
       });
     } catch (error) {

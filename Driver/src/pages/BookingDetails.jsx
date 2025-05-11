@@ -25,6 +25,7 @@ import {
   FaList,
   FaRupeeSign,
   FaBoxes,
+  FaUser,
 } from "react-icons/fa";
 import { toast, Toaster } from "react-hot-toast";
 import DashboardLayout from "../components/DashboardLayout";
@@ -34,8 +35,10 @@ import LocationMap from "../components/bookings/LocationMap";
 import TopBidders from "../components/bookings/TopBidders";
 import { useWebSocket } from "../context/WebSocketContext";
 import AllBiddersModal from "../components/bookings/AllBiddersModal";
+import AcceptBookingModal from "../components/booking/AcceptBookingModal";
 // Import useDriverAuth instead of useAuth
 import { useDriverAuth } from "../context/DriverAuthContext";
+import axios from "axios";
 
 const BookingDetails = () => {
   const { bookingId } = useParams();
@@ -48,14 +51,17 @@ const BookingDetails = () => {
   const [currentBid, setCurrentBid] = useState(null);
   const [showAllBiddersModal, setShowAllBiddersModal] = useState(false);
   const [bookingObjectId, setBookingObjectId] = useState(null);
+  const [showAcceptModal, setShowAcceptModal] = useState(false);
+  const [isAccepting, setIsAccepting] = useState(false);
 
   const { isConnected, on, placeBid } = useWebSocket();
 
   // Set dynamic page title when component mounts
   useEffect(() => {
     // Update the document title
-    document.title = "Booking Information | Job Details | Shiftly - A Seamless Transport System";
-    
+    document.title =
+      "Booking Information | Job Details | Shiftly - A Seamless Transport System";
+
     // Optional: Restore the original title when component unmounts
     return () => {
       document.title = "Shiftly | A Seamless Transport System";
@@ -210,37 +216,77 @@ const BookingDetails = () => {
     // Get the current driver ID for comparison
     const currentDriverId = localStorage.getItem("driverId");
 
+    // Track active event listeners for cleanup
+    const activeListeners = [];
+
     // Listen for new bids - only update UI when a valid bid is received
     const unsubscribeNewBid = on("new_bid", (data) => {
-      if (data.bookingId === bookingId && !data.pendingUpdate) {
-        setTopBidders((prevBids) => {
-          const newBids = [...prevBids];
-          const existingBidIndex = newBids.findIndex(
-            (bid) => bid.driverId === data.driverId
-          );
+      if (data.bookingId === bookingId || data.bookingRefId === bookingId) {
+        // Only process if this isn't a pending update that we're already handling
+        if (!data.pendingUpdate) {
+          const bidData = data.bid || data;
 
-          if (existingBidIndex !== -1) {
-            newBids[existingBidIndex] = {
-              ...newBids[existingBidIndex],
-              ...data,
-            };
-          } else {
-            newBids.push(data);
+          setTopBidders((prevBids) => {
+            const newBids = [...prevBids];
+            const existingBidIndex = newBids.findIndex(
+              (bid) => bid.driverId === bidData.driverId
+            );
+
+            if (existingBidIndex !== -1) {
+              newBids[existingBidIndex] = {
+                ...newBids[existingBidIndex],
+                ...bidData,
+              };
+            } else {
+              newBids.push(bidData);
+            }
+
+            return newBids;
+          });
+
+          // Update current bid if it's from the current driver
+          if (bidData.driverId === currentDriverId) {
+            setCurrentBid(bidData);
+
+            // Update localStorage for persistence
+            try {
+              const storedBids = JSON.parse(
+                localStorage.getItem("driverBids") || "{}"
+              );
+              storedBids[bookingId] = bidData;
+              localStorage.setItem("driverBids", JSON.stringify(storedBids));
+            } catch (error) {
+              console.error("Error updating bid in localStorage:", error);
+            }
           }
+        }
+      }
+    });
 
-          return newBids;
+    if (unsubscribeNewBid) activeListeners.push(unsubscribeNewBid);
+
+    // Listen for bid responses - handled similarly to bid updates
+    const unsubscribeBidResponse = on("bid_response", (data) => {
+      if (data.status === "success" && data.bid) {
+        const bidData = data.bid;
+
+        // Update top bidders list with this bid if successful
+        setTopBidders((prevBids) => {
+          return prevBids.map((bid) =>
+            bid.driverId === bidData.driverId ? { ...bid, ...bidData } : bid
+          );
         });
 
         // Update current bid if it's from the current driver
-        if (data.driverId === currentDriverId) {
-          setCurrentBid(data);
+        if (bidData.driverId === currentDriverId) {
+          setCurrentBid(bidData);
 
           // Update localStorage for persistence
           try {
             const storedBids = JSON.parse(
               localStorage.getItem("driverBids") || "{}"
             );
-            storedBids[bookingId] = data;
+            storedBids[bookingId] = bidData;
             localStorage.setItem("driverBids", JSON.stringify(storedBids));
           } catch (error) {
             console.error("Error updating bid in localStorage:", error);
@@ -248,6 +294,8 @@ const BookingDetails = () => {
         }
       }
     });
+
+    if (unsubscribeBidResponse) activeListeners.push(unsubscribeBidResponse);
 
     // Listen for bid updates - only update UI when a valid update is received
     const unsubscribeBidUpdate = on("bid_updated", (data) => {
@@ -276,53 +324,65 @@ const BookingDetails = () => {
       }
     });
 
-    // Listen for our custom bid:update events
+    if (unsubscribeBidUpdate) activeListeners.push(unsubscribeBidUpdate);
+
+    // Listen for our custom bid:update events - handle with debounce to prevent flooding
+    let bidUpdateTimeout = null;
+
     const handleBidUpdate = (event) => {
       const data = event.detail.bid;
       const eventBookingId = event.detail.bookingId;
 
-      if (eventBookingId === bookingId && data && !data.pendingUpdate) {
-        // Update top bidders with the new bid info
-        setTopBidders((prevBids) => {
-          const existingIndex = prevBids.findIndex(
-            (bid) => bid.driverId === data.driverId
-          );
+      // Clear any existing timeout
+      if (bidUpdateTimeout) {
+        clearTimeout(bidUpdateTimeout);
+      }
 
-          if (existingIndex !== -1) {
-            // Update existing bid
-            const updatedBids = [...prevBids];
-            updatedBids[existingIndex] = {
-              ...updatedBids[existingIndex],
-              amount: data.amount,
-              note: data.note,
-              bidTime: data.bidTime,
-            };
-            return updatedBids;
-          } else {
-            // Add new bid
-            return [...prevBids, data];
-          }
-        });
-
-        // Update current bid if it's from the current driver
-        if (data.driverId === currentDriverId) {
-          setCurrentBid((prev) => ({
-            ...prev,
-            ...data,
-          }));
-
-          // Update localStorage for persistence
-          try {
-            const storedBids = JSON.parse(
-              localStorage.getItem("driverBids") || "{}"
+      // Set a new timeout to debounce updates
+      bidUpdateTimeout = setTimeout(() => {
+        if (eventBookingId === bookingId && data && !data.pendingUpdate) {
+          // Update top bidders with the new bid info
+          setTopBidders((prevBids) => {
+            const existingIndex = prevBids.findIndex(
+              (bid) => bid.driverId === data.driverId
             );
-            storedBids[bookingId] = data;
-            localStorage.setItem("driverBids", JSON.stringify(storedBids));
-          } catch (error) {
-            console.error("Error updating bid in localStorage:", error);
+
+            if (existingIndex !== -1) {
+              // Update existing bid
+              const updatedBids = [...prevBids];
+              updatedBids[existingIndex] = {
+                ...updatedBids[existingIndex],
+                amount: data.amount,
+                note: data.note,
+                bidTime: data.bidTime,
+              };
+              return updatedBids;
+            } else {
+              // Add new bid
+              return [...prevBids, data];
+            }
+          });
+
+          // Update current bid if it's from the current driver
+          if (data.driverId === currentDriverId) {
+            setCurrentBid((prev) => ({
+              ...prev,
+              ...data,
+            }));
+
+            // Update localStorage for persistence
+            try {
+              const storedBids = JSON.parse(
+                localStorage.getItem("driverBids") || "{}"
+              );
+              storedBids[bookingId] = data;
+              localStorage.setItem("driverBids", JSON.stringify(storedBids));
+            } catch (error) {
+              console.error("Error updating bid in localStorage:", error);
+            }
           }
         }
-      }
+      }, 100); // 100ms debounce
     };
 
     // Add event listener for bid updates
@@ -330,10 +390,18 @@ const BookingDetails = () => {
 
     // Cleanup function
     return () => {
-      // console.log("Cleaning up WebSocket event listeners");
-      if (typeof unsubscribeNewBid === "function") unsubscribeNewBid();
-      if (typeof unsubscribeBidUpdate === "function") unsubscribeBidUpdate();
+      // Clean up all active WebSocket event listeners
+      activeListeners.forEach((unsubscribe) => {
+        if (typeof unsubscribe === "function") unsubscribe();
+      });
+
+      // Clean up document event listeners
       document.removeEventListener("bid:update", handleBidUpdate);
+
+      // Clear any pending timeouts
+      if (bidUpdateTimeout) {
+        clearTimeout(bidUpdateTimeout);
+      }
     };
   }, [on, bookingId, navigate]);
 
@@ -769,6 +837,51 @@ const BookingDetails = () => {
     );
   };
 
+  // Function to handle booking acceptance
+  const handleAcceptBooking = async () => {
+    try {
+      setIsAccepting(true);
+
+      const response = await axios.post(
+        `${
+          import.meta.env.VITE_BACKEND_URL
+        }/api/drivers/bookings/${bookingObjectId}/accept`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
+
+      if (response.data.success) {
+        toast.success("Booking accepted successfully!");
+        // Update local booking state
+        setBooking({
+          ...booking,
+          status: "confirmed",
+          assignedDriver: localStorage.getItem("driverId"),
+        });
+
+        // Optionally redirect to confirmed booking page
+        setTimeout(() => {
+          navigate("/my-bookings");
+        }, 2000);
+      } else {
+        toast.error(response.data.message || "Failed to accept booking");
+      }
+    } catch (error) {
+      console.error("Error accepting booking:", error);
+      toast.error(
+        error.response?.data?.message ||
+          "An error occurred while accepting the booking"
+      );
+    } finally {
+      setIsAccepting(false);
+      setShowAcceptModal(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <DashboardLayout>
@@ -816,6 +929,7 @@ const BookingDetails = () => {
             currentBid={currentBid}
             onBidSubmit={handleSubmitBid}
             isLocked={isBidLocked(booking?.schedule?.date)}
+            onAcceptClick={() => setShowAcceptModal(true)}
           />
           <TopBidders bidders={topBidders} />
         </div>
@@ -904,6 +1018,7 @@ const BookingDetails = () => {
               currentBid={currentBid}
               onBidSubmit={handleSubmitBid}
               isLocked={isBidLocked(booking?.schedule?.date)}
+              onAcceptClick={() => setShowAcceptModal(true)}
             />
             <TopBidders bidders={topBidders} />
           </div>
@@ -913,6 +1028,13 @@ const BookingDetails = () => {
         isOpen={showAllBiddersModal}
         onClose={() => setShowAllBiddersModal(false)}
         bidders={topBidders}
+      />
+      <AcceptBookingModal
+        isOpen={showAcceptModal}
+        onClose={() => setShowAcceptModal(false)}
+        onAccept={handleAcceptBooking}
+        booking={booking}
+        isLoading={isAccepting}
       />
       <Toaster position="top-right" />
     </DashboardLayout>

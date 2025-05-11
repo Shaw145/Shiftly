@@ -3,13 +3,18 @@ const Booking = require("../models/Booking");
 const mongoose = require("mongoose");
 
 exports.generateToken = (bookingId, driverId, userId) => {
-  // Create a valid ObjectId for the dummy driver
-  const dummyDriverId = new mongoose.Types.ObjectId();
+  // Log what we're using for token generation
+  console.log("Generating payment token with:", {
+    bookingId: bookingId,
+    driverId: driverId,
+    userId: userId,
+  });
 
+  // Use the actual driver ID passed in, not a dummy one
   return jwt.sign(
     {
       bookingId,
-      driverId: dummyDriverId.toString(), // Use the ObjectId as string in token
+      driverId: driverId, // Use the actual driver ID
       userId,
       exp: Math.floor(Date.now() / 1000) + 10 * 60, // 10 minutes
     },

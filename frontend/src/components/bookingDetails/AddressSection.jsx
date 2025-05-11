@@ -1,6 +1,45 @@
 import { FaMapMarkerAlt } from "react-icons/fa";
 
 const AddressSection = ({ booking }) => {
+  // Helper function to safely access properties with fallbacks
+  const safelyGetAddress = (addressObj, type) => {
+    // Default address info
+    const defaultAddress = {
+      street: type === 'pickup' ? 'Pickup address' : 'Delivery address',
+      city: 'City',
+      state: 'State',
+      pincode: '000000',
+      landmark: '',
+    };
+
+    // If address field doesn't exist or is null
+    if (!addressObj) return defaultAddress;
+
+    try {
+      // If it's a MongoDB document with documents field
+      if (addressObj.documents) {
+        console.warn(`Found MongoDB document in ${type} address, using safe values`);
+        return defaultAddress;
+      }
+
+      // Handle standard address object
+      return {
+        street: addressObj.street || addressObj.address || defaultAddress.street,
+        city: addressObj.city || defaultAddress.city,
+        state: addressObj.state || defaultAddress.state,
+        pincode: addressObj.pincode || addressObj.zipcode || addressObj.postalCode || defaultAddress.pincode,
+        landmark: addressObj.landmark || '',
+      };
+    } catch (error) {
+      console.error(`Error accessing ${type} address:`, error);
+      return defaultAddress;
+    }
+  };
+
+  // Get safe address objects
+  const pickup = safelyGetAddress(booking?.pickup, 'pickup');
+  const delivery = safelyGetAddress(booking?.delivery, 'delivery');
+
   return (
     <div className="bg-white rounded-xl shadow-lg p-6">
       <h2 className="text-xl font-bold text-gray-900 mb-4">Location Details</h2>
@@ -12,14 +51,14 @@ const AddressSection = ({ booking }) => {
             <h3 className="font-semibold">Pickup Location</h3>
           </div>
           <div className="bg-gray-50 p-4 rounded-lg">
-            <p className="text-gray-900">{booking.pickup.street}</p>
+            <p className="text-gray-900">{pickup.street}</p>
             <p className="text-gray-600">
-              {booking.pickup.city}, {booking.pickup.state}
+              {pickup.city}, {pickup.state}
             </p>
-            <p className="text-gray-600">PIN: {booking.pickup.pincode}</p>
-            {booking.pickup.landmark && (
+            <p className="text-gray-600">PIN: {pickup.pincode}</p>
+            {pickup.landmark && (
               <p className="text-gray-500 mt-1">
-                Landmark: {booking.pickup.landmark}
+                Landmark: {pickup.landmark}
               </p>
             )}
           </div>
@@ -32,14 +71,14 @@ const AddressSection = ({ booking }) => {
             <h3 className="font-semibold">Delivery Location</h3>
           </div>
           <div className="bg-gray-50 p-4 rounded-lg">
-            <p className="text-gray-900">{booking.delivery.street}</p>
+            <p className="text-gray-900">{delivery.street}</p>
             <p className="text-gray-600">
-              {booking.delivery.city}, {booking.delivery.state}
+              {delivery.city}, {delivery.state}
             </p>
-            <p className="text-gray-600">PIN: {booking.delivery.pincode}</p>
-            {booking.delivery.landmark && (
+            <p className="text-gray-600">PIN: {delivery.pincode}</p>
+            {delivery.landmark && (
               <p className="text-gray-500 mt-1">
-                Landmark: {booking.delivery.landmark}
+                Landmark: {delivery.landmark}
               </p>
             )}
           </div>

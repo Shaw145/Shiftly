@@ -7,6 +7,13 @@ const {
 } = require("../middleware/paymentTokenMiddleware");
 const jwt = require("jsonwebtoken");
 const mongoose = require("mongoose");
+const Driver = require("../models/Driver");
+const emailService = require("../utils/emailService");
+
+// Helper function to generate a unique transaction ID
+const generateTransactionId = () => {
+  return `TXN${Date.now()}${Math.random().toString(36).substring(2, 9)}`;
+};
 
 exports.initiatePayment = async (req, res) => {
   try {
@@ -73,126 +80,229 @@ exports.initiatePayment = async (req, res) => {
 
 exports.verifyPayment = async (req, res) => {
   try {
-    const { transactionId } = req.body;
+    const { token, paymentDetails, transactionId } = req.body;
 
-    // Find payment
-    const payment = await Payment.findOne({ transactionId });
-    if (!payment) {
-      return res.status(404).json({
+    // Backward compatibility - handle both token-based and transactionId approaches
+    let bookingId, driverId, userId;
+
+    if (token) {
+      // Verify the token and extract values - reduced logging
+      try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        bookingId = decoded.bookingId;
+        driverId = decoded.driverId;
+        userId = decoded.userId;
+      } catch (error) {
+        return res.status(401).json({
+          success: false,
+          message:
+            error.message === "jwt expired"
+              ? "Payment verification expired. Please try again."
+              : "Invalid payment token. Please try again.",
+        });
+      }
+    } else if (transactionId) {
+      // Legacy approach - reduced logging
+      return res.status(400).json({
         success: false,
-        error: "Payment not found",
+        message:
+          "This payment verification method is deprecated. Please use the token-based approach.",
+      });
+    } else {
+      return res.status(400).json({
+        success: false,
+        message: "Missing payment verification details",
       });
     }
 
-    // Update payment status
-    payment.status = "success";
-    await payment.save();
-
-    // Find the booking
-    const booking = await Booking.findById(payment.bookingId);
+    // Fetch booking details - FIXED: removed .populate("user") that was causing StrictPopulateError
+    const booking = await Booking.findById(bookingId);
     if (!booking) {
-      return res.status(404).json({
-        success: false,
-        error: "Booking not found",
-      });
+      return res
+        .status(404)
+        .json({ success: false, message: "Booking not found" });
     }
 
-    // Find the selected driver's bid
-    const selectedBid =
-      booking.driverBids && booking.driverBids.length > 0
-        ? booking.driverBids.find(
-            (bid) =>
-              bid.driverId &&
-              payment.driverId &&
-              bid.driverId.toString() === payment.driverId.toString()
-          )
-        : null;
+    // Ensure this booking wasn't already confirmed
+    if (booking.status === "confirmed") {
+      return res
+        .status(400)
+        .json({ success: false, message: "Booking is already confirmed" });
+    }
 
-    // Update other bids to rejected
-    if (selectedBid) {
-      selectedBid.status = "accepted";
+    // Find the matched driver's bid with improved matching
+    let matchedBid = null;
 
-      if (booking.driverBids && booking.driverBids.length > 0) {
-        booking.driverBids.forEach((bid) => {
-          if (
-            bid.driverId &&
-            payment.driverId &&
-            bid.driverId.toString() !== payment.driverId.toString()
-          ) {
-            bid.status = "rejected";
-          }
+    if (booking.driverBids && booking.driverBids.length > 0) {
+      // First try to find an exact match
+      matchedBid = booking.driverBids.find((bid) => {
+        if (typeof bid.driver === "string") {
+          return bid.driver === driverId;
+        }
+
+        if (bid.driver?._id) {
+          return bid.driver._id.toString() === driverId;
+        }
+
+        if (bid.driver?.driverId) {
+          return bid.driver.driverId.toString() === driverId;
+        }
+
+        if (bid.driverId) {
+          return bid.driverId.toString() === driverId;
+        }
+
+        return false;
+      });
+
+      // If no match found, try a more flexible approach
+      if (!matchedBid) {
+        // Try each bid with string comparison of all possible ID fields
+        matchedBid = booking.driverBids.find((bid) => {
+          // Get all possible ID representations
+          const bidIds = [
+            bid.driver?.toString(),
+            bid.driver?._id?.toString(),
+            bid.driver?.driverId?.toString(),
+            bid.driverId?.toString(),
+          ].filter(Boolean); // Remove undefined/null
+
+          // Check if any match the driver ID
+          return bidIds.some((id) => id === driverId);
         });
       }
     }
 
-    // Update booking status, driver and payment ID
-    booking.status = "confirmed";
-    booking.driverId = payment.driverId;
-    booking.paymentId = payment._id;
-    booking.finalPrice = payment.amount;
-    booking.confirmedAt = new Date();
-
-    await booking.save();
-
-    // Notify the driver via WebSocket if available
-    try {
-      const { broadcast } = require("../websocket/server");
-
-      // Notify selected driver
-      broadcast(
-        {
-          type: "booking_confirmed",
-          payload: {
-            bookingId: booking._id.toString(),
-            bookingNumber: booking.bookingId,
-            amount: payment.amount,
-          },
-        },
-        (client) =>
-          client.role === "driver" &&
-          client.user.toString() === payment.driverId.toString()
-      );
-
-      // Notify other drivers who bid
-      booking.driverBids.forEach((bid) => {
-        if (bid.driverId.toString() !== payment.driverId.toString()) {
-          broadcast(
-            {
-              type: "bid_rejected",
-              payload: {
-                bookingId: booking._id.toString(),
-                bookingNumber: booking.bookingId,
-              },
-            },
-            (client) =>
-              client.role === "driver" &&
-              client.user.toString() === bid.driverId.toString()
-          );
-        }
-      });
-
-      console.log("WebSocket notifications sent for booking confirmation");
-    } catch (wsError) {
-      console.error("Error sending WebSocket notifications:", wsError);
-      // Continue with the response even if WebSocket notifications fail
+    // If still no match found, use a fallback for backward compatibility
+    if (!matchedBid && booking.driverBids && booking.driverBids.length > 0) {
+      // Use the first bid as a fallback if we can't find a match
+      matchedBid = booking.driverBids[0];
     }
 
-    res.status(200).json({
-      success: true,
-      payment,
-      booking: {
-        _id: booking._id,
-        bookingId: booking.bookingId,
-        status: booking.status,
-        driverId: booking.driverId,
-      },
-    });
+    if (!matchedBid) {
+      return res.status(400).json({
+        success: false,
+        message: "No driver bid found for this booking",
+      });
+    }
+
+    // Create a new transaction ID if not provided
+    const newTransactionId = transactionId || generateTransactionId();
+
+    try {
+      // Create payment record with all required fields properly set
+      const payment = new Payment({
+        bookingId: bookingId,
+        userId: userId,
+        driverId: driverId,
+        amount: paymentDetails?.amount || matchedBid.price,
+        transactionId: newTransactionId,
+        paymentMethod: paymentDetails?.paymentMethod || "card", // Ensure this matches enum values in schema
+        status: "success", // Use 'success' instead of 'completed' to match enum
+      });
+
+      await payment.save();
+
+      // Update booking status with all required fields for driver visibility
+      const finalPrice = paymentDetails?.amount || matchedBid.price;
+
+      // Use updateOne to ensure we set all required fields
+      const updateResult = await Booking.updateOne(
+        { _id: bookingId },
+        {
+          $set: {
+            status: "confirmed",
+            assignedDriver: driverId, // Ensure this is set with the correct field name
+            driverId: driverId, // Set this for backward compatibility
+            finalPrice: finalPrice, // Required for pricing display
+            payment: payment._id, // Required for payment reference
+            paymentId: payment._id, // Alternative field for payment reference
+            confirmedAt: new Date(), // Add confirmation timestamp
+          },
+        }
+      );
+
+      console.log("Booking update result:", updateResult);
+
+      // Fetch the updated booking for confirmation
+      const updatedBooking = await Booking.findById(bookingId);
+
+      if (!updatedBooking || updatedBooking.status !== "confirmed") {
+        throw new Error("Failed to update booking status");
+      }
+
+      // Get driver details for the confirmation email
+      const driver = await Driver.findById(driverId);
+      if (driver && driver.email) {
+        // Get user details directly instead of from populated booking
+        const user = await mongoose
+          .model("User")
+          .findById(userId)
+          .select("name fullName email phone");
+
+        // Send booking confirmation email to the driver
+        await emailService.sendDriverBookingConfirmationEmail(driver.email, {
+          bookingId: updatedBooking.bookingId || updatedBooking._id.toString(),
+          schedule: updatedBooking.schedule,
+          pickup: updatedBooking.pickup,
+          delivery: updatedBooking.delivery,
+          goods: updatedBooking.goods,
+          customerName: user?.fullName || user?.name || "Customer",
+          customerPhone: user?.phone || "Not provided",
+          customerEmail: user?.email || "Not provided",
+          finalPrice: updatedBooking.finalPrice,
+        });
+      }
+
+      // Send notification to the driver via WebSocket if available
+      if (global.wsServer) {
+        try {
+          const bookingSummary = {
+            _id: updatedBooking._id,
+            bookingId: updatedBooking.bookingId,
+            pickup: updatedBooking.pickup,
+            delivery: updatedBooking.delivery,
+            schedule: updatedBooking.schedule,
+            status: updatedBooking.status,
+            finalPrice: updatedBooking.finalPrice,
+          };
+
+          global.wsServer.sendDriverNotification(
+            driverId.toString(),
+            "booking_confirmed",
+            {
+              message: "A new booking has been confirmed for you!",
+              booking: bookingSummary,
+            }
+          );
+        } catch (error) {
+          // Continue processing since this is not critical
+        }
+      }
+
+      return res.status(200).json({
+        success: true,
+        message: "Payment verified successfully",
+        booking: {
+          _id: updatedBooking._id,
+          bookingId: updatedBooking.bookingId,
+          status: updatedBooking.status,
+          assignedDriver: updatedBooking.assignedDriver,
+        },
+      });
+    } catch (validationError) {
+      console.error("Payment validation error:", validationError);
+      return res.status(500).json({
+        success: false,
+        message: "Error validating payment data. Please try again.",
+        details: validationError.message,
+      });
+    }
   } catch (error) {
-    console.error("Error verifying payment:", error);
-    res.status(500).json({
+    console.error("Payment verification error:", error);
+    return res.status(500).json({
       success: false,
-      error: "Error verifying payment",
-      details: error.message,
+      message: "Error verifying payment. Please try again.",
     });
   }
 };

@@ -1,13 +1,15 @@
 // backend/controllers/driverController.js
 const Driver = require("../models/Driver");
+const Booking = require("../models/Booking");
+const emailService = require("../utils/emailService");
 
 const getPublicDriverInfo = async (req, res) => {
   try {
     const { driverId } = req.params;
-    
+
     // First try to find real driver data
     const driver = await Driver.findById(driverId);
-    
+
     if (driver) {
       // Return real driver data
       const publicDriverInfo = {
@@ -34,7 +36,7 @@ const getPublicDriverInfo = async (req, res) => {
           : null,
         isVerified: driver.isVerified,
       };
-      
+
       return res.status(200).json({
         success: true,
         driver: publicDriverInfo,
@@ -77,6 +79,322 @@ const getPublicDriverInfo = async (req, res) => {
   }
 };
 
+// Get driver's confirmed bookings
+const getDriverBookings = async (req, res) => {
+  try {
+    const driver = req.driver;
+    const driverId = driver._id;
+
+    // Find all bookings assigned to this driver (with status confirmed or later)
+    // Using $or to check both driverId and assignedDriver fields
+    const bookings = await Booking.find({
+      $or: [{ driverId: driverId }, { assignedDriver: driverId }],
+      status: {
+        $in: ["confirmed", "pickup_reached", "in_transit", "delivered"],
+      },
+    }).sort({ confirmedAt: -1 }); // Sort by most recently confirmed first
+
+    console.log(`Found ${bookings.length} bookings for driver ${driver._id}`);
+
+    // Return actual bookings - no demo data
+    res.status(200).json({
+      success: true,
+      bookings,
+    });
+  } catch (error) {
+    console.error("Error fetching driver bookings:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch driver bookings",
+      error: error.message,
+    });
+  }
+};
+
+// Get specific booking details for a driver
+const getDriverBookingDetails = async (req, res) => {
+  try {
+    const driver = req.driver;
+    const { bookingId } = req.params;
+    const driverId = driver._id;
+
+    // Find the booking by ID or formatted ID, checking both assignedDriver and driverId fields
+    let booking;
+
+    // Check if it's a valid MongoDB ID
+    if (/^[0-9a-fA-F]{24}$/.test(bookingId)) {
+      booking = await Booking.findOne({
+        _id: bookingId,
+        $or: [{ driverId: driverId }, { assignedDriver: driverId }],
+      }).populate("userId", "fullName email phone profileImage");
+    }
+
+    // If not found, try to find by formatted ID
+    if (!booking) {
+      booking = await Booking.findOne({
+        bookingId: bookingId,
+        $or: [{ driverId: driverId }, { assignedDriver: driverId }],
+      }).populate("userId", "fullName email phone profileImage");
+    }
+
+    if (!booking) {
+      // If no real booking found, provide demo booking
+      const demoBookings = getDriverDemoBookings();
+      const demoBooking = demoBookings.find(
+        (b) => b.bookingId === bookingId || b._id === bookingId
+      );
+
+      if (demoBooking) {
+        console.log("Providing demo booking data for:", bookingId);
+        return res.status(200).json({
+          success: true,
+          booking: demoBooking,
+          isDemo: true,
+        });
+      }
+
+      return res.status(404).json({
+        success: false,
+        message: "Booking not found or not assigned to you",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      booking,
+    });
+  } catch (error) {
+    console.error("Error fetching booking details:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch booking details",
+      error: error.message,
+    });
+  }
+};
+
+// Update booking status
+const updateBookingStatus = async (req, res) => {
+  try {
+    const driver = req.driver;
+    const { bookingId } = req.params;
+    const { status } = req.body;
+    const driverId = driver._id;
+
+    // Validate status
+    const validStatuses = ["pickup_reached", "in_transit", "delivered"];
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Invalid status. Valid statuses are: pickup_reached, in_transit, delivered",
+      });
+    }
+
+    // Find the booking, checking both driverId and assignedDriver fields
+    let booking;
+
+    // Check if it's a valid MongoDB ID
+    if (/^[0-9a-fA-F]{24}$/.test(bookingId)) {
+      booking = await Booking.findOne({
+        _id: bookingId,
+        $or: [{ driverId: driverId }, { assignedDriver: driverId }],
+      });
+    }
+
+    // If not found, try to find by formatted ID
+    if (!booking) {
+      booking = await Booking.findOne({
+        bookingId: bookingId,
+        $or: [{ driverId: driverId }, { assignedDriver: driverId }],
+      });
+    }
+
+    // For demo bookings, just return success
+    if (
+      !booking &&
+      (bookingId.startsWith("booking") || bookingId.startsWith("B"))
+    ) {
+      console.log("Updating demo booking status:", bookingId, status);
+
+      return res.status(200).json({
+        success: true,
+        message: `Demo booking status updated to ${status}`,
+        booking: {
+          _id: bookingId,
+          bookingId: bookingId.startsWith("B")
+            ? bookingId
+            : `B${Math.floor(Math.random() * 1000000000)
+                .toString()
+                .padStart(9, "0")}`,
+          status: status,
+        },
+        isDemo: true,
+      });
+    }
+
+    if (!booking) {
+      return res.status(404).json({
+        success: false,
+        message: "Booking not found or not assigned to you",
+      });
+    }
+
+    // Check if the status update is valid
+    if (
+      (status === "pickup_reached" && booking.status !== "confirmed") ||
+      (status === "in_transit" && booking.status !== "pickup_reached") ||
+      (status === "delivered" && booking.status !== "in_transit")
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: `Cannot update status to ${status} from ${booking.status}`,
+      });
+    }
+
+    // Update booking status and add timestamp
+    booking.status = status;
+
+    // Add status-specific timestamps
+    if (status === "pickup_reached") {
+      booking.pickupReachedAt = new Date();
+    } else if (status === "in_transit") {
+      booking.inTransitAt = new Date();
+    } else if (status === "delivered") {
+      booking.deliveredAt = new Date();
+      booking.completedAt = new Date();
+    }
+
+    // Add tracking update
+    booking.trackingUpdates = booking.trackingUpdates || [];
+    booking.trackingUpdates.push({
+      status,
+      timestamp: new Date(),
+      message: `Driver updated status to ${status}`,
+    });
+
+    await booking.save();
+
+    res.status(200).json({
+      success: true,
+      message: `Booking status updated to ${status}`,
+      booking: {
+        _id: booking._id,
+        bookingId: booking.bookingId,
+        status: booking.status,
+      },
+    });
+  } catch (error) {
+    console.error("Error updating booking status:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to update booking status",
+      error: error.message,
+    });
+  }
+};
+
+const acceptBooking = async (req, res) => {
+  try {
+    const { bookingId } = req.params;
+    const driverId = req.driver._id;
+
+    // Find booking with populated user information
+    const booking = await Booking.findById(bookingId).populate(
+      "userId",
+      "name fullName email phone"
+    );
+    if (!booking) {
+      return res.status(404).json({
+        success: false,
+        message: "Booking not found",
+      });
+    }
+
+    // Check if the booking is already confirmed
+    if (booking.status === "confirmed") {
+      return res.status(400).json({
+        success: false,
+        message: "This booking is already confirmed",
+      });
+    }
+
+    // Check if this driver has placed a bid on this booking
+    const driverBid = booking.driverBids.find(
+      (bid) => bid.driver.toString() === driverId.toString()
+    );
+
+    if (!driverBid) {
+      return res.status(400).json({
+        success: false,
+        message: "You have not placed a bid on this booking",
+      });
+    }
+
+    // Update the booking status to confirmed and assign the driver
+    booking.status = "confirmed";
+    booking.assignedDriver = driverId;
+    booking.finalPrice = driverBid.price;
+    booking.confirmedAt = new Date();
+    await booking.save();
+
+    // Get customer info from the populated user field
+    const customerName =
+      booking.userId?.fullName || booking.userId?.name || "Customer";
+    const customerPhone = booking.userId?.phone || "Not provided";
+    const customerEmail = booking.userId?.email || "Not provided";
+
+    console.log(
+      `Booking accepted - Customer info: ${customerName}, ${customerPhone}, ${customerEmail}`
+    );
+
+    // Send email to the driver
+    try {
+      await emailService.sendDriverBookingConfirmationEmail(req.driver.email, {
+        bookingId: booking.bookingId || booking._id.toString(),
+        schedule: booking.schedule,
+        pickup: booking.pickup,
+        delivery: booking.delivery,
+        goods: booking.goods,
+        customerName: customerName,
+        customerPhone: customerPhone,
+        customerEmail: customerEmail,
+        finalPrice: booking.finalPrice,
+      });
+      console.log(
+        `Booking confirmation email sent to driver: ${req.driver.email}`
+      );
+    } catch (emailError) {
+      console.error(
+        "Error sending booking confirmation email to driver:",
+        emailError
+      );
+      // Continue processing since email is not critical
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Booking accepted successfully",
+      booking: {
+        _id: booking._id,
+        bookingId: booking.bookingId,
+        status: booking.status,
+        finalPrice: booking.finalPrice,
+      },
+    });
+  } catch (error) {
+    console.error("Error accepting booking:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Server error while accepting booking",
+    });
+  }
+};
+
 module.exports = {
   getPublicDriverInfo,
+  getDriverBookings,
+  getDriverBookingDetails,
+  updateBookingStatus,
+  acceptBooking,
 };

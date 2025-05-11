@@ -21,7 +21,7 @@ const sendOTPEmail = async (email, otp) => {
     html: `
       <div style="font-family: Arial, sans-serif; padding: 20px; background-color: #f4f4f4; text-align: center;">
         <div style="max-width: 600px; margin: 0 auto; background: #fff; padding: 20px; border-radius: 10px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);">
-            <img src="https://i.postimg.cc/G2yrJXk9/Shiftly-logo.png" alt="Shiftly Logo" style="width: 100px; margin-bottom: 20px;">
+            <img src="https://i.postimg.cc/2y9038sD/Shiftly-logo.png" alt="Shiftly Logo" style="width: 100px; margin-bottom: 20px;">
             <h2 style="color: #333;">Verify Your Email</h2>
             <p style="color: #555;">Welcome to <strong>Shiftly – A Seamless Transport System!</strong></p>
             <p style="color: #555;">To complete your registration and start booking your transport seamlessly, please verify your email address. The OTP is valid for only 10 minutes.</p>
@@ -47,7 +47,7 @@ const sendWelcomeEmail = async (email, fullName) => {
     html: `
       <div style="font-family: Arial, sans-serif; padding: 20px; background-color: #f4f4f4; text-align: center;">
         <div style="max-width: 600px; margin: 0 auto; background: #fff; padding: 20px; border-radius: 10px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);">
-            <img src="https://i.postimg.cc/G2yrJXk9/Shiftly-logo.png" alt="Shiftly Logo" style="width: 100px; margin-bottom: 20px;">
+            <img src="https://i.postimg.cc/2y9038sD/Shiftly-logo.png" alt="Shiftly Logo" style="width: 100px; margin-bottom: 20px;">
             <h2 style="color: #333;">Welcome to Shiftly, ${fullName}!</h2>
             <p style="color: #555;">We're thrilled to have you on board. <strong>Shiftly</strong> is your go-to platform for seamless transportation of goods across India.</p>
             <p style="color: #555;">🚚 <strong>What's Next?</strong></p>
@@ -75,7 +75,7 @@ const sendPasswordResetEmail = async (email, fullName, resetLink) => {
     html: `
       <div style="font-family: Arial, sans-serif; padding: 20px; background-color: #f4f4f4; text-align: center;">
         <div style="max-width: 600px; margin: 0 auto; background: #fff; padding: 20px; border-radius: 10px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);">
-          <img src="https://i.postimg.cc/G2yrJXk9/Shiftly-logo.png" alt="Shiftly Logo" style="width: 100px; margin-bottom: 20px;">
+          <img src="https://i.postimg.cc/2y9038sD/Shiftly-logo.png" alt="Shiftly Logo" style="width: 100px; margin-bottom: 20px;">
           <h2 style="color: #333;">Reset Your Password, ${fullName}</h2>
           <p style="color: #555;">We received a request to reset your password for your Shiftly account.</p>
           <p style="color: #555;">Click the button below to set a new password. This link will expire in 30 minutes.</p>
@@ -100,7 +100,7 @@ const sendDriverOTPEmail = async (email, otp, fullName) => {
       html: `
         <div style="font-family: Arial, sans-serif; padding: 20px; background-color: #f4f4f4; text-align: center;">
           <div style="max-width: 600px; margin: 0 auto; background: #fff; padding: 20px; border-radius: 10px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);">
-              <img src="https://i.postimg.cc/G2yrJXk9/Shiftly-logo.png" alt="Shiftly Logo" style="width: 100px; margin-bottom: 20px;">
+              <img src="https://i.postimg.cc/2y9038sD/Shiftly-logo.png" alt="Shiftly Logo" style="width: 100px; margin-bottom: 20px;">
               <h2 style="color: #333;">Welcome to Shiftly Driver Community!</h2>
               <p style="color: #555;">Hello ${fullName},</p>
               <p style="color: #555;">Thank you for choosing to join our driver network. To complete your registration and start accepting deliveries, please verify your email address using the OTP below:</p>
@@ -142,7 +142,7 @@ const sendDriverWelcomeEmail = async (email, fullName) => {
     html: `
       <div style="font-family: Arial, sans-serif; padding: 20px; background-color: #f4f4f4;">
         <div style="max-width: 600px; margin: 0 auto; background: #fff; padding: 30px; border-radius: 10px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);">
-          <img src="https://i.postimg.cc/G2yrJXk9/Shiftly-logo.png" alt="Shiftly Logo" style="width: 120px; margin: 0 auto 20px; display: block;">
+          <img src="https://i.postimg.cc/2y9038sD/Shiftly-logo.png" alt="Shiftly Logo" style="width: 120px; margin: 0 auto 20px; display: block;">
           
           <h1 style="color: #333; text-align: center; margin-bottom: 30px;">Welcome to the Shiftly Family!</h1>
           
@@ -180,6 +180,268 @@ const sendDriverWelcomeEmail = async (email, fullName) => {
   await transporter.sendMail(mailOptions);
 };
 
+// Send booking confirmation email to driver
+async function sendDriverBookingConfirmationEmail(driver, booking) {
+  try {
+    // Format the pickup date
+    const pickupDate =
+      booking.schedule && booking.schedule.date
+        ? new Date(booking.schedule.date).toLocaleDateString("en-IN", {
+            weekday: "long",
+            day: "numeric",
+            month: "long",
+            year: "numeric",
+          })
+        : "Not specified";
+
+    // Format price with currency symbol
+    const formattedPrice = booking.finalPrice
+      ? new Intl.NumberFormat("en-IN", {
+          style: "currency",
+          currency: "INR",
+          maximumFractionDigits: 0,
+        }).format(booking.finalPrice)
+      : "₹" + (booking.finalPrice || 0);
+
+    // Format goods type (convert snake_case to Title Case)
+    const goodsType =
+      booking.goods && booking.goods.type
+        ? booking.goods.type
+            .replace(/_/g, " ")
+            .replace(/\b\w/g, (char) => char.toUpperCase())
+        : "Standard Goods";
+
+    const emailContent = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Booking Confirmation</title>
+      <style>
+        /* Base styles */
+        body {
+          font-family: Arial, sans-serif;
+          line-height: 1.5;
+          color: #333333;
+          margin: 0;
+          padding: 0;
+        }
+        .container {
+          max-width: 600px;
+          margin: 0 auto;
+          padding: 20px;
+          background-color: #ffffff;
+        }
+        .logo {
+          text-align: center;
+          margin-bottom: 20px;
+        }
+        .logo img {
+          max-width: 150px;
+          height: auto;
+        }
+        .heading {
+          font-size: 24px;
+          font-weight: bold;
+          color: #0056b3;
+          margin-bottom: 20px;
+          text-align: center;
+        }
+        .content {
+          font-size: 16px;
+          margin-bottom: 20px;
+        }
+        .details-table {
+          width: 100%;
+          border-collapse: collapse;
+          margin-bottom: 20px;
+        }
+        .details-row {
+          display: flex;
+          border-bottom: 1px solid #eeeeee;
+          padding: 8px 0;
+        }
+        .details-label {
+          font-weight: bold;
+          width: 40%;
+          padding: 8px;
+          color: #666666;
+        }
+        .details-value {
+          width: 60%;
+          padding: 8px;
+        }
+        .button-container {
+          text-align: center;
+          margin: 30px 0;
+        }
+        .button {
+          display: inline-block;
+          background-color: #0056b3;
+          color: #ffffff !important;
+          text-decoration: none;
+          padding: 12px 24px;
+          border-radius: 4px;
+          font-weight: bold;
+          text-align: center;
+        }
+        .footer {
+          text-align: center;
+          font-size: 14px;
+          color: #888888;
+          margin-top: 30px;
+          padding-top: 20px;
+          border-top: 1px solid #eeeeee;
+        }
+        .highlight {
+          color: #0056b3;
+          font-weight: bold;
+        }
+        
+        /* Responsive styles for mobile */
+        @media only screen and (max-width: 480px) {
+          .container {
+            padding: 15px;
+            width: 100%;
+          }
+          .logo img {
+            max-width: 120px;
+          }
+          .heading {
+            font-size: 20px;
+          }
+          .content {
+            font-size: 14px;
+          }
+          .details-row {
+            flex-direction: column;
+          }
+          .details-label, .details-value {
+            width: 100%;
+            padding: 4px 8px;
+          }
+          .button {
+            display: block;
+            padding: 10px;
+            font-size: 14px;
+            width: 80%;
+            margin: 0 auto;
+          }
+        }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="logo">
+          <img src="https://shiftly-static.s3.ap.cloud-object-storage.appdomain.cloud/shiftly-logo.png" alt="Shiftly Logo">
+        </div>
+        
+        <div class="heading">Booking Confirmation</div>
+        
+        <div class="content">
+          Hello ${driver.fullName || "Driver"},
+          <br><br>
+          Your booking has been confirmed! Here are the details of the booking:
+        </div>
+        
+        <div class="details-container">
+          <div class="details-row">
+            <div class="details-label">Booking ID:</div>
+            <div class="details-value">${
+              booking.bookingId || "Not available"
+            }</div>
+          </div>
+          
+          <div class="details-row">
+            <div class="details-label">Pickup Date:</div>
+            <div class="details-value">${pickupDate}</div>
+          </div>
+          
+          <div class="details-row">
+            <div class="details-label">Pickup Location:</div>
+            <div class="details-value">${
+              (booking.pickup && booking.pickup.address) || "Not specified"
+            }</div>
+          </div>
+          
+          <div class="details-row">
+            <div class="details-label">Delivery Location:</div>
+            <div class="details-value">${
+              (booking.delivery && booking.delivery.address) || "Not specified"
+            }</div>
+          </div>
+          
+          <div class="details-row">
+            <div class="details-label">Goods Type:</div>
+            <div class="details-value">${goodsType}</div>
+          </div>
+          
+          <div class="details-row">
+            <div class="details-label">Payment Amount:</div>
+            <div class="details-value">${formattedPrice}</div>
+          </div>
+          
+          <div class="details-row">
+            <div class="details-label">Customer Name:</div>
+            <div class="details-value">${
+              booking.customer?.name || booking.userName || "Not available"
+            }</div>
+          </div>
+          
+          <div class="details-row">
+            <div class="details-label">Customer Phone:</div>
+            <div class="details-value">${
+              booking.customer?.phone || booking.userPhone || "Not available"
+            }</div>
+          </div>
+          
+          ${
+            booking.customer?.email
+              ? `
+          <div class="details-row">
+            <div class="details-label">Customer Email:</div>
+            <div class="details-value">${booking.customer.email}</div>
+          </div>
+          `
+              : ""
+          }
+        </div>
+        
+        <div class="button-container">
+          <a href="${process.env.DRIVER_FRONTEND_URL}/bookings/${
+      booking.bookingId
+    }" class="button">View Booking Details</a>
+        </div>
+        
+        <div class="content">
+          Please ensure you arrive at the pickup location on time. If you have any questions or need to make changes, please contact our support team or use the driver app.
+          <br><br>
+          Thank you for using Shiftly!
+        </div>
+        
+        <div class="footer">
+          &copy; ${new Date().getFullYear()} Shiftly. All rights reserved.
+          <br>
+          This is an automated email, please do not reply.
+        </div>
+      </div>
+    </body>
+    </html>
+    `;
+
+    // Send the email
+    return await sendEmail({
+      to: driver.email,
+      subject: `Booking Confirmed: ${booking.bookingId}`,
+      html: emailContent,
+    });
+  } catch (error) {
+    console.error(`Error sending driver confirmation email: ${error.message}`);
+    return false;
+  }
+}
+
 // Update the exports
 module.exports = {
   sendOTPEmail,
@@ -187,4 +449,5 @@ module.exports = {
   sendPasswordResetEmail,
   sendDriverOTPEmail,
   sendDriverWelcomeEmail,
+  sendDriverBookingConfirmationEmail,
 };
