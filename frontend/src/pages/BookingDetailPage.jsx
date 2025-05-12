@@ -63,12 +63,83 @@ const BookingDetailPage = () => {
     window.scrollTo(0, 0);
   }, []);
 
-  // Handle real-time bid updates via WebSocket
+  // Handle real-time tracking updates via WebSocket
   useEffect(() => {
     if (!isConnected || !bookingId) return;
 
+    // Function to refresh booking data
+    const refreshBookingData = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        if (!token) return;
+
+        const response = await fetch(
+          `${import.meta.env.VITE_BACKEND_URL}/api/bookings/find/${bookingId}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+
+        if (!response.ok) {
+          console.error("Failed to refresh booking data");
+          return;
+        }
+
+        const data = await response.json();
+        if (data.success && data.booking) {
+          // Apply the same sanitization logic
+          const sanitizedBooking = JSON.parse(JSON.stringify(data.booking));
+          setBooking(sanitizedBooking);
+        }
+      } catch (error) {
+        console.error("Error refreshing booking:", error);
+      }
+    };
+
+    // Listen for tracking updates
+    const unsubscribeTracking = on("tracking_update", (data) => {
+      console.log("Received tracking update:", data);
+
+      // Check if this update is for our booking
+      if (
+        data.bookingId === bookingId ||
+        data.bookingRefId === booking?.bookingId
+      ) {
+        // Refresh booking data to get the latest status
+        refreshBookingData();
+
+        // Show a notification
+        toast.success("Your shipment status has been updated!", {
+          icon: "🚚",
+          duration: 5000,
+        });
+      }
+    });
+
+    // Listen for booking status updates
+    const unsubscribeStatusUpdate = on("booking_status_updated", (data) => {
+      console.log("Received booking status update:", data);
+
+      // Check if this update is for our booking
+      if (
+        data.bookingId === bookingId ||
+        data.bookingRefId === booking?.bookingId
+      ) {
+        // Refresh booking data
+        refreshBookingData();
+
+        // Show a notification with the new status
+        toast.success(`Booking status updated to: ${data.status}`, {
+          icon: "📦",
+          duration: 5000,
+        });
+      }
+    });
+
     // Listen for new bid events
-    const unsubscribe = on("new_bid", (data) => {
+    const unsubscribeBids = on("new_bid", (data) => {
       // console.log("Received new bid via WebSocket:", data);
 
       // Make sure the bid is for the current booking
@@ -123,11 +194,14 @@ const BookingDetailPage = () => {
       }
     });
 
+    // Clean up all event listeners
     return () => {
-      unsubscribe();
+      unsubscribeTracking();
+      unsubscribeStatusUpdate();
+      unsubscribeBids();
       unsubscribeBidUpdates();
     };
-  }, [bookingId, isConnected, on]);
+  }, [bookingId, isConnected, on, booking?.bookingId]);
 
   useEffect(() => {
     const fetchBookingDetails = async () => {
@@ -585,8 +659,12 @@ const BookingDetailPage = () => {
           onCancelClick={() => setShowCancelModal(true)}
         />
 
-        {/* Shipment Status for confirmed bookings */}
-        {booking.status === "confirmed" && (
+        {/* Shipment Status for confirmed bookings and beyond */}
+        {(booking.status === "confirmed" ||
+          booking.status === "inTransit" ||
+          booking.status === "in_transit" ||
+          booking.status === "completed" ||
+          booking.status === "delivered") && (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2">
               <ShipmentTracker booking={booking} />

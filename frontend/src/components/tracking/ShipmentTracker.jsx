@@ -139,6 +139,7 @@ const ShipmentTracker = ({ booking }) => {
         break;
 
       case "in_transit":
+      case "inTransit": // Handle both formats
         // Booking confirmed, pickup reached, and in transit
         trackingSteps.push(
           {
@@ -166,6 +167,7 @@ const ShipmentTracker = ({ booking }) => {
         break;
 
       case "delivered":
+      case "completed": // Handle completed status too
         // All steps completed
         trackingSteps.push(
           {
@@ -236,7 +238,7 @@ const ShipmentTracker = ({ booking }) => {
   // Get status text with proper styling
   const getStatusText = (index) => {
     if (index < activeStep) return "text-green-600 font-medium";
-    if (index === activeStep) return "text-blue-600 font-medium";
+    if (index === activeStep) return "text-red-600 font-medium";
     return "text-gray-400";
   };
 
@@ -249,7 +251,7 @@ const ShipmentTracker = ({ booking }) => {
   // Get icon styling
   const getIconStyle = (index) => {
     if (index < activeStep) return "bg-green-500 text-white";
-    if (index === activeStep) return "bg-blue-500 text-white";
+    if (index === activeStep) return "bg-red-500 text-white";
     return "bg-gray-300 text-gray-500";
   };
 
@@ -263,10 +265,12 @@ const ShipmentTracker = ({ booking }) => {
         return <FaMapMarkerAlt />;
       case "transit":
       case "in_transit":
+      case "inTransit":
         return <FaTruck />;
       case "out_for_delivery":
         return <FaTruck />;
       case "delivered":
+      case "completed":
         return <FaBox />;
       default:
         return <FaClock />;
@@ -296,8 +300,8 @@ const ShipmentTracker = ({ booking }) => {
                   className={`w-1 h-full ${getConnectorStyle(index)} mt-2`}
                   style={{ height: "30px" }}
                 ></div>
-                  )}
-                </div>
+              )}
+            </div>
 
             {/* Step details */}
             <div className="flex-1">
@@ -318,9 +322,9 @@ const ShipmentTracker = ({ booking }) => {
                   </span>
                 </div>
               )}
-              </div>
             </div>
-          ))}
+          </div>
+        ))}
       </div>
     </div>
   );

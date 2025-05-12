@@ -145,57 +145,51 @@ const LiveLocationSharing = ({ bookingId }) => {
   }, [watchId]);
 
   return (
-    <div className="bg-white rounded-xl shadow-md p-6 flex flex-col">
-      <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-        <FaMapMarkerAlt className="text-blue-600" /> Live Location Sharing
-      </h2>
-
-      <div className="bg-gray-50 rounded-lg p-5 flex flex-col items-center border border-gray-100">
-        {locationError && (
-          <div className="mb-4 p-3 bg-red-50 text-red-700 rounded-lg flex items-center gap-2 w-full border border-red-100">
-            <FaExclamationTriangle />
-            <span className="text-sm">{locationError}</span>
-          </div>
-        )}
-
-        <div className="flex items-center justify-center mb-4">
-          <button
-            onClick={toggleLocationSharing}
-            className={`flex items-center gap-3 px-6 py-3 rounded-lg transition-colors ${
-              isSharing
-                ? "bg-green-500 hover:bg-green-600 text-white"
-                : "bg-blue-500 hover:bg-blue-600 text-white"
-            }`}
-          >
-            {isSharing ? <FaToggleOn size={24} /> : <FaToggleOff size={24} />}
-            {isSharing ? "Stop Sharing Location" : "Start Sharing Location"}
-          </button>
+    <div className="flex flex-col">
+      {locationError && (
+        <div className="mb-4 p-3 bg-red-50 text-red-700 rounded-lg flex items-center gap-2 w-full border border-red-100">
+          <FaExclamationTriangle />
+          <span className="text-sm">{locationError}</span>
         </div>
+      )}
 
-        {isSharing && lastLocation && (
-          <div className="w-full text-center p-4 bg-green-50 rounded-lg border border-green-100">
-            <p className="text-sm text-gray-600 mb-2">
-              Currently sharing your location
-            </p>
-            <p className="font-medium text-gray-800">
-              Lat: {lastLocation.lat.toFixed(6)}, Lng:{" "}
-              {lastLocation.lng.toFixed(6)}
-            </p>
-            {lastUpdateTime && (
-              <p className="text-xs text-gray-500 mt-1">
-                Last updated: {lastUpdateTime.toLocaleTimeString()}
-              </p>
-            )}
-          </div>
-        )}
+      <div className="flex items-center justify-center mb-4">
+        <button
+          onClick={toggleLocationSharing}
+          className={`flex items-center gap-3 px-6 py-3 rounded-lg transition-colors ${
+            isSharing
+              ? "bg-green-500 hover:bg-green-600 text-white"
+              : "bg-blue-500 hover:bg-blue-600 text-white"
+          }`}
+        >
+          {isSharing ? <FaToggleOn size={24} /> : <FaToggleOff size={24} />}
+          {isSharing ? "Stop Sharing Location" : "Start Sharing Location"}
+        </button>
+      </div>
 
-        <div className="mt-4 text-xs text-gray-500 text-center w-full">
-          <p>
-            {isSharing
-              ? "Your location is being shared with the customer in real-time"
-              : "Enable location sharing to help the customer track their delivery"}
+      {isSharing && lastLocation && (
+        <div className="w-full text-center p-4 bg-green-50 rounded-lg border border-green-100">
+          <p className="text-sm text-gray-600 mb-2">
+            Currently sharing your location
           </p>
+          <p className="font-medium text-gray-800">
+            Lat: {lastLocation.lat.toFixed(6)}, Lng:{" "}
+            {lastLocation.lng.toFixed(6)}
+          </p>
+          {lastUpdateTime && (
+            <p className="text-xs text-gray-500 mt-1">
+              Last updated: {lastUpdateTime.toLocaleTimeString()}
+            </p>
+          )}
         </div>
+      )}
+
+      <div className="mt-4 text-xs text-gray-500 text-center w-full">
+        <p>
+          {isSharing
+            ? "Your location is being shared with the customer in real-time"
+            : "Enable location sharing to help the customer track their delivery"}
+        </p>
       </div>
     </div>
   );

@@ -113,29 +113,84 @@ exports.getLiveLocation = async (req, res) => {
 
 exports.updateTrackingStatus = async (req, res) => {
   try {
-    const { status } = req.body;
-    const booking = await Booking.findOne({
-      $or: [{ _id: req.params.bookingId }, { bookingId: req.params.bookingId }],
+    const { bookingId } = req.params;
+    const { status, message, timestamp } = req.body;
+
+    console.log(`Received tracking update for booking ${bookingId}:`, {
+      status,
+      message,
+      timestamp: timestamp || new Date().toISOString(),
     });
+
+    // Find booking by either MongoDB ID or formatted ID
+    let booking;
+    if (/^[0-9a-fA-F]{24}$/.test(bookingId)) {
+      // Valid MongoDB ObjectId format
+      booking = await Booking.findById(bookingId);
+    } else {
+      // Try to find by formatted booking ID (e.g., "B123456789")
+      booking = await Booking.findOne({ bookingId: bookingId });
+    }
 
     if (!booking) {
       return res.status(404).json({
         success: false,
-        error: "Booking not found",
+        message: "Booking not found",
       });
     }
 
-    booking.status = status;
+    // Initialize trackingUpdates array if it doesn't exist
+    if (!booking.trackingUpdates) {
+      booking.trackingUpdates = [];
+    }
+
+    // Add new tracking update
+    booking.trackingUpdates.push({
+      status,
+      message: message || `Status updated to ${status}`,
+      timestamp: timestamp ? new Date(timestamp) : new Date(),
+      // Add location if provided
+      ...(req.body.location && { location: req.body.location }),
+    });
+
+    // Save the booking
     await booking.save();
+
+    // Publish tracking update to WebSocket clients if available
+    try {
+      const { broadcastBookingUpdate } = require("../websocket/server");
+      if (typeof broadcastBookingUpdate === "function" && booking.userId) {
+        const userId = booking.userId.toString();
+        const formattedBookingId = booking._id.toString();
+
+        broadcastBookingUpdate(userId, formattedBookingId, {
+          type: "tracking_update",
+          payload: {
+            bookingId: formattedBookingId,
+            bookingRefId: booking.bookingId,
+            status,
+            message: message || `Status updated to ${status}`,
+            timestamp: timestamp || new Date().toISOString(),
+          },
+        });
+
+        console.log(`Tracking update broadcast sent to user ${userId}`);
+      }
+    } catch (error) {
+      console.error("Error broadcasting tracking update:", error);
+      // Continue processing even if WebSocket notification fails
+    }
 
     res.status(200).json({
       success: true,
-      booking,
+      message: "Tracking status updated successfully",
     });
   } catch (error) {
+    console.error("Error updating tracking status:", error);
     res.status(500).json({
       success: false,
-      error: "Error updating tracking status",
+      message: "Failed to update tracking status",
+      error: error.message,
     });
   }
 };

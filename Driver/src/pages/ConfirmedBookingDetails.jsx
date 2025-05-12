@@ -22,6 +22,8 @@ import {
   FaInfoCircle,
   FaExclamationTriangle,
   FaClipboardList,
+  FaLocationArrow,
+  FaHistory,
 } from "react-icons/fa";
 import { toast } from "react-hot-toast";
 import LiveLocationSharing from "../components/bookings/LiveLocationSharing";
@@ -199,24 +201,28 @@ const ConfirmedBookingDetails = () => {
         }
       );
 
+      // Check for network errors
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to update booking status");
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(
+          errorData.message ||
+            `Failed to update booking status (${response.status})`
+        );
       }
 
       const data = await response.json();
 
       if (data.success) {
         setShipmentStatus(newStatus);
-        setBooking(data.booking);
+        setBooking((prev) => ({ ...prev, status: newStatus }));
         toast.success(`Booking marked as ${newStatus}`);
 
-        // Notify WebSocket server about status change
+        // Notify WebSocket server about status change - using bookingId (not _id)
         try {
           const wsResponse = await fetch(
-            `${
-              import.meta.env.VITE_BACKEND_URL
-            }/api/tracking/update/${bookingId}`,
+            `${import.meta.env.VITE_BACKEND_URL}/api/tracking/update/${
+              booking.bookingId || bookingId
+            }`,
             {
               method: "PUT",
               headers: {
@@ -232,13 +238,24 @@ const ConfirmedBookingDetails = () => {
           );
 
           if (!wsResponse.ok) {
+            // Parse error response if possible
+            const errorText = await wsResponse.text().catch(() => null);
             console.error(
-              "Failed to notify WebSocket server about status change"
+              "Failed to notify tracking system about status change:",
+              errorText || wsResponse.statusText
+            );
+          } else {
+            console.log(
+              "Successfully notified tracking system of status change"
             );
           }
         } catch (wsError) {
           console.error("WebSocket notification error:", wsError);
+          // Don't fail the entire operation due to WebSocket notification error
         }
+
+        // Reload the booking to ensure we have the latest data
+        await fetchBookingDetails();
       }
     } catch (error) {
       console.error("Error updating booking status:", error);
@@ -1048,7 +1065,7 @@ const ConfirmedBookingDetails = () => {
         {activeTab === "tracking" && (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Left Column - Tracking Timeline */}
-            <div className="lg:col-span-2">
+            <div className="lg:col-span-2 space-y-6">
               <div className="bg-white rounded-xl shadow-md p-6">
                 <h2 className="text-lg font-semibold text-gray-800 mb-6 flex items-center gap-2">
                   <FaShippingFast className="text-red-600" /> Delivery Status
@@ -1104,66 +1121,97 @@ const ConfirmedBookingDetails = () => {
                   </div>
                 </div>
               </div>
+
+              {/* Customer Support - Moved to be after status timeline */}
+              <div className="bg-white rounded-xl shadow-md p-6">
+                <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                  <FaInfoCircle className="text-red-600" /> Need Help?
+                </h2>
+
+                <div className="p-4 bg-gray-50 rounded-lg border border-gray-100">
+                  <p className="text-gray-700 mb-3">
+                    If you encounter any issues during delivery, contact our
+                    support team:
+                  </p>
+
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2">
+                      <FaPhone className="text-red-500" />
+                      <a
+                        href="tel:+918800880088"
+                        className="text-red-600 hover:underline cursor-pointer"
+                      >
+                        +91 8800 880088
+                      </a>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <FaEnvelope className="text-red-500" />
+                      <a
+                        href="mailto:support@shiftly.com"
+                        className="text-red-600 hover:underline cursor-pointer"
+                      >
+                        support@shiftly.com
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
 
             {/* Right Column - Location Sharing */}
             <div className="space-y-6">
-              {/* Live Location Sharing - Only show when in transit */}
-              {shipmentStatus === "inTransit" ? (
-                <LiveLocationSharing bookingId={bookingId} />
-              ) : (
-                <div className="bg-white rounded-xl shadow-md p-6">
-                  <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                    <FaMapMarkedAlt className="text-red-600" /> Location Sharing
-                  </h2>
+              {/* Live Location Sharing */}
+              <div className="bg-white rounded-xl shadow-md p-6">
+                <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                  <FaLocationArrow className="text-red-600" /> Live Location
+                  Sharing
+                </h2>
 
-                  <div className="p-5 bg-gray-50 rounded-lg border border-gray-100">
-                    <div className="text-center space-y-4">
-                      {shipmentStatus === "completed" ? (
-                        <div className="flex flex-col items-center">
-                          <FaCheckCircle className="text-green-500 text-3xl mb-2" />
-                          <p className="text-gray-700">Delivery completed</p>
-                          <p className="text-sm text-gray-500 mt-1">
-                            Location sharing is no longer needed
-                          </p>
-                        </div>
+                {shipmentStatus === "inTransit" ? (
+                  <div className="bg-gray-50 rounded-lg p-4 border border-gray-100">
+                    <LiveLocationSharing bookingId={bookingId} />
+                  </div>
+                ) : shipmentStatus === "completed" ? (
+                  <div className="bg-gray-50 rounded-lg p-4 border border-gray-100 flex flex-col items-center justify-center py-6">
+                    <FaCheckCircle className="text-green-500 text-3xl mb-3" />
+                    <p className="text-gray-700">Delivery completed</p>
+                    <p className="text-sm text-gray-500 mt-1">
+                      Location sharing is no longer needed
+                    </p>
+                  </div>
+                ) : (
+                  <div className="bg-gray-50 rounded-lg p-4 border border-gray-100 text-center py-4">
+                    <div className="flex flex-col items-center mb-4">
+                      <FaExclamationTriangle className="text-yellow-500 text-3xl mb-3" />
+                      <p className="text-gray-700 font-medium">
+                        Location sharing will be available
+                      </p>
+                      <p className="text-sm text-gray-500 mt-1 mb-5">
+                        Once you start the transit, you can share your live
+                        location with the customer
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => updateBookingStatus("inTransit")}
+                      disabled={updateLoading}
+                      className="w-full max-w-[200px] bg-red-500 hover:bg-red-600 text-white py-2 rounded-lg flex items-center justify-center gap-2 disabled:bg-gray-300 disabled:text-gray-500 cursor-pointer mx-auto"
+                    >
+                      {updateLoading ? (
+                        <>
+                          <FaSpinner className="animate-spin" />
+                          Updating...
+                        </>
                       ) : (
                         <>
-                          <div className="flex flex-col items-center">
-                            <FaExclamationTriangle className="text-yellow-500 text-3xl mb-2" />
-                            <p className="text-gray-700 font-medium">
-                              Location sharing will be available
-                            </p>
-                            <p className="text-sm text-gray-500 mt-1">
-                              Once you start the transit, you can share your
-                              live location with the customer
-                            </p>
-                          </div>
-                          <div className="flex justify-center w-full">
-                            <button
-                              onClick={() => updateBookingStatus("inTransit")}
-                              disabled={updateLoading}
-                              className="w-full max-w-[200px] bg-red-500 hover:bg-red-600 text-white py-2 rounded-lg flex items-center justify-center gap-2 disabled:bg-gray-300 disabled:text-gray-500 cursor-pointer"
-                            >
-                              {updateLoading ? (
-                                <>
-                                  <FaSpinner className="animate-spin" />
-                                  Updating...
-                                </>
-                              ) : (
-                                <>
-                                  <FaShippingFast />
-                                  Start Transit Now
-                                </>
-                              )}
-                            </button>
-                          </div>
+                          <FaShippingFast />
+                          Start Transit Now
                         </>
                       )}
-                    </div>
+                    </button>
                   </div>
-                </div>
-              )}
+                )}
+              </div>
 
               {/* Delivery Instructions */}
               <div className="bg-white rounded-xl shadow-md p-6">
@@ -1198,42 +1246,6 @@ const ConfirmedBookingDetails = () => {
                           </p>
                         </div>
                       )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Customer Support */}
-              <div className="bg-white rounded-xl shadow-md p-6">
-                <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                  <FaInfoCircle className="text-red-600" /> Need Help?
-                </h2>
-
-                <div className="p-4 bg-gray-50 rounded-lg border border-gray-100">
-                  <p className="text-gray-700 mb-3">
-                    If you encounter any issues during delivery, contact our
-                    support team:
-                  </p>
-
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-2">
-                      <FaPhone className="text-red-500" />
-                      <a
-                        href="tel:+918800880088"
-                        className="text-red-600 hover:underline cursor-pointer"
-                      >
-                        +91 8800 880088
-                      </a>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <FaEnvelope className="text-red-500" />
-                      <a
-                        href="mailto:support@shiftly.com"
-                        className="text-red-600 hover:underline cursor-pointer"
-                      >
-                        support@shiftly.com
-                      </a>
-                    </div>
                   </div>
                 </div>
               </div>

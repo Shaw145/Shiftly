@@ -111,18 +111,13 @@ const getDriverBookings = async (req, res) => {
   }
 };
 
-// Get specific booking details for a driver
+// Get booking details for a driver's specific booking
 const getDriverBookingDetails = async (req, res) => {
   try {
-    const driver = req.driver;
     const { bookingId } = req.params;
-    const driverId = driver._id;
+    const driverId = req.driver._id;
 
-    console.log(
-      `Driver ${driverId} requesting booking details for: ${bookingId}`
-    );
-
-    // Find the booking by ID or formatted ID, checking both assignedDriver and driverId fields
+    // Flexible search by either MongoDB id or booking reference ID
     let booking;
 
     // Check if it's a valid MongoDB ID
@@ -131,8 +126,12 @@ const getDriverBookingDetails = async (req, res) => {
         _id: bookingId,
         $or: [{ driverId: driverId }, { assignedDriver: driverId }],
       })
-        .populate("userId", "fullName email phone profileImage")
-        .populate("payment", "amount status method transactionId");
+        .populate("userId", "fullName email phone profileImage _id")
+        .populate("payment")
+        .populate({
+          path: "vehicle",
+          select: "type name capacity dimensions",
+        });
     }
 
     // If not found, try to find by formatted ID
@@ -141,47 +140,32 @@ const getDriverBookingDetails = async (req, res) => {
         bookingId: bookingId,
         $or: [{ driverId: driverId }, { assignedDriver: driverId }],
       })
-        .populate("userId", "fullName email phone profileImage")
-        .populate("payment", "amount status method transactionId");
+        .populate("userId", "fullName email phone profileImage _id")
+        .populate("payment")
+        .populate({
+          path: "vehicle",
+          select: "type name capacity dimensions",
+        });
     }
 
     if (!booking) {
-      // If no real booking found, provide demo booking
-      const demoBookings = getDriverDemoBookings();
-      const demoBooking = demoBookings.find(
-        (b) => b.bookingId === bookingId || b._id === bookingId
-      );
-
-      if (demoBooking) {
-        console.log("Providing demo booking data for:", bookingId);
-        return res.status(200).json({
-          success: true,
-          booking: demoBooking,
-          isDemo: true,
-        });
-      }
-
       return res.status(404).json({
         success: false,
         message: "Booking not found or not assigned to you",
       });
     }
 
-    // Log price information for debugging
-    console.log("Booking price details:", {
-      id: booking._id,
-      bookingId: booking.bookingId,
-      finalPrice: booking.finalPrice,
-      price: booking.price,
-      payment: booking.payment
-        ? {
-            id: booking.payment._id,
-            amount: booking.payment.amount,
-            status: booking.payment.status,
-          }
-        : null,
-      estimatedPrice: booking.estimatedPrice,
-    });
+    // Log the customer details to ensure they're properly populated
+    if (booking.userId) {
+      console.log("Customer details:", {
+        id: booking.userId._id,
+        name: booking.userId.fullName,
+        email: booking.userId.email,
+        phone: booking.userId.phone,
+      });
+    } else {
+      console.warn("No customer information available for booking:", bookingId);
+    }
 
     res.status(200).json({
       success: true,
@@ -205,13 +189,22 @@ const updateBookingStatus = async (req, res) => {
     const { status } = req.body;
     const driverId = driver._id;
 
+    console.log(
+      `Driver ${driverId} updating booking ${bookingId} status to: ${status}`
+    );
+
     // Validate status
-    const validStatuses = ["pickup_reached", "in_transit", "delivered"];
+    const validStatuses = [
+      "pickup_reached",
+      "inTransit",
+      "in_transit",
+      "completed",
+    ];
     if (!validStatuses.includes(status)) {
       return res.status(400).json({
         success: false,
         message:
-          "Invalid status. Valid statuses are: pickup_reached, in_transit, delivered",
+          "Invalid status. Valid statuses are: pickup_reached, inTransit, completed",
       });
     }
 
@@ -223,7 +216,7 @@ const updateBookingStatus = async (req, res) => {
       booking = await Booking.findOne({
         _id: bookingId,
         $or: [{ driverId: driverId }, { assignedDriver: driverId }],
-      });
+      }).populate("userId", "fullName email phone profileImage _id");
     }
 
     // If not found, try to find by formatted ID
@@ -231,7 +224,7 @@ const updateBookingStatus = async (req, res) => {
       booking = await Booking.findOne({
         bookingId: bookingId,
         $or: [{ driverId: driverId }, { assignedDriver: driverId }],
-      });
+      }).populate("userId", "fullName email phone profileImage _id");
     }
 
     // For demo bookings, just return success
@@ -267,8 +260,11 @@ const updateBookingStatus = async (req, res) => {
     // Check if the status update is valid
     if (
       (status === "pickup_reached" && booking.status !== "confirmed") ||
-      (status === "in_transit" && booking.status !== "pickup_reached") ||
-      (status === "delivered" && booking.status !== "in_transit")
+      ((status === "inTransit" || status === "in_transit") &&
+        booking.status !== "confirmed") ||
+      (status === "completed" &&
+        booking.status !== "inTransit" &&
+        booking.status !== "in_transit")
     ) {
       return res.status(400).json({
         success: false,
@@ -276,28 +272,81 @@ const updateBookingStatus = async (req, res) => {
       });
     }
 
+    // Map the frontend status to database status if needed
+    // Use consistent database status
+    let dbStatus;
+    if (status === "completed") {
+      dbStatus = "delivered";
+    } else if (status === "inTransit" || status === "in_transit") {
+      dbStatus = "inTransit"; // Standardize to one format in database
+    } else {
+      dbStatus = status;
+    }
+
     // Update booking status and add timestamp
-    booking.status = status;
+    booking.status = dbStatus;
 
     // Add status-specific timestamps
     if (status === "pickup_reached") {
       booking.pickupReachedAt = new Date();
-    } else if (status === "in_transit") {
+    } else if (status === "inTransit" || status === "in_transit") {
       booking.inTransitAt = new Date();
-    } else if (status === "delivered") {
+    } else if (status === "completed") {
       booking.deliveredAt = new Date();
       booking.completedAt = new Date();
     }
 
-    // Add tracking update
-    booking.trackingUpdates = booking.trackingUpdates || [];
-    booking.trackingUpdates.push({
-      status,
-      timestamp: new Date(),
-      message: `Driver updated status to ${status}`,
-    });
+    // Notify the tracking system via WebSocket if available
+    try {
+      const trackingMessage = {
+        status: dbStatus,
+        message: `Driver updated status to ${status}`,
+        timestamp: new Date().toISOString(),
+      };
 
-    await booking.save();
+      // Send WebSocket notification if user is available
+      const { broadcastBookingUpdate } = require("../websocket/server");
+      if (booking.userId && typeof broadcastBookingUpdate === "function") {
+        broadcastBookingUpdate(
+          booking.userId._id.toString(),
+          booking._id.toString(),
+          {
+            type: "booking_status_updated",
+            payload: {
+              bookingId: booking._id.toString(),
+              status: dbStatus,
+              message: trackingMessage.message,
+              timestamp: trackingMessage.timestamp,
+            },
+          }
+        );
+        console.log(
+          `Sent WebSocket notification to user ${booking.userId._id.toString()}`
+        );
+      }
+
+      // Also update the tracking status directly through the model
+      // This is more reliable than making an HTTP request
+      if (!booking.trackingUpdates) {
+        booking.trackingUpdates = [];
+      }
+
+      booking.trackingUpdates.push({
+        status: dbStatus,
+        timestamp: new Date(),
+        message: `Driver updated status to ${status}`,
+      });
+
+      // Make sure to save the booking again with the tracking updates
+      await booking.save();
+
+      console.log(
+        `Updated tracking status to ${dbStatus} for booking ${booking._id.toString()}`
+      );
+    } catch (wsError) {
+      console.error("Tracking notification error:", wsError);
+      // Continue processing as this should not fail the status update
+    }
 
     res.status(200).json({
       success: true,

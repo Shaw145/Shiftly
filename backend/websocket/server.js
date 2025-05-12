@@ -757,8 +757,50 @@ async function broadcastDriverUpdate(driverId) {
   }
 }
 
+// Function to broadcast booking updates to specific users
+async function broadcastBookingUpdate(userId, bookingId, message) {
+  // Make sure bookingId is a string
+  bookingId = bookingId.toString();
+
+  try {
+    // Find the user's WebSocket connection
+    const userClient = clients.get(userId.toString());
+
+    // If user is connected, send them the update
+    if (userClient) {
+      console.log(
+        `Broadcasting booking update to user ${userId} for booking ${bookingId}`
+      );
+      userClient.ws.send(JSON.stringify(message));
+    } else {
+      console.log(
+        `User ${userId} not connected, cannot broadcast booking update`
+      );
+    }
+
+    // Also broadcast to any admins that might be monitoring
+    clients.forEach((client, clientId) => {
+      if (client.role === "admin") {
+        console.log(`Broadcasting booking update to admin ${clientId}`);
+        client.ws.send(
+          JSON.stringify({
+            ...message,
+            admin: true, // Add a flag to indicate this is an admin notification
+          })
+        );
+      }
+    });
+
+    return true;
+  } catch (error) {
+    console.error(`Error broadcasting booking update: ${error.message}`);
+    return false;
+  }
+}
+
 module.exports = {
   initializeWebSocket,
   broadcast,
   broadcastDriverUpdate,
+  broadcastBookingUpdate,
 };

@@ -20,11 +20,74 @@ const DriverDetailsCard = ({ booking }) => {
   // Fetch driver details when booking is confirmed
   useEffect(() => {
     const fetchDriverDetails = async () => {
-      if (!booking || booking.status !== "confirmed") return;
+      if (!booking) return;
+
+      // Debug logging
+      console.log("DriverDetailsCard: Current booking status:", booking.status);
+
+      // Check if status is post-confirmation
+      const postConfirmationStatuses = [
+        "confirmed",
+        "inTransit",
+        "in_transit",
+        "completed",
+        "delivered",
+      ];
+
+      if (!postConfirmationStatuses.includes(booking.status)) {
+        console.log(
+          "DriverDetailsCard: Status not in post-confirmation list, skipping fetch"
+        );
+        return;
+      }
+
+      // Try to use driver details directly from booking if available
+      if (booking.driverId && typeof booking.driverId === "object") {
+        console.log(
+          "DriverDetailsCard: Using driver details directly from booking.driverId",
+          booking.driverId
+        );
+        setDriver({
+          ...booking.driverId,
+          phone:
+            booking.driverId.phone ||
+            booking.driverId.contactNumber ||
+            "Contact support for driver's phone",
+          email: booking.driverId.email || "Contact support for driver's email",
+        });
+        return;
+      }
+
+      if (booking.driver && typeof booking.driver === "object") {
+        console.log(
+          "DriverDetailsCard: Using driver details directly from booking.driver",
+          booking.driver
+        );
+        setDriver({
+          ...booking.driver,
+          phone:
+            booking.driver.phone ||
+            booking.driver.contactNumber ||
+            "Contact support for driver's phone",
+          email: booking.driver.email || "Contact support for driver's email",
+        });
+        return;
+      }
 
       // Get driver ID from booking
       const driverId = getDriverId();
-      if (!driverId) return;
+      if (!driverId) {
+        console.log(
+          "DriverDetailsCard: No driver ID found in booking",
+          booking
+        );
+        return;
+      }
+
+      console.log(
+        "DriverDetailsCard: Fetching driver details for ID:",
+        driverId
+      );
 
       setLoading(true);
       setError(null);
@@ -192,11 +255,13 @@ const DriverDetailsCard = ({ booking }) => {
       } catch (err) {
         console.error("Error fetching driver details:", err);
         setError(err.message);
-        // Don't fail silently - we'll still display whatever driver info we have from the booking
 
         // Try to extract driver info directly from the booking as a last resort
         if (booking.driverId && typeof booking.driverId === "object") {
-          console.log("Using driver details embedded in booking as fallback");
+          console.log(
+            "DriverDetailsCard: Using driver details embedded in booking as fallback after error",
+            booking.driverId
+          );
           setDriver({
             ...booking.driverId,
             // Ensure these fields are shown with clear placeholder messages
@@ -206,6 +271,37 @@ const DriverDetailsCard = ({ booking }) => {
               "Contact support for driver's phone",
             email:
               booking.driverId.email || "Contact support for driver's email",
+          });
+        } else if (booking.driver && typeof booking.driver === "object") {
+          console.log(
+            "DriverDetailsCard: Using driver.driver details as fallback after error",
+            booking.driver
+          );
+          setDriver({
+            ...booking.driver,
+            phone:
+              booking.driver.phone ||
+              booking.driver.contactNumber ||
+              "Contact support for driver's phone",
+            email: booking.driver.email || "Contact support for driver's email",
+          });
+        } else if (
+          booking.assignedDriver &&
+          typeof booking.assignedDriver === "object"
+        ) {
+          console.log(
+            "DriverDetailsCard: Using booking.assignedDriver details as fallback after error",
+            booking.assignedDriver
+          );
+          setDriver({
+            ...booking.assignedDriver,
+            phone:
+              booking.assignedDriver.phone ||
+              booking.assignedDriver.contactNumber ||
+              "Contact support for driver's phone",
+            email:
+              booking.assignedDriver.email ||
+              "Contact support for driver's email",
           });
         }
       } finally {
@@ -503,125 +599,130 @@ const DriverDetailsCard = ({ booking }) => {
         </div>
       )}
 
-      {booking.status === "confirmed" && !loading && (
-        <div className="space-y-3 h-[calc(100%-3rem)] flex flex-col">
-          {/* Driver profile and basic info */}
-          <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-full overflow-hidden bg-red-100 flex items-center justify-center flex-shrink-0">
-              {driverDetails.profileImage ? (
-                <img
-                  src={driverDetails.profileImage}
-                  alt={driverDetails.name}
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <FaUserCircle className="w-10 h-10 text-red-500" />
+      {(booking.status === "confirmed" ||
+        booking.status === "inTransit" ||
+        booking.status === "in_transit" ||
+        booking.status === "completed" ||
+        booking.status === "delivered") &&
+        !loading && (
+          <div className="space-y-3 h-[calc(100%-3rem)] flex flex-col">
+            {/* Driver profile and basic info */}
+            <div className="flex items-center gap-4">
+              <div className="w-16 h-16 rounded-full overflow-hidden bg-red-100 flex items-center justify-center flex-shrink-0">
+                {driverDetails.profileImage ? (
+                  <img
+                    src={driverDetails.profileImage}
+                    alt={driverDetails.name}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <FaUserCircle className="w-10 h-10 text-red-500" />
+                )}
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <p className="font-medium text-gray-900 text-base">
+                    {driverDetails.name}
+                  </p>
+                  {driverDetails.isVerified && (
+                    <span className="bg-green-100 text-green-700 text-xs px-2 py-0.5 rounded-full flex items-center gap-1">
+                      <FaShieldAlt size={10} />
+                      Verified
+                    </span>
+                  )}
+                </div>
+                <div className="flex items-center gap-2 text-sm text-gray-600 mt-1">
+                  <FaStar className="text-yellow-400" />
+                  <span>{driverDetails.rating}</span>
+                  <span>•</span>
+                  <span>{driverDetails.trips}+ trips</span>
+                </div>
+                <p className="text-xs text-gray-500 mt-1 flex items-center gap-1">
+                  <FaHistory className="text-gray-400" />
+                  {formatJoinDate()}
+                </p>
+              </div>
+            </div>
+
+            {/* Contact information */}
+            <div className="space-y-2 border-t border-gray-100 pt-3">
+              <h4 className="text-sm font-medium text-gray-700 mb-2">
+                Contact Information
+              </h4>
+
+              {driverDetails.phone && (
+                <a
+                  href={`tel:${driverDetails.phone}`}
+                  className="flex items-center gap-3 text-gray-700 hover:text-red-600 cursor-pointer group"
+                >
+                  <FaPhone className="text-gray-500 group-hover:text-red-500" />
+                  <span className="text-red-500 font-medium">
+                    {driverDetails.phone}
+                  </span>
+                </a>
+              )}
+
+              {driverDetails.email && (
+                <a
+                  href={`mailto:${driverDetails.email}`}
+                  className="flex items-center gap-3 text-gray-700 hover:text-red-600 cursor-pointer group"
+                >
+                  <FaEnvelope className="text-gray-500 group-hover:text-red-500" />
+                  <span className="text-red-500 font-medium">
+                    {driverDetails.email}
+                  </span>
+                </a>
+              )}
+
+              {driverDetails.address && (
+                <div className="flex items-center gap-3 text-gray-700">
+                  <FaMapMarkerAlt className="text-gray-500" />
+                  <span>
+                    {driverDetails.address}
+                    {driverDetails.city ? `, ${driverDetails.city}` : ""}
+                  </span>
+                </div>
               )}
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <p className="font-medium text-gray-900 text-base">
-                  {driverDetails.name}
-                </p>
-                {driverDetails.isVerified && (
-                  <span className="bg-blue-100 text-blue-700 text-xs px-2 py-0.5 rounded-full flex items-center gap-1">
-                    <FaShieldAlt size={10} />
-                    Verified
-                  </span>
-                )}
-              </div>
-              <div className="flex items-center gap-2 text-sm text-gray-600 mt-1">
-                <FaStar className="text-yellow-400" />
-                <span>{driverDetails.rating}</span>
-                <span>•</span>
-                <span>{driverDetails.trips}+ trips</span>
-              </div>
-              <p className="text-xs text-gray-500 mt-1 flex items-center gap-1">
-                <FaHistory className="text-gray-400" />
-                {formatJoinDate()}
-              </p>
-            </div>
-          </div>
 
-          {/* Contact information */}
-          <div className="space-y-2 border-t border-gray-100 pt-3">
-            <h4 className="text-sm font-medium text-gray-700 mb-2">
-              Contact Information
-            </h4>
-
-            {driverDetails.phone && (
-              <a
-                href={`tel:${driverDetails.phone}`}
-                className="flex items-center gap-3 text-gray-700 hover:text-red-600 cursor-pointer group"
-              >
-                <FaPhone className="text-gray-500 group-hover:text-red-500" />
-                <span className="text-red-500 font-medium">
-                  {driverDetails.phone}
-                </span>
-              </a>
-            )}
-
-            {driverDetails.email && (
-              <a
-                href={`mailto:${driverDetails.email}`}
-                className="flex items-center gap-3 text-gray-700 hover:text-red-600 cursor-pointer group"
-              >
-                <FaEnvelope className="text-gray-500 group-hover:text-red-500" />
-                <span className="text-red-500 font-medium">
-                  {driverDetails.email}
-                </span>
-              </a>
-            )}
-
-            {driverDetails.address && (
-              <div className="flex items-center gap-3 text-gray-700">
-                <FaMapMarkerAlt className="text-gray-500" />
-                <span>
-                  {driverDetails.address}
-                  {driverDetails.city ? `, ${driverDetails.city}` : ""}
-                </span>
-              </div>
-            )}
-          </div>
-
-          {/* Vehicle details */}
-          <div className="bg-gray-50 p-3 rounded-lg">
-            <h4 className="text-sm font-medium text-gray-700 mb-2">
-              Vehicle Information
-            </h4>
-            <div className="flex items-start gap-3">
-              <FaTruck className="text-gray-500 mt-0.5" />
-              <div>
-                <p className="font-medium text-gray-800">
-                  {driverDetails.vehicle}
-                </p>
-                {driverDetails.vehicleInfo && (
-                  <p className="text-sm text-gray-600">
-                    {driverDetails.vehicleInfo}
+            {/* Vehicle details */}
+            <div className="bg-gray-50 p-3 rounded-lg">
+              <h4 className="text-sm font-medium text-gray-700 mb-2">
+                Vehicle Information
+              </h4>
+              <div className="flex items-start gap-3">
+                <FaTruck className="text-gray-500 mt-0.5" />
+                <div>
+                  <p className="font-medium text-gray-800">
+                    {driverDetails.vehicle}
                   </p>
-                )}
-                {driverDetails.vehicleCapacity && (
-                  <p className="text-sm text-gray-600">
-                    Capacity: {driverDetails.vehicleCapacity}
-                  </p>
-                )}
-                {driverDetails.vehicleNumber && (
-                  <p className="text-sm text-gray-600 font-medium mt-1">
-                    Reg: {driverDetails.vehicleNumber}
-                  </p>
-                )}
+                  {driverDetails.vehicleInfo && (
+                    <p className="text-sm text-gray-600">
+                      {driverDetails.vehicleInfo}
+                    </p>
+                  )}
+                  {driverDetails.vehicleCapacity && (
+                    <p className="text-sm text-gray-600">
+                      Capacity: {driverDetails.vehicleCapacity}
+                    </p>
+                  )}
+                  {driverDetails.vehicleNumber && (
+                    <p className="text-sm text-gray-600 font-medium mt-1">
+                      Reg: {driverDetails.vehicleNumber}
+                    </p>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* Live tracking button - moved up */}
-          <div className="mt-auto">
-            <LiveTrackingButton bookingId={booking.bookingId} />
+            {/* Live tracking button - moved up */}
+            <div className="mt-auto">
+              <LiveTrackingButton bookingId={booking.bookingId} />
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {booking.status !== "confirmed" && !loading && (
+      {booking.status === "pending" && !loading && (
         <div className="bg-gray-50 p-4 rounded-lg text-center h-[calc(100%-3rem)] flex flex-col justify-center items-center">
           <FaUserCircle className="text-gray-300 text-5xl mb-3" />
           <p className="text-gray-600">
