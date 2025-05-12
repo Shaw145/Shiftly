@@ -189,13 +189,16 @@ exports.verifyPayment = async (req, res) => {
     // Create a new transaction ID if not provided
     const newTransactionId = transactionId || generateTransactionId();
 
+    // Determine the final price - use the matched bid price or the amount from payment details
+    const finalPrice = paymentDetails?.amount || matchedBid.price || 0;
+
     try {
       // Create payment record with all required fields properly set
       const payment = new Payment({
         bookingId: bookingId,
         userId: userId,
         driverId: driverId,
-        amount: paymentDetails?.amount || matchedBid.price,
+        amount: finalPrice, // Ensure we store the final price in the payment
         transactionId: newTransactionId,
         paymentMethod: paymentDetails?.paymentMethod || "card", // Ensure this matches enum values in schema
         status: "success", // Use 'success' instead of 'completed' to match enum
@@ -203,33 +206,38 @@ exports.verifyPayment = async (req, res) => {
 
       await payment.save();
 
-      // Update booking status with all required fields for driver visibility
-      const finalPrice = paymentDetails?.amount || matchedBid.price;
+      console.log("Payment record created with amount:", finalPrice);
 
-      // Use updateOne to ensure we set all required fields
-      const updateResult = await Booking.updateOne(
-        { _id: bookingId },
+      // Update booking status with all required fields for driver visibility
+      // Using findByIdAndUpdate instead of updateOne for better handling
+      const updatedBooking = await Booking.findByIdAndUpdate(
+        bookingId,
         {
-          $set: {
-            status: "confirmed",
-            assignedDriver: driverId, // Ensure this is set with the correct field name
-            driverId: driverId, // Set this for backward compatibility
-            finalPrice: finalPrice, // Required for pricing display
-            payment: payment._id, // Required for payment reference
-            paymentId: payment._id, // Alternative field for payment reference
-            confirmedAt: new Date(), // Add confirmation timestamp
-          },
-        }
+          status: "confirmed",
+          assignedDriver: driverId, // Ensure this is set with the correct field name
+          driverId: driverId, // Set this for backward compatibility
+          finalPrice: finalPrice, // Store the final price in the booking
+          price: finalPrice, // Also update price field for backward compatibility
+          payment: payment._id, // Required for payment reference
+          paymentId: payment._id, // Alternative field for payment reference
+          confirmedAt: new Date(), // Add confirmation timestamp
+        },
+        { new: true, runValidators: true } // Return updated document and run schema validators
       );
 
-      console.log("Booking update result:", updateResult);
-
-      // Fetch the updated booking for confirmation
-      const updatedBooking = await Booking.findById(bookingId);
-
-      if (!updatedBooking || updatedBooking.status !== "confirmed") {
-        throw new Error("Failed to update booking status");
+      if (!updatedBooking) {
+        throw new Error("Failed to update booking - not found");
       }
+
+      console.log("Booking updated successfully with final price:", finalPrice);
+      console.log("Updated booking details:", {
+        id: updatedBooking._id,
+        bookingId: updatedBooking.bookingId,
+        status: updatedBooking.status,
+        finalPrice: updatedBooking.finalPrice,
+        price: updatedBooking.price,
+        paymentId: updatedBooking.paymentId,
+      });
 
       // Get driver details for the confirmation email
       const driver = await Driver.findById(driverId);
@@ -247,10 +255,15 @@ exports.verifyPayment = async (req, res) => {
           pickup: updatedBooking.pickup,
           delivery: updatedBooking.delivery,
           goods: updatedBooking.goods,
-          customerName: user?.fullName || user?.name || "Customer",
-          customerPhone: user?.phone || "Not provided",
-          customerEmail: user?.email || "Not provided",
-          finalPrice: updatedBooking.finalPrice,
+          finalPrice: updatedBooking.finalPrice, // Include the final price in the email
+          customer: {
+            name: user?.fullName || user?.name || "Customer",
+            phone: user?.phone || "Not provided",
+            email: user?.email || "Not provided",
+          },
+          userName: user?.fullName || user?.name || "Customer",
+          userPhone: user?.phone || "Not provided",
+          userEmail: user?.email || "Not provided",
         });
       }
 
@@ -264,7 +277,7 @@ exports.verifyPayment = async (req, res) => {
             delivery: updatedBooking.delivery,
             schedule: updatedBooking.schedule,
             status: updatedBooking.status,
-            finalPrice: updatedBooking.finalPrice,
+            finalPrice: updatedBooking.finalPrice, // Include the final price in the notification
           };
 
           global.wsServer.sendDriverNotification(
@@ -288,6 +301,7 @@ exports.verifyPayment = async (req, res) => {
           bookingId: updatedBooking.bookingId,
           status: updatedBooking.status,
           assignedDriver: updatedBooking.assignedDriver,
+          finalPrice: updatedBooking.finalPrice, // Include the final price in the response
         },
       });
     } catch (validationError) {

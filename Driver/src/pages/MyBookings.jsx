@@ -214,18 +214,46 @@ const MyBookings = () => {
   };
 
   // Format price for display
-  const formatPrice = (price) => {
-    if (!price) return "Price not available";
-
-    // If it's a range
-    if (typeof price === "object" && price.min && price.max) {
-      return `₹${price.min.toLocaleString(
-        "en-IN"
-      )} - ₹${price.max.toLocaleString("en-IN")}`;
+  const formatPrice = (booking) => {
+    // First check for finalPrice (most reliable)
+    if (booking.finalPrice && parseFloat(booking.finalPrice) > 0) {
+      return `₹${parseFloat(booking.finalPrice).toLocaleString("en-IN")}`;
     }
 
-    // If it's a final price
-    return `₹${Number(price).toLocaleString("en-IN")}`;
+    // Then check for payment amount
+    if (booking.payment?.amount && parseFloat(booking.payment.amount) > 0) {
+      return `₹${parseFloat(booking.payment.amount).toLocaleString("en-IN")}`;
+    }
+
+    // Then check for regular price field
+    if (booking.price && parseFloat(booking.price) > 0) {
+      return `₹${parseFloat(booking.price).toLocaleString("en-IN")}`;
+    }
+
+    // Then check for acceptedBid
+    if (
+      booking.acceptedBid?.amount &&
+      parseFloat(booking.acceptedBid.amount) > 0
+    ) {
+      return `₹${parseFloat(booking.acceptedBid.amount).toLocaleString(
+        "en-IN"
+      )}`;
+    }
+
+    // If it's a range
+    if (
+      booking.estimatedPrice &&
+      typeof booking.estimatedPrice === "object" &&
+      booking.estimatedPrice.min !== undefined &&
+      booking.estimatedPrice.max !== undefined
+    ) {
+      return `₹${Number(booking.estimatedPrice.min).toLocaleString(
+        "en-IN"
+      )} - ₹${Number(booking.estimatedPrice.max).toLocaleString("en-IN")}`;
+    }
+
+    // If no valid price found
+    return "Price not available";
   };
 
   // Navigate to booking details
@@ -327,7 +355,7 @@ const MyBookings = () => {
                 <div>
                   <div className="text-xs text-gray-500 mb-0.5">Earnings</div>
                   <div className="text-base font-bold text-gray-900">
-                    {formatPrice(booking.finalPrice || booking.estimatedPrice)}
+                    {formatPrice(booking)}
                   </div>
                 </div>
                 <button
@@ -433,9 +461,7 @@ const MyBookings = () => {
                         Earnings
                       </div>
                       <div className="font-bold text-gray-900">
-                        {formatPrice(
-                          booking.finalPrice || booking.estimatedPrice
-                        )}
+                        {formatPrice(booking)}
                       </div>
                     </div>
                   </div>

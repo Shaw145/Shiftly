@@ -51,8 +51,9 @@ const AvailableBookings = () => {
   // Set dynamic page title when component mounts
   useEffect(() => {
     // Update the document title
-    document.title = "Available Jobs | Find Transport Work | Shiftly - A Seamless Transport System";
-    
+    document.title =
+      "Available Jobs | Find Transport Work | Shiftly - A Seamless Transport System";
+
     // Optional: Restore the original title when component unmounts
     return () => {
       document.title = "Shiftly | A Seamless Transport System";

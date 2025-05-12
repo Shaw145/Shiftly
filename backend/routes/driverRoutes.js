@@ -184,6 +184,9 @@ router.delete(
 
 router.get("/:driverId/public", driverController.getPublicDriverInfo);
 
+// New route for driver contact information
+router.get("/:driverId/contact", driverController.getDriverContactInfo);
+
 // Driver bookings endpoints
 router.get("/bookings", protectDriver, driverController.getDriverBookings);
 router.get(

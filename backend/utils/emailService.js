@@ -12,6 +12,25 @@ const transporter = nodemailer.createTransport({
   },
 });
 
+// General function to send emails
+const sendEmail = async (options) => {
+  const mailOptions = {
+    from: `"Shiftly" <${process.env.EMAIL_USER}>`,
+    to: options.to,
+    subject: options.subject,
+    html: options.html,
+  };
+
+  try {
+    await transporter.sendMail(mailOptions);
+    console.log(`Email sent successfully to ${options.to}`);
+    return true;
+  } catch (error) {
+    console.error(`Error sending email to ${options.to}:`, error);
+    return false;
+  }
+};
+
 // Function to send OTP email
 const sendOTPEmail = async (email, otp) => {
   const mailOptions = {
@@ -181,8 +200,33 @@ const sendDriverWelcomeEmail = async (email, fullName) => {
 };
 
 // Send booking confirmation email to driver
-async function sendDriverBookingConfirmationEmail(driver, booking) {
+async function sendDriverBookingConfirmationEmail(driverEmail, booking) {
   try {
+    // Normalize the driver parameter to handle both object and string cases
+    const email =
+      typeof driverEmail === "object" ? driverEmail.email : driverEmail;
+
+    // Helper function to format address from object
+    const formatAddress = (location) => {
+      if (!location) return "Not specified";
+
+      // Handle string locations
+      if (typeof location === "string") return location;
+
+      // Handle object locations
+      const parts = [];
+
+      if (location.street || location.addressLine1)
+        parts.push(location.street || location.addressLine1);
+      if (location.addressLine2) parts.push(location.addressLine2);
+      if (location.city) parts.push(location.city);
+      if (location.state) parts.push(location.state);
+      if (location.pincode || location.zipcode)
+        parts.push(location.pincode || location.zipcode);
+
+      return parts.length > 0 ? parts.join(", ") : "Address not available";
+    };
+
     // Format the pickup date
     const pickupDate =
       booking.schedule && booking.schedule.date
@@ -278,7 +322,7 @@ async function sendDriverBookingConfirmationEmail(driver, booking) {
         }
         .button {
           display: inline-block;
-          background-color: #0056b3;
+          background-color: #db0b23;
           color: #ffffff !important;
           text-decoration: none;
           padding: 12px 24px;
@@ -334,13 +378,17 @@ async function sendDriverBookingConfirmationEmail(driver, booking) {
     <body>
       <div class="container">
         <div class="logo">
-          <img src="https://shiftly-static.s3.ap.cloud-object-storage.appdomain.cloud/shiftly-logo.png" alt="Shiftly Logo">
+          <img src="https://i.postimg.cc/2y9038sD/Shiftly-logo.png" alt="Shiftly Logo">
         </div>
         
         <div class="heading">Booking Confirmation</div>
         
         <div class="content">
-          Hello ${driver.fullName || "Driver"},
+          Hello ${
+            typeof driverEmail === "object"
+              ? driverEmail.fullName || "Driver"
+              : "Driver"
+          },
           <br><br>
           Your booking has been confirmed! Here are the details of the booking:
         </div>
@@ -360,16 +408,12 @@ async function sendDriverBookingConfirmationEmail(driver, booking) {
           
           <div class="details-row">
             <div class="details-label">Pickup Location:</div>
-            <div class="details-value">${
-              (booking.pickup && booking.pickup.address) || "Not specified"
-            }</div>
+            <div class="details-value">${formatAddress(booking.pickup)}</div>
           </div>
           
           <div class="details-row">
             <div class="details-label">Delivery Location:</div>
-            <div class="details-value">${
-              (booking.delivery && booking.delivery.address) || "Not specified"
-            }</div>
+            <div class="details-value">${formatAddress(booking.delivery)}</div>
           </div>
           
           <div class="details-row">
@@ -385,27 +429,32 @@ async function sendDriverBookingConfirmationEmail(driver, booking) {
           <div class="details-row">
             <div class="details-label">Customer Name:</div>
             <div class="details-value">${
-              booking.customer?.name || booking.userName || "Not available"
+              booking.customer?.name ||
+              booking.userName ||
+              booking.customerName ||
+              "Not available"
             }</div>
           </div>
           
           <div class="details-row">
             <div class="details-label">Customer Phone:</div>
             <div class="details-value">${
-              booking.customer?.phone || booking.userPhone || "Not available"
+              booking.customer?.phone ||
+              booking.userPhone ||
+              booking.customerPhone ||
+              "Not available"
             }</div>
           </div>
           
-          ${
-            booking.customer?.email
-              ? `
           <div class="details-row">
             <div class="details-label">Customer Email:</div>
-            <div class="details-value">${booking.customer.email}</div>
+            <div class="details-value">${
+              booking.customer?.email ||
+              booking.userEmail ||
+              booking.customerEmail ||
+              "Not available"
+            }</div>
           </div>
-          `
-              : ""
-          }
         </div>
         
         <div class="button-container">
@@ -432,7 +481,7 @@ async function sendDriverBookingConfirmationEmail(driver, booking) {
 
     // Send the email
     return await sendEmail({
-      to: driver.email,
+      to: email,
       subject: `Booking Confirmed: ${booking.bookingId}`,
       html: emailContent,
     });

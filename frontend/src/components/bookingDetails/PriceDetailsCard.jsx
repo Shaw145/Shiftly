@@ -4,6 +4,20 @@ const PriceDetailsCard = ({ booking }) => {
   // Helper function to safely get payment amount
   const safelyGetAmount = () => {
     try {
+      // First check for finalPrice (most reliable source)
+      if (booking.finalPrice && !isNaN(parseFloat(booking.finalPrice))) {
+        return parseFloat(booking.finalPrice);
+      }
+
+      // If we have a payment object with amount
+      if (
+        booking.payment &&
+        booking.payment.amount &&
+        !isNaN(parseFloat(booking.payment.amount))
+      ) {
+        return parseFloat(booking.payment.amount);
+      }
+
       // If we have a payment ID with an amount
       if (booking.paymentId) {
         // Handle case where paymentId is an object with amount
@@ -12,10 +26,9 @@ const PriceDetailsCard = ({ booking }) => {
           if (booking.paymentId.documents) {
             return 0; // Can't render MongoDB document object
           }
-          return booking.paymentId.amount || 0;
+          return parseFloat(booking.paymentId.amount) || 0;
         }
         // It might be a reference ID (string)
-        return 0;
       }
 
       // Try to get price from driver's bid
@@ -25,17 +38,31 @@ const PriceDetailsCard = ({ booking }) => {
           if (booking.driverId.documents) {
             return 0; // Can't render MongoDB document
           }
-          return booking.driverId.price || 0;
+          return parseFloat(booking.driverId.price) || 0;
         }
       }
 
-      // Try the finalPrice field
-      if (booking.finalPrice && typeof booking.finalPrice !== "object") {
-        return booking.finalPrice;
+      // Check for acceptedBid
+      if (booking.acceptedBid && booking.acceptedBid.amount) {
+        return parseFloat(booking.acceptedBid.amount);
+      }
+
+      // Check for driver bids with accepted status
+      if (booking.driverBids && Array.isArray(booking.driverBids)) {
+        const acceptedBid = booking.driverBids.find(
+          (bid) => bid.status === "accepted"
+        );
+        if (acceptedBid && acceptedBid.price) {
+          return parseFloat(acceptedBid.price);
+        }
       }
 
       // Default fallback price
-      return booking.price || 0;
+      if (booking.price && !isNaN(parseFloat(booking.price))) {
+        return parseFloat(booking.price);
+      }
+
+      return 0;
     } catch (error) {
       console.error("Error extracting price information", error);
       return 0;
@@ -110,9 +137,18 @@ const PriceDetailsCard = ({ booking }) => {
             Estimated Price Range: ₹{booking.estimatedPrice?.min || 0} - ₹
             {booking.estimatedPrice?.max || 0}
           </p>
-          <p className="text-xs text-blue-600 mt-1">
-            Final Price: ₹{totalPrice}
+          <p className="text-sm font-semibold text-blue-800 mt-1">
+            Final Price: ₹{totalPrice.toLocaleString("en-IN")}
           </p>
+          {booking.finalPrice ? (
+            <p className="text-xs text-blue-600 mt-1">
+              Payment completed. This is the final amount charged.
+            </p>
+          ) : (
+            <p className="text-xs text-blue-600 mt-1">
+              This is the confirmed price for your booking.
+            </p>
+          )}
         </div>
 
         {/* Price Breakdown */}

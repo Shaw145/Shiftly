@@ -82,6 +82,14 @@ const bookingSchema = new mongoose.Schema(
       min: Number,
       max: Number,
     },
+    finalPrice: {
+      type: Number,
+      default: 0,
+    },
+    price: {
+      type: Number,
+      default: 0,
+    },
     createdAt: {
       type: Date,
       default: Date.now,
@@ -90,9 +98,32 @@ const bookingSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "Payment",
     },
+    payment: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Payment",
+    },
     driverId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Driver",
+    },
+    assignedDriver: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Driver",
+    },
+    confirmedAt: {
+      type: Date,
+    },
+    pickupReachedAt: {
+      type: Date,
+    },
+    inTransitAt: {
+      type: Date,
+    },
+    deliveredAt: {
+      type: Date,
+    },
+    completedAt: {
+      type: Date,
     },
     driverBids: [
       {
