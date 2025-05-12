@@ -300,8 +300,8 @@ const ShipmentTracker = ({ booking }) => {
                   className={`w-1 h-full ${getConnectorStyle(index)} mt-2`}
                   style={{ height: "30px" }}
                 ></div>
-              )}
-            </div>
+                  )}
+                </div>
 
             {/* Step details */}
             <div className="flex-1">
@@ -322,9 +322,9 @@ const ShipmentTracker = ({ booking }) => {
                   </span>
                 </div>
               )}
+              </div>
             </div>
-          </div>
-        ))}
+          ))}
       </div>
     </div>
   );

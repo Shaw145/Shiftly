@@ -4,6 +4,15 @@ const PriceDetailsCard = ({ booking }) => {
   // Helper function to safely get payment amount
   const safelyGetAmount = () => {
     try {
+      // console.log("Booking price data:", {
+      //   finalPrice: booking.finalPrice,
+      //   payment: booking.payment,
+      //   price: booking.price,
+      //   driverId: booking.driverId,
+      //   acceptedBid: booking.acceptedBid,
+      //   driverBids: booking.driverBids,
+      // });
+
       // First check for finalPrice (most reliable source)
       if (booking.finalPrice && !isNaN(parseFloat(booking.finalPrice))) {
         return parseFloat(booking.finalPrice);
@@ -18,33 +27,33 @@ const PriceDetailsCard = ({ booking }) => {
         return parseFloat(booking.payment.amount);
       }
 
+      // Direct price property
+      if (booking.price && !isNaN(parseFloat(booking.price))) {
+        return parseFloat(booking.price);
+      }
+
       // If we have a payment ID with an amount
       if (booking.paymentId) {
         // Handle case where paymentId is an object with amount
-        if (typeof booking.paymentId === "object") {
-          // Check if it's a MongoDB document with documents field
-          if (booking.paymentId.documents) {
-            return 0; // Can't render MongoDB document object
-          }
-          return parseFloat(booking.paymentId.amount) || 0;
+        if (typeof booking.paymentId === "object" && booking.paymentId.amount) {
+          return parseFloat(booking.paymentId.amount);
         }
-        // It might be a reference ID (string)
       }
 
       // Try to get price from driver's bid
       if (booking.driverId) {
-        if (typeof booking.driverId === "object") {
-          // Handle MongoDB document
-          if (booking.driverId.documents) {
-            return 0; // Can't render MongoDB document
-          }
-          return parseFloat(booking.driverId.price) || 0;
+        if (typeof booking.driverId === "object" && booking.driverId.price) {
+          return parseFloat(booking.driverId.price);
         }
       }
 
       // Check for acceptedBid
       if (booking.acceptedBid && booking.acceptedBid.amount) {
         return parseFloat(booking.acceptedBid.amount);
+      }
+
+      if (booking.acceptedBid && booking.acceptedBid.price) {
+        return parseFloat(booking.acceptedBid.price);
       }
 
       // Check for driver bids with accepted status
@@ -57,9 +66,14 @@ const PriceDetailsCard = ({ booking }) => {
         }
       }
 
-      // Default fallback price
-      if (booking.price && !isNaN(parseFloat(booking.price))) {
-        return parseFloat(booking.price);
+      // If there's a driver assigned, assume the price is at least the min estimated price
+      if (
+        (booking.status === "confirmed" ||
+          booking.status === "inTransit" ||
+          booking.status === "completed") &&
+        booking.estimatedPrice?.min
+      ) {
+        return parseFloat(booking.estimatedPrice.min);
       }
 
       return 0;
@@ -69,9 +83,8 @@ const PriceDetailsCard = ({ booking }) => {
     }
   };
 
-  // Get the total price based on booking status
-  const totalPrice =
-    booking.status === "confirmed" ? safelyGetAmount() || 0 : 0;
+  // Get the total price for all non-pending bookings
+  const totalPrice = safelyGetAmount() || 0;
 
   // Only show price range for pending bookings
   if (booking.status === "pending") {
@@ -92,7 +105,12 @@ const PriceDetailsCard = ({ booking }) => {
   }
 
   // For confirmed bookings, show the price breakdown
-  if (booking.status === "confirmed") {
+  if (
+    booking.status === "confirmed" ||
+    booking.status === "inTransit" ||
+    booking.status === "in_transit" ||
+    booking.status === "completed"
+  ) {
     // Calculate GST and base amount
     const gstAmount = Math.round(totalPrice * 0.18);
     const baseAmount = Math.round(totalPrice - gstAmount);
@@ -159,7 +177,7 @@ const PriceDetailsCard = ({ booking }) => {
           </div>
           <div className="flex justify-between items-center">
             <span className="text-gray-600">
-              Distance Charge ({booking.distance} km)
+              Distance Charge ({booking.distance || "N/A"} km)
             </span>
             <span className="text-gray-900">₹{distanceCharge}</span>
           </div>

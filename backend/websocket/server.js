@@ -5,802 +5,361 @@ const User = require("../models/User");
 const Booking = require("../models/Booking");
 const Bid = require("../models/Bid");
 const mongoose = require("mongoose");
+const url = require("url");
+const logger = require("../utils/logger");
+const { v4: uuidv4 } = require("uuid");
 
 // Store active connections
 const clients = new Map();
 
+// Map to store subscription channels
+const channels = new Map();
+
+// WebSocket server instance
+let wss = null;
+
 // Initialize WebSocket server
-function initializeWebSocket(server) {
-  const wss = new WebSocket.Server({ server });
+const initializeWebSocket = (server) => {
+  if (wss !== null) {
+    logger.info("WebSocket server already initialized");
+    return wss;
+  }
 
-  wss.on("connection", async (ws, req) => {
-    try {
-      // Extract token from URL query parameters
-      let token;
-      let clientRole;
-      try {
-        // First try to construct a valid URL
-        const url = new URL(
-          req.url,
-          `http://${req.headers.host || "localhost"}`
-        );
-        token = url.searchParams.get("token");
-        // Get the role from query parameters (client will send it)
-        clientRole = url.searchParams.get("role");
-      } catch (urlError) {
-        // Fallback to manual parsing if URL construction fails
-        const queryString = req.url.split("?")[1] || "";
-        const params = new URLSearchParams(queryString);
-        token = params.get("token");
-        const clientRole = params.get("role");
-      }
+  logger.info("Initializing WebSocket server...");
 
+  // Create WebSocket server
+  wss = new WebSocket.Server({
+    server,
+    // Allow connections from any origin
+    verifyClient: (info, cb) => {
+      // Parse URL to get token
+      const url = new URL(info.req.url, "http://localhost:5000");
+      const token = url.searchParams.get("token");
+      const role = url.searchParams.get("role");
+
+      // If no token, allow as public user with limited access
       if (!token) {
-        ws.close(1008, "Authentication required");
-        return;
+        logger.info("Public WebSocket connection (no token)");
+        info.req.userType = "public";
+        info.req.authenticated = false;
+        return cb(true);
       }
 
-      // Verify token and get user/driver details
-      let decoded;
+      // Verify the token if provided
       try {
-        decoded = jwt.verify(token, process.env.JWT_SECRET);
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        info.req.userId = decoded.userId;
+        info.req.driverId = decoded.driverId;
+        info.req.adminId = decoded.adminId;
+        info.req.userType =
+          role ||
+          (decoded.userId ? "user" : decoded.driverId ? "driver" : "admin");
+        info.req.authenticated = true;
+        return cb(true);
+      } catch (err) {
+        logger.warn("Invalid token in WebSocket connection:", err.message);
+        info.req.authenticated = false;
+        info.req.userType = "public";
+        return cb(true); // Still allow connection but as public
+      }
+    },
+  });
 
-        // For driver tokens, they have driverId instead of id
-        if (decoded.driverId && !decoded.id) {
-          decoded.id = decoded.driverId;
-          decoded.role = "driver";
+  // Keep track of connected clients and channel subscriptions
+  const clients = new Map();
+  const channels = new Map();
+
+  // Connection handler
+  wss.on("connection", (ws, req) => {
+    // Generate client ID
+    const id = uuidv4();
+
+    // Extract user info from request
+    const userType = req.userType || "public";
+    const authenticated = req.authenticated || false;
+    const userId = req.userId;
+    const driverId = req.driverId;
+    const adminId = req.adminId;
+
+    // Store client info
+    clients.set(ws, {
+      id,
+      userType,
+      authenticated,
+      userId,
+      driverId,
+      adminId,
+      channels: new Set(),
+    });
+
+    logger.info(`WebSocket client connected: ${id} (${userType})`);
+
+    // Message handler
+    ws.on("message", (message) => {
+      try {
+        const data = JSON.parse(message);
+        logger.debug(`WebSocket message from ${id}:`, data);
+
+        // Handle different message types
+        switch (data.type) {
+          case "subscribe":
+            handleSubscribe(ws, data);
+            break;
+          case "unsubscribe":
+            handleUnsubscribe(ws, data);
+            break;
+          case "message":
+            handleClientMessage(ws, data);
+            break;
+          default:
+            logger.warn(`Unknown message type: ${data.type}`);
+            break;
         }
-      } catch (jwtError) {
-        ws.close(1008, "Invalid token");
-        return;
+      } catch (error) {
+        logger.error("Error processing WebSocket message:", error);
       }
+    });
 
-      let user;
+    // Close handler
+    ws.on("close", () => {
+      logger.info(`WebSocket client disconnected: ${id}`);
 
-      if (decoded.role === "driver") {
-        user = await Driver.findById(decoded.id).select(
-          "_id username isAvailable currentLocation"
-        );
-      } else {
-        // For regular customers - check userId or id
-        const userId = decoded.userId || decoded.id;
-        if (!userId) {
-          ws.close(1008, "Invalid token format");
-          return;
+      // Get client info
+      const client = clients.get(ws);
+      if (client) {
+        // Unsubscribe from all channels
+        for (const channel of client.channels) {
+          unsubscribeFromChannel(channel, ws);
         }
-
-        user = await User.findById(userId).select("_id username");
+        // Remove client from map
+        clients.delete(ws);
       }
+    });
 
-      if (!user) {
-        ws.close(1008, "User not found");
-        return;
-      }
-
-      // Store connection with user info
-      clients.set(user._id.toString(), {
-        ws,
-        role: decoded.role,
-        user: user._id,
-      });
-
-      // Send connection success message
+    // Send welcome message to client
       ws.send(
         JSON.stringify({
-          type: "connection_established",
-          message: "Successfully connected to WebSocket server",
-        })
-      );
-
-      // Handle incoming messages
-      ws.on("message", async (message) => {
-        try {
-          const data = JSON.parse(message);
-          handleWebSocketMessage(data, user, decoded.role);
-        } catch (error) {
-          ws.send(
-            JSON.stringify({
-              type: "error",
-              message: "Invalid message format",
-            })
-          );
-        }
-      });
-
-      // Handle connection close
-      ws.on("close", () => {
-        clients.delete(user._id.toString());
-      });
-    } catch (error) {
-      ws.close(1011, "Internal server error");
-    }
+        type: "welcome",
+        message: "Welcome to Shiftly WebSocket Server",
+        authenticated,
+        userType,
+      })
+    );
   });
 
+  logger.info("WebSocket server initialized successfully");
   return wss;
-}
+};
 
-// Handle different types of WebSocket messages
-async function handleWebSocketMessage(data, user, role) {
-  try {
-    const { type, payload, messageId } = data;
-    const client = clients.get(user._id.toString());
+// Handle subscribe messages
+const handleSubscribe = (ws, data) => {
+  const { channel } = data;
+  const client = clients.get(ws);
 
-    if (!client) {
-      return;
-    }
+  if (!channel || typeof channel !== "string") {
+    return sendError(ws, "Invalid channel format");
+  }
 
-    if (!type) {
-      client.ws.send(
-        JSON.stringify({
-          type: "error",
-          message: "Missing message type",
-        })
-      );
-      return;
-    }
+  // Public users can only subscribe to booking channels
+  if (
+    !client.authenticated &&
+    !channel.startsWith("booking:") &&
+    !channel.startsWith("public:")
+  ) {
+    return sendError(
+      ws,
+      "Unauthorized: public users can only subscribe to booking updates"
+    );
+  }
 
-    // Handle ping message for keeping connection alive
-    if (type === "ping") {
-      client.ws.send(
-        JSON.stringify({
-          type: "pong",
-          timestamp: Date.now(),
-        })
-      );
-      return;
-    }
+  // Check if client is already subscribed to this channel
+  if (client.channels.has(channel)) {
+    return sendSuccess(ws, "already_subscribed", { channel });
+  }
 
-    switch (type) {
-      case "place_bid":
-        if (role !== "driver") {
-          client.ws.send(
-            JSON.stringify({
-              type: "error",
-              message: "Only drivers can place bids",
-              messageId,
-            })
-          );
-          return;
-        }
+  subscribeToChannel(channel, ws);
+  sendSuccess(ws, "subscribed", { channel });
+};
 
-        // Process the bid and get the response
-        const bidResponse = await handleBidPlacement(payload, user);
+// Handle unsubscribe messages
+const handleUnsubscribe = (ws, data) => {
+  const { channel } = data;
 
-        // Always send a direct response back to the driver who placed the bid
-        client.ws.send(
-          JSON.stringify({
-            type: "bid_response",
-            status: bidResponse.success ? "success" : "error",
-            message: bidResponse.message,
-            bid: bidResponse.success ? bidResponse.bid : null,
-            messageId, // Echo back the messageId if provided
-          })
-        );
-        break;
+  if (!channel || typeof channel !== "string") {
+    return sendError(ws, "Invalid channel format");
+  }
 
-      case "accept_bid":
-        if (role !== "user") {
-          client.ws.send(
-            JSON.stringify({
-              type: "error",
-              message: "Only customers can accept bids",
-              messageId,
-            })
-          );
-          return;
-        }
-        await handleBidAcceptance(payload, user);
-        break;
+  unsubscribeFromChannel(channel, ws);
+  sendSuccess(ws, "unsubscribed", { channel });
+};
 
-      case "update_booking_status":
-        await handleBookingStatusUpdate(payload, user);
-        break;
+// Handle client message sending
+const handleClientMessage = (ws, data) => {
+  const { channel, message } = data;
+  const client = clients.get(ws);
 
-      default:
-        client.ws.send(
-          JSON.stringify({
-            type: "error",
-            message: "Unknown message type: " + type,
-            messageId,
-          })
-        );
-    }
-  } catch (error) {
-    console.error("Error handling WebSocket message:", error);
-    try {
-      const client = clients.get(user._id.toString());
-      if (client) {
-        client.ws.send(
-          JSON.stringify({
-            type: "error",
-            message: "Server error processing message",
-            details: error.message,
-            messageId: data?.messageId,
-          })
-        );
-      }
-    } catch (sendError) {
-      // Silent error handling
-      console.error("Error sending error response:", sendError);
+  if (!client.authenticated) {
+    return sendError(ws, "Unauthorized: authentication required");
+  }
+
+  if (!channel || typeof channel !== "string") {
+    return sendError(ws, "Invalid channel format");
+  }
+
+  if (!message) {
+    return sendError(ws, "Message is required");
+  }
+
+  // Check if client is subscribed to the channel
+  if (!client.channels.has(channel)) {
+    return sendError(ws, "Not subscribed to channel");
+  }
+
+  // Add sender info to message
+  const enrichedMessage = {
+    ...message,
+    type: message.type || "message",
+    sender: {
+      id: client.userId || client.driverId || client.adminId,
+      type: client.userType,
+    },
+    timestamp: new Date(),
+  };
+
+  // Broadcast to channel
+  broadcastToChannel(channel, enrichedMessage);
+};
+
+// Subscribe client to channel
+const subscribeToChannel = (channel, ws) => {
+  // Get client info
+  const client = clients.get(ws);
+  if (!client) return;
+
+  // Add channel to client's subscriptions
+  client.channels.add(channel);
+
+  // Add client to channel subscribers
+  if (!channels.has(channel)) {
+    channels.set(channel, new Set());
+  }
+  channels.get(channel).add(ws);
+
+  logger.info(`Client ${client.id} subscribed to channel ${channel}`);
+};
+
+// Unsubscribe client from channel
+const unsubscribeFromChannel = (channel, ws) => {
+  // Get client info
+  const client = clients.get(ws);
+  if (!client) return;
+
+  // Remove channel from client's subscriptions
+  client.channels.delete(channel);
+
+  // Remove client from channel subscribers
+  if (channels.has(channel)) {
+    channels.get(channel).delete(ws);
+    // Clean up empty channels
+    if (channels.get(channel).size === 0) {
+      channels.delete(channel);
     }
   }
-}
 
-// Store recent bids to prevent duplicate processing
-const recentBids = new Map();
+  logger.info(`Client ${client.id} unsubscribed from channel ${channel}`);
+};
 
-// Handle bid placement with improved validation
-async function handleBidPlacement(payload, driver) {
-  try {
-    const { bookingId, amount, note } = payload;
-
-    if (!bookingId || !amount) {
-      return {
-        success: false,
-        error: "Booking ID and amount are required",
-        message: "Booking ID and amount are required",
-      };
-    }
-
-    // Generate a unique key for this bid
-    const bidKey = `${driver._id.toString()}_${bookingId}_${amount}`;
-
-    // Check if we've recently processed this exact bid (debounce)
-    const recentBid = recentBids.get(bidKey);
-    if (recentBid && Date.now() - recentBid.timestamp < 5000) {
-      // Return the cached response if the bid was placed within the last 5 seconds
-      return recentBid.response;
-    }
-
-    // Find booking (using either MongoDB ID or custom ID)
-    let booking;
-    if (mongoose.Types.ObjectId.isValid(bookingId)) {
-      booking = await Booking.findById(bookingId);
-    } else {
-      booking = await Booking.findOne({ bookingId });
-    }
-
-    if (!booking) {
-      const response = {
-        success: false,
-        message: "Booking not found",
-      };
-
-      // Cache the response
-      recentBids.set(bidKey, {
-        timestamp: Date.now(),
-        response,
-      });
-
-      return response;
-    }
-
-    // Verify booking status allows bidding
-    if (booking.status !== "pending") {
-      const response = {
-        success: false,
-        message: "This booking is not available for bidding",
-      };
-
-      // Cache the response
-      recentBids.set(bidKey, {
-        timestamp: Date.now(),
-        response,
-      });
-
-      return response;
-    }
-
-    // Check if bidding is locked (24h before pickup)
-    const pickupDate = new Date(booking.schedule.date);
-    const now = new Date();
-    const hoursBeforePickup = (pickupDate - now) / (1000 * 60 * 60);
-
-    if (hoursBeforePickup < 24) {
-      const response = {
-        success: false,
-        message: "Bidding is locked 24 hours before pickup",
-      };
-
-      // Cache the response
-      recentBids.set(bidKey, {
-        timestamp: Date.now(),
-        response,
-      });
-
-      return response;
-    }
-
-    // Parse and validate amount
-    const bidAmount = Number(amount);
-    if (isNaN(bidAmount) || bidAmount <= 0) {
-      const response = {
-        success: false,
-        message: "Bid amount must be a positive number",
-      };
-
-      // Cache the response
-      recentBids.set(bidKey, {
-        timestamp: Date.now(),
-        response,
-      });
-
-      return response;
-    }
-
-    // Validate against price range
-    const minPrice = booking.estimatedPrice?.min || 0;
-    const maxPrice = booking.estimatedPrice?.max;
-
-    if (minPrice && bidAmount < minPrice) {
-      const response = {
-        success: false,
-        message: `Bid amount (₹${bidAmount}) is below the minimum estimated price (₹${minPrice})`,
-      };
-
-      // Cache the response
-      recentBids.set(bidKey, {
-        timestamp: Date.now(),
-        response,
-      });
-
-      return response;
-    }
-
-    if (maxPrice && bidAmount > maxPrice * 1.15) {
-      const response = {
-        success: false,
-        message: `Bid amount (₹${bidAmount}) is too high compared to the maximum estimated price`,
-      };
-
-      // Cache the response
-      recentBids.set(bidKey, {
-        timestamp: Date.now(),
-        response,
-      });
-
-      return response;
-    }
-
-    // Start database transaction
-    const session = await mongoose.startSession();
-    session.startTransaction();
-
-    try {
-      // Check if driver has already bid on this booking
-      const driverId = driver._id;
-      let isUpdate = false;
-
-      // Find existing bid in the new Bid model
-      let existingBid = await Bid.findOne({
-        booking: booking._id,
-        driver: driverId,
-      }).session(session);
-
-      // Place or update bid
-      let bid;
-      if (existingBid) {
-        // Update existing bid
-        isUpdate = true;
-        existingBid.amount = bidAmount;
-        existingBid.notes = note || existingBid.notes;
-        existingBid.status = "pending"; // Reset to pending if it was rejected
-        existingBid.isActive = true;
-        bid = await existingBid.save({ session });
-      } else {
-        // Create new bid
-        bid = await Bid.create(
-          [
-            {
-              booking: booking._id,
-              driver: driverId,
-              amount: bidAmount,
-              notes: note || "",
-            },
-          ],
-          { session }
-        );
-
-        bid = bid[0]; // Unwrap from array returned by create
-      }
-
-      // Add to booking.driverBids for backward compatibility
-      if (!booking.driverBids.includes(driverId)) {
-        booking.driverBids.push(driverId);
-        await booking.save({ session });
-      }
-
-      await session.commitTransaction();
-
-      // Fetch driver details to include with the notification
-      const driverDetails = await Driver.findById(driverId).select(
-        "fullName profileImage rating stats totalTrips vehicleDetails isVerified joinedDate experience"
-      );
-
-      // Create standardized driver information
-      const driverInfo = {
-        id: driverId.toString(),
-        driverId: driverId.toString(),
-        name: driverDetails?.fullName || driver.username || "Driver",
-        profilePhoto: driverDetails?.profileImage || null,
-        rating: parseFloat(driverDetails?.rating) || 4.5,
-        trips:
-          driverDetails?.stats?.totalTrips || driverDetails?.totalTrips || 0,
-        vehicle: driverDetails?.vehicleDetails?.basic?.make
-          ? `${driverDetails.vehicleDetails.basic.make} ${
-              driverDetails.vehicleDetails.basic.model || ""
-            }`
-          : "Transport Vehicle",
-        isVerified: driverDetails?.isVerified || false,
-        experience: driverDetails?.joinedDate
-          ? `Since ${new Date(driverDetails.joinedDate).getFullYear()}`
-          : "Experienced Driver",
-      };
-
-      // Create response for client
-      const bidDetails = {
-        id: bid._id,
-        driverId: driverId.toString(),
-        amount: bidAmount,
-        note: note || "",
-        status: "pending",
-        bidTime: bid.createdAt,
-        driverRating: driverInfo.rating,
-        isCurrentDriver: true,
-      };
-
-      const response = {
-        success: true,
-        message: isUpdate
-          ? "Bid updated successfully"
-          : "Bid placed successfully",
-        bid: bidDetails,
-      };
-
-      // Cache the response to prevent duplicate processing
-      recentBids.set(bidKey, {
-        timestamp: Date.now(),
-        response,
-        notified: false,
-      });
-
-      // Only notify user with bid if they're connected (avoid unnecessary broadcasts)
-      const userClient = Array.from(clients.values()).find(
-        (client) => client.role === "user" && client.user.equals(booking.userId)
-      );
-
-      if (userClient) {
-        userClient.ws.send(
-          JSON.stringify({
-            type: "new_bid",
-            payload: {
-              bookingId: booking._id.toString(),
-              bookingRefId: booking.bookingId,
-              bid: {
-                id: bid._id.toString(),
-                driverId: driverId.toString(),
-                amount: bidAmount,
-                note: note || "",
-                bidTime: new Date().toISOString(),
-                name: driverInfo.name,
-                driverName: driverInfo.name,
-                profilePhoto: driverInfo.profilePhoto,
-                rating: driverInfo.rating,
-                driverRating: driverInfo.rating,
-                trips: driverInfo.trips,
-                vehicle: driverInfo.vehicle,
-                isVerified: driverInfo.isVerified,
-              },
-            },
-          })
-        );
-
-        // Mark as notified
-        const cachedBid = recentBids.get(bidKey);
-        if (cachedBid) {
-          cachedBid.notified = true;
-        }
-      }
-
-      return response;
-    } catch (error) {
-      // Abort transaction on error
-      await session.abortTransaction();
-      throw error;
-    } finally {
-      // End session
-      await session.endSession();
-
-      // Clean up old entries from the recentBids map
-      const now = Date.now();
-      for (const [key, value] of recentBids.entries()) {
-        if (now - value.timestamp > 60000) {
-          // Remove entries older than 1 minute
-          recentBids.delete(key);
-        }
-      }
-    }
-  } catch (error) {
-    return {
-      success: false,
-      message: error.message || "Failed to place bid",
-    };
-  }
-}
-
-// Helper function for sending errors to drivers
-function sendErrorToDriver(driverId, message, messageId = null) {
-  const driverClient = clients.get(driverId.toString());
-  if (driverClient) {
-    driverClient.ws.send(
+// Send error message to client
+const sendError = (ws, message) => {
+  ws.send(
       JSON.stringify({
         type: "error",
-        message: message,
-        messageId: messageId,
-      })
-    );
-  }
-}
+      message,
+    })
+  );
+};
 
-// Handle bid acceptance
-async function handleBidAcceptance(payload, user) {
-  const { bookingId, driverId, bidAmount } = payload;
-
-  try {
-    // Use findByAnyId to support both MongoDB ObjectIds and custom booking IDs
-    const booking = await Booking.findByAnyId(bookingId);
-    if (!booking) {
-      throw new Error("Booking not found");
-    }
-
-    // Update booking status and selected driver
-    booking.status = "accepted";
-    booking.selectedDriver = driverId;
-    booking.finalPrice = bidAmount;
-    booking.acceptedAt = new Date();
-
-    await booking.save();
-
-    // Notify selected driver
-    const driverClient = clients.get(driverId.toString());
-    if (driverClient) {
-      driverClient.ws.send(
+// Send success message to client
+const sendSuccess = (ws, type, data) => {
+  ws.send(
         JSON.stringify({
-          type: "bid_accepted",
-          payload: {
-            bookingId,
-            bidAmount,
-          },
-        })
-      );
-    }
+      type,
+      ...data,
+    })
+  );
+};
 
-    // Notify other drivers who bid
-    booking.driverBids.forEach((bid) => {
-      if (bid.driverId.toString() !== driverId.toString()) {
-        const otherDriverClient = clients.get(bid.driverId.toString());
-        if (otherDriverClient) {
-          otherDriverClient.ws.send(
-            JSON.stringify({
-              type: "bid_rejected",
-              payload: {
-                bookingId,
-              },
-            })
-          );
-        }
-      }
-    });
+// Broadcast message to all clients in a channel
+const broadcastToChannel = (channel, message) => {
+  if (!channels.has(channel)) return;
 
-    // Send confirmation to customer
-    const customerClient = clients.get(user._id.toString());
-    customerClient.ws.send(
-      JSON.stringify({
-        type: "booking_confirmed",
-        payload: {
-          bookingId,
-          driverId,
-          bidAmount,
-        },
-      })
-    );
-  } catch (error) {
-    const customerClient = clients.get(user._id.toString());
-    customerClient.ws.send(
-      JSON.stringify({
-        type: "error",
-        message: error.message,
-      })
-    );
+  for (const client of channels.get(channel)) {
+    client.send(JSON.stringify(message));
   }
-}
 
-// Handle booking status updates
-async function handleBookingStatusUpdate(payload, user) {
-  const { bookingId, status, message } = payload;
+  logger.debug(`Broadcast to channel ${channel}: ${message.type}`);
+};
 
-  try {
-    // Use findByAnyId to support both MongoDB ObjectIds and custom booking IDs
-    const booking = await Booking.findByAnyId(bookingId);
-    if (!booking) {
-      throw new Error("Booking not found");
+// Broadcast to all authenticated clients
+const broadcastToAuthenticated = (message) => {
+  for (const [ws, client] of clients.entries()) {
+    if (client.authenticated) {
+      ws.send(JSON.stringify(message));
     }
-
-    booking.status = status;
-    if (message) {
-      booking.statusMessage = message;
-    }
-    await booking.save();
-
-    // Notify both customer and driver
-    const customerClient = clients.get(booking.userId.toString());
-    if (customerClient) {
-      customerClient.ws.send(
-        JSON.stringify({
-          type: "booking_status_updated",
-          payload: {
-            bookingId,
-            status,
-            message,
-          },
-        })
-      );
-    }
-
-    if (booking.selectedDriver) {
-      const driverClient = clients.get(booking.selectedDriver.toString());
-      if (driverClient) {
-        driverClient.ws.send(
-          JSON.stringify({
-            type: "booking_status_updated",
-            payload: {
-              bookingId,
-              status,
-              message,
-            },
-          })
-        );
-      }
-    }
-  } catch (error) {
-    const senderClient = clients.get(user._id.toString());
-    senderClient.ws.send(
-      JSON.stringify({
-        type: "error",
-        message: error.message,
-      })
-    );
   }
-}
 
-// Broadcast message to all connected clients
-function broadcast(message, filter = null) {
-  clients.forEach((client) => {
-    if (!filter || filter(client)) {
-      client.ws.send(JSON.stringify(message));
-    }
-  });
-}
+  logger.debug(`Broadcast to all authenticated clients: ${message.type}`);
+};
 
-// Function to broadcast driver updates to all users
-async function broadcastDriverUpdate(driverId) {
-  try {
-    // Return early if the driver ID is not valid
-    if (!driverId || !mongoose.Types.ObjectId.isValid(driverId)) {
-      return;
-    }
-
-    // Check if we have active user clients before proceeding
-    let hasUserClients = false;
-    for (const client of clients.values()) {
-      if (client.role === "user") {
-        hasUserClients = true;
-        break;
-      }
-    }
-
-    // If no users are connected, skip the broadcast completely
-    if (!hasUserClients) {
-      return;
-    }
-
-    // Fetch the driver data
-    const driver = await Driver.findById(driverId);
-    if (!driver) return;
-
-    // Create public driver info
-    const publicDriverInfo = {
-      driverId: driver._id.toString(),
-      fullName: driver.fullName,
-      profileImage: driver.profileImage,
-      rating: parseFloat(driver.rating) || 4.5,
-      stats: {
-        totalTrips: driver.stats?.totalTrips || driver.totalTrips || 0,
-      },
-      experience: driver.joinedDate
-        ? `Since ${new Date(driver.joinedDate).getFullYear()}`
-        : "Experienced Driver",
-      vehicleDetails: driver.vehicleDetails
-        ? {
-            type: driver.vehicleDetails.basic?.type || "Transport Vehicle",
-            make: driver.vehicleDetails.basic?.make || null,
-            model: driver.vehicleDetails.basic?.model || null,
-            year: driver.vehicleDetails.basic?.year || null,
-            color: driver.vehicleDetails.basic?.color || null,
-            loadCapacity:
-              driver.vehicleDetails.specifications?.loadCapacity || null,
-          }
-        : null,
-      isVerified: driver.isVerified,
-    };
-
-    // Only broadcast to user clients
-    for (const client of clients.values()) {
-      if (client.role === "user") {
-        try {
-          client.ws.send(
-            JSON.stringify({
-              type: "driver_updated",
-              payload: {
-                driverId: driver._id.toString(),
-                driver: publicDriverInfo,
-              },
-            })
-          );
-        } catch (error) {
-          // Silently handle any send errors
-        }
-      }
-    }
-  } catch (error) {
-    // Don't log the broadcast error to prevent console spam
+// Broadcast to all clients
+const broadcast = (message) => {
+  for (const ws of clients.keys()) {
+    ws.send(JSON.stringify(message));
   }
-}
 
-// Function to broadcast booking updates to specific users
-async function broadcastBookingUpdate(userId, bookingId, message) {
-  // Make sure bookingId is a string
-  bookingId = bookingId.toString();
+  logger.debug(`Broadcast to all clients: ${message.type}`);
+};
 
-  try {
-    // Find the user's WebSocket connection
-    const userClient = clients.get(userId.toString());
+// Broadcast booking updates
+const broadcastBookingUpdate = (bookingId, type, data) => {
+  // Format the message
+  const message = {
+    type,
+    ...data,
+    bookingId,
+    timestamp: new Date(),
+  };
 
-    // If user is connected, send them the update
-    if (userClient) {
-      console.log(
-        `Broadcasting booking update to user ${userId} for booking ${bookingId}`
-      );
-      userClient.ws.send(JSON.stringify(message));
-    } else {
-      console.log(
-        `User ${userId} not connected, cannot broadcast booking update`
-      );
-    }
+  // Send to booking-specific channel
+  broadcastToChannel(`booking:${bookingId}`, message);
 
-    // Also broadcast to any admins that might be monitoring
-    clients.forEach((client, clientId) => {
-      if (client.role === "admin") {
-        console.log(`Broadcasting booking update to admin ${clientId}`);
-        client.ws.send(
-          JSON.stringify({
-            ...message,
-            admin: true, // Add a flag to indicate this is an admin notification
-          })
-        );
-      }
-    });
-
-    return true;
-  } catch (error) {
-    console.error(`Error broadcasting booking update: ${error.message}`);
-    return false;
+  // If user ID is provided, also send to user's channel
+  if (data.userId) {
+    broadcastToChannel(`user:${data.userId}`, message);
   }
-}
+
+  // If driver ID is provided, also send to driver's channel
+  if (data.driverId) {
+    broadcastToChannel(`driver:${data.driverId}`, message);
+  }
+
+  // Always send to admins
+  broadcastToChannel("admins", message);
+
+  logger.info(`Booking update (${type}) broadcast for booking ${bookingId}`);
+  return true;
+};
+
+// Get WebSocket server instance
+const getWebSocketServer = () => {
+  return wss;
+};
 
 module.exports = {
   initializeWebSocket,
+  getWebSocketServer,
+  broadcastToChannel,
+  broadcastToAuthenticated,
   broadcast,
-  broadcastDriverUpdate,
   broadcastBookingUpdate,
 };

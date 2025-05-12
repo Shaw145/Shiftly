@@ -90,7 +90,14 @@ const getDriverBookings = async (req, res) => {
     const bookings = await Booking.find({
       $or: [{ driverId: driverId }, { assignedDriver: driverId }],
       status: {
-        $in: ["confirmed", "pickup_reached", "in_transit", "delivered"],
+        $in: [
+          "confirmed",
+          "pickup_reached",
+          "in_transit",
+          "inTransit",
+          "delivered",
+          "completed",
+        ],
       },
     }).sort({ confirmedAt: -1 }); // Sort by most recently confirmed first
 
@@ -261,7 +268,8 @@ const updateBookingStatus = async (req, res) => {
     if (
       (status === "pickup_reached" && booking.status !== "confirmed") ||
       ((status === "inTransit" || status === "in_transit") &&
-        booking.status !== "confirmed") ||
+        booking.status !== "confirmed" &&
+        booking.status !== "pickup_reached") ||
       (status === "completed" &&
         booking.status !== "inTransit" &&
         booking.status !== "in_transit")

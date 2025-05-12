@@ -24,7 +24,7 @@ import ConfirmedBookingDetails from "./pages/ConfirmedBookingDetails";
 import HowItWorks from "./pages/HowItWorks";
 import RatingsAndFeedback from "./pages/RatingsAndFeedback";
 import EarningsAndPayment from "./pages/EarningsAndPayment";
-
+import TrackingPage from "./pages/TrackingPage";
 
 function App() {
   return (
@@ -153,7 +153,14 @@ function App() {
                   </PublicRoute>
                 }
               />
-              
+              <Route
+                path="/tracking/:bookingId"
+                element={
+                  <PublicRoute protected={true}>
+                    <TrackingPage />
+                  </PublicRoute>
+                }
+              />
 
               {/* 404 Route - Must be last */}
               <Route path="*" element={<NotFound />} />

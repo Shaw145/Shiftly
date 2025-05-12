@@ -8,7 +8,7 @@ import HaveAQuestion from "../components/HaveAQuestion";
 import Chatbot from "../components/Chatbot";
 import GoToTop from "../components/GoToTop";
 import PreLoader from "../components/PreLoader";
-import CalculatePrice from "../components/CalculatePrice";
+import TrackBooking from "../components/TrackBooking";
 
 export default function Home() {
   const [isChatOpen, setIsChatOpen] = useState(false);
@@ -27,7 +27,7 @@ export default function Home() {
       <PreLoader />
       <Hero />
       <Services />
-      <CalculatePrice />
+      <TrackBooking />
       <WhyChooseUs />
       <CustomerReviews />
       <HaveAQuestion />

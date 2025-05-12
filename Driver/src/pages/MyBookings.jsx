@@ -57,12 +57,15 @@ const MyBookings = () => {
   useEffect(() => {
     const fetchBookings = async () => {
       setLoading(true);
-      try {
-        const driverToken = localStorage.getItem("driverToken");
+      setError(null);
 
-        if (!driverToken) {
-          toast.error("Authentication required. Please login again.");
-          navigate("/login");
+      try {
+        const token = localStorage.getItem("driverToken");
+        if (!token) {
+          console.error("No driver token found in localStorage");
+          setError("Authentication required. Please log in.");
+          toast.error("Authentication required. Please log in.");
+          setLoading(false);
           return;
         }
 
@@ -70,33 +73,37 @@ const MyBookings = () => {
           `${import.meta.env.VITE_BACKEND_URL}/api/driver/bookings`,
           {
             headers: {
-              Authorization: `Bearer ${driverToken}`,
+              Authorization: `Bearer ${token}`,
             },
           }
         );
 
-        // Handle API errors
-        if (!response.ok) {
-          // Try to get error message from response
-          const errorData = await response.json().catch(() => ({}));
-          throw new Error(errorData.message || "Failed to fetch bookings");
-        }
-
         const data = await response.json();
 
+        if (!response.ok) {
+          throw new Error(data.message || "Failed to fetch bookings");
+        }
+
         if (data.success && Array.isArray(data.bookings)) {
-          setBookings(data.bookings);
+          // Normalize booking data and status fields
+          const normalizedBookings = data.bookings.map((booking) => {
+            // Normalize status to handle both formats
+            if (booking.status === "in_transit") {
+              booking.status = "inTransit";
+            }
+            return booking;
+          });
+
+          setBookings(normalizedBookings);
+          console.log(`Loaded ${normalizedBookings.length} bookings`);
         } else {
-          // If no bookings are returned or format is unexpected, show empty state
-          console.log("No bookings returned from API");
           setBookings([]);
+          console.log("No bookings found or unexpected response format");
         }
       } catch (error) {
         console.error("Error fetching bookings:", error);
-        setError(error.message || "Failed to load bookings");
-        // Don't use demo data, show empty state instead
-        setBookings([]);
-        toast.error("Failed to fetch bookings from server");
+        setError("Failed to fetch bookings. Please try again.");
+        toast.error("Failed to fetch bookings. Please try again.");
       } finally {
         setLoading(false);
       }
@@ -127,14 +134,27 @@ const MyBookings = () => {
         (booking) =>
           booking.status === "confirmed" ||
           booking.status === "pickup_reached" ||
-          booking.status === "in_transit"
+          booking.status === "in_transit" ||
+          booking.status === "inTransit"
       );
     }
 
     if (activeFilter === "completed") {
-      return bookings.filter((booking) => booking.status === "delivered");
+      return bookings.filter(
+        (booking) =>
+          booking.status === "delivered" || booking.status === "completed"
+      );
     }
 
+    // For specific status filters, handle both formats
+    if (activeFilter === "in_transit") {
+      return bookings.filter(
+        (booking) =>
+          booking.status === "in_transit" || booking.status === "inTransit"
+      );
+    }
+
+    // For other filters, match the exact status
     return bookings.filter((booking) => booking.status === activeFilter);
   };
 
@@ -156,7 +176,17 @@ const MyBookings = () => {
         color: "bg-purple-100 text-purple-700",
         label: "In Transit",
       },
+      inTransit: {
+        icon: FaTruck,
+        color: "bg-purple-100 text-purple-700",
+        label: "In Transit",
+      },
       delivered: {
+        icon: FaBoxOpen,
+        color: "bg-teal-100 text-teal-700",
+        label: "Delivered",
+      },
+      completed: {
         icon: FaBoxOpen,
         color: "bg-teal-100 text-teal-700",
         label: "Delivered",
@@ -173,7 +203,12 @@ const MyBookings = () => {
       },
     };
 
-    const config = statusConfig[status] || statusConfig.pending;
+    // Handle both status formats
+    const normalizedStatus = status === "inTransit" ? "in_transit" : status;
+    const config =
+      statusConfig[status] ||
+      statusConfig[normalizedStatus] ||
+      statusConfig.pending;
     const Icon = config.icon;
 
     return (
@@ -258,6 +293,8 @@ const MyBookings = () => {
 
   // Navigate to booking details
   const handleViewDetails = (bookingId) => {
+    // Use the same confirmed-bookings route for all booking statuses (confirmed, inTransit, completed)
+    // This ensures all bookings will show up regardless of their status
     navigate(`/confirmed-bookings/${bookingId}`);
   };
 

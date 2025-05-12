@@ -5,6 +5,7 @@ import CancelConfirmationModal from "../components/myBookings/CancelConfirmation
 import DriverConfirmationModal from "../components/myBookings/DriverConfirmationModal";
 //import { format, differenceInHours } from "date-fns";
 import ShipmentTracker from "../components/tracking/ShipmentTracker";
+import ShareTrackingLinkButton from "../components/tracking/ShareTrackingLinkButton";
 //import LiveTrackingButton from "../components/tracking/LiveTrackingButton";
 import Header from "../components/bookingDetails/Header";
 import PendingBookingSection from "../components/bookingDetails/PendingBookingSection";
@@ -665,12 +666,29 @@ const BookingDetailPage = () => {
           booking.status === "in_transit" ||
           booking.status === "completed" ||
           booking.status === "delivered") && (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2">
-              <ShipmentTracker booking={booking} />
+          <>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+              <div className="lg:col-span-2">
+                <ShipmentTracker booking={booking} />
+              </div>
+              <div className="lg:col-span-1">
+                <DriverDetailsCard booking={booking} />
+              </div>
             </div>
-            <DriverDetailsCard booking={booking} />
-          </div>
+
+            <div className="bg-white rounded-xl shadow-md p-6 mb-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-3">
+                Share Tracking
+              </h3>
+              <p className="text-sm text-gray-600 mb-3">
+                Share this link with anyone who needs to track this shipment in
+                real-time
+              </p>
+              <div className="flex justify-center lg:justify-start">
+                <ShareTrackingLinkButton bookingId={booking.bookingId} />
+              </div>
+            </div>
+          </>
         )}
 
         {/* Pending Booking Section */}

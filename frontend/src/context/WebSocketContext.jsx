@@ -62,21 +62,41 @@ export const WebSocketProvider = ({ children }) => {
     }
 
     try {
-      // Create WebSocket URL with token
-      const wsUrl = `${
-        import.meta.env.VITE_WS_URL || "ws://localhost:5000"
-      }?token=${token}&role=user`;
+      // Create WebSocket URL with token, handling secure protocol properly
+      const appProtocol = window.location.protocol;
+      const wsProtocol = appProtocol === "https:" ? "wss" : "ws";
+      const backendUrl =
+        import.meta.env.VITE_BACKEND_URL || "http://localhost:5000";
+      const backendHost = backendUrl.replace(/^https?:\/\//, "");
 
-      // console.log("Connecting to WebSocket:", wsUrl);
+      const wsUrl = `${wsProtocol}://${backendHost}/?token=${token}&role=user`;
+
+      console.log("Connecting to WebSocket:", wsUrl);
 
       // Create a new WebSocket instance with proper error handling
       const socket = new WebSocket(wsUrl);
+      socketRef.current = socket;
 
       // Set a timeout to ensure the socket doesn't hang in connecting state
       const connectionTimeout = setTimeout(() => {
-        if (socket.readyState !== WebSocket.OPEN) {
-          console.error("WebSocket connection timeout");
+        if (socket && socket.readyState !== WebSocket.OPEN) {
+          console.log("WebSocket connection timeout");
           socket.close();
+          socketRef.current = null;
+          setIsConnected(false);
+
+          // Attempt to reconnect if appropriate
+          if (
+            shouldReconnect &&
+            reconnectAttemptsRef.current < maxReconnectAttempts
+          ) {
+            reconnectAttemptsRef.current++;
+            setIsReconnecting(true);
+
+            setTimeout(() => {
+              connect();
+            }, reconnectInterval);
+          }
         }
       }, 5000);
 
@@ -88,20 +108,32 @@ export const WebSocketProvider = ({ children }) => {
         setConnectionError(null);
         setIsReconnecting(false);
         reconnectAttemptsRef.current = 0;
+
+        // Send initial subscription message
+        try {
+          socket.send(
+            JSON.stringify({
+              type: "hello",
+              userType: "user",
+            })
+          );
+        } catch (err) {
+          console.error("Error sending initial message:", err);
+        }
       });
 
       // Connection closed
       socket.addEventListener("close", (event) => {
-        // console.log("WebSocket connection closed:", event);
+        console.log("WebSocket connection closed:", event);
         setIsConnected(false);
         socketRef.current = null;
 
         // Stop reconnect attempts for specific close codes
         if (event.code === 1008) {
           // Authentication error
-          // console.log(
-          //   `Authentication error: ${event.reason}. Stopping reconnection attempts.`
-          // );
+          console.log(
+            `Authentication error: ${event.reason}. Stopping reconnection attempts.`
+          );
           setShouldReconnect(false);
           setConnectionError(`Connection error: ${event.reason}`);
           return;
@@ -116,20 +148,18 @@ export const WebSocketProvider = ({ children }) => {
             reconnectInterval *
             Math.pow(reconnectBackoffFactor, reconnectAttemptsRef.current);
 
-          // console.log(
-          //   `Reconnecting in ${delay}ms (attempt ${
-          //     reconnectAttemptsRef.current + 1
-          //   }/${maxReconnectAttempts})`
-          // );
+          console.log(
+            `Reconnecting in ${delay}ms (attempt ${
+              reconnectAttemptsRef.current + 1
+            }/${maxReconnectAttempts})`
+          );
 
           setIsReconnecting(true);
-          const timeoutId = setTimeout(() => {
-            reconnectAttemptsRef.current++;
+          reconnectAttemptsRef.current++;
+
+          setTimeout(() => {
             connect();
           }, delay);
-
-          // Store timeout ID for cleanup
-          return () => clearTimeout(timeoutId);
         } else if (reconnectAttemptsRef.current >= maxReconnectAttempts) {
           setConnectionError("Maximum reconnection attempts reached");
           setIsReconnecting(false);
@@ -144,6 +174,8 @@ export const WebSocketProvider = ({ children }) => {
       socket.addEventListener("error", (error) => {
         console.error("WebSocket error:", error);
         setConnectionError("Connection error");
+
+        // We don't close here because the close event will fire anyway
       });
 
       // Message received
@@ -281,14 +313,12 @@ export const WebSocketProvider = ({ children }) => {
           console.error("Error parsing WebSocket message:", error);
         }
       });
-
-      socketRef.current = socket;
     } catch (error) {
-      console.error("Error creating WebSocket:", error);
-      setConnectionError("Failed to create WebSocket connection");
-      setIsConnected(false);
+      console.error("Error initializing WebSocket connection:", error);
+      setConnectionError(`Connection initialization error: ${error.message}`);
+      socketRef.current = null;
 
-      // Attempt to reconnect
+      // Try again later if appropriate
       if (
         shouldReconnect &&
         reconnectAttemptsRef.current < maxReconnectAttempts
@@ -296,14 +326,21 @@ export const WebSocketProvider = ({ children }) => {
         const delay =
           reconnectInterval *
           Math.pow(reconnectBackoffFactor, reconnectAttemptsRef.current);
+
+        reconnectAttemptsRef.current++;
         setIsReconnecting(true);
+
         setTimeout(() => {
-          reconnectAttemptsRef.current++;
           connect();
         }, delay);
       }
     }
-  }, [shouldReconnect]);
+  }, [
+    shouldReconnect,
+    maxReconnectAttempts,
+    reconnectInterval,
+    reconnectBackoffFactor,
+  ]);
 
   /**
    * Disconnect from WebSocket server

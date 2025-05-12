@@ -23,6 +23,7 @@ import Payment from "./pages/Payment";
 import ConditionalRoute from "./components/ConditionalRoute";
 import { isDashboardPath } from "./utils/routeUtils";
 import TrackingPage from "./pages/TrackingPage";
+import CustomerTrackingPage from "./pages/CustomerTrackingPage";
 import ProfilePage from "./pages/ProfilePage";
 import { ProfileProvider } from "./context/ProfileContext";
 import Settings from "./pages/Settings";
@@ -71,7 +72,8 @@ const AppWrapper = () => {
         <Route path="/terms-and-conditions" element={<TermsandConditions />} />
         <Route path="/privacy-policy" element={<PrivacyPolicy />} />
         <Route path="/faqs" element={<FAQsPage />} />
-        
+        <Route path="/tracking/:bookingId" element={<TrackingPage />} />
+
         <Route
           path="/login"
           element={
@@ -144,8 +146,8 @@ const AppWrapper = () => {
             path="/my-bookings/:bookingId"
             element={<BookingDetailPage />}
           />
+          <Route path="/track/:bookingId" element={<CustomerTrackingPage />} />
           <Route path="/payment/:bookingId" element={<Payment />} />
-          <Route path="/track/:bookingId" element={<TrackingPage />} />
           <Route path="/user/:username" element={<ProfilePage />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/notifications" element={<NotificationsPage />} />

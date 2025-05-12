@@ -133,7 +133,7 @@ exports.verifyPayment = async (req, res) => {
     // Find the matched driver's bid with improved matching
     let matchedBid = null;
 
-    if (booking.driverBids && booking.driverBids.length > 0) {
+      if (booking.driverBids && booking.driverBids.length > 0) {
       // First try to find an exact match
       matchedBid = booking.driverBids.find((bid) => {
         if (typeof bid.driver === "string") {
@@ -294,16 +294,16 @@ exports.verifyPayment = async (req, res) => {
       }
 
       return res.status(200).json({
-        success: true,
+      success: true,
         message: "Payment verified successfully",
-        booking: {
+      booking: {
           _id: updatedBooking._id,
           bookingId: updatedBooking.bookingId,
           status: updatedBooking.status,
           assignedDriver: updatedBooking.assignedDriver,
           finalPrice: updatedBooking.finalPrice, // Include the final price in the response
-        },
-      });
+      },
+    });
     } catch (validationError) {
       console.error("Payment validation error:", validationError);
       return res.status(500).json({

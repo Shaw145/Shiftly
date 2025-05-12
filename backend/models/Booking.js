@@ -159,6 +159,16 @@ const bookingSchema = new mongoose.Schema(
         message: String,
       },
     ],
+    lastDriverLocation: {
+      coordinates: {
+        type: [Number], // [longitude, latitude]
+        index: "2dsphere",
+      },
+      updatedAt: {
+        type: Date,
+        default: Date.now,
+      },
+    },
   },
   {
     timestamps: true,

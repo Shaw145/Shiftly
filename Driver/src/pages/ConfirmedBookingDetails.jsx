@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import DashboardLayout from "../components/DashboardLayout";
 import {
   FaMapMarkerAlt,
@@ -70,6 +70,17 @@ const ConfirmedBookingDetails = () => {
           console.log("Found accepted bid:", acceptedBid);
         }
       }
+    }
+  }, [booking]);
+
+  useEffect(() => {
+    if (!booking) return;
+
+    // Normalize status to handle both in_transit and inTransit formats
+    if (booking.status === "in_transit") {
+      setShipmentStatus("inTransit");
+    } else {
+      setShipmentStatus(booking.status);
     }
   }, [booking]);
 
@@ -312,6 +323,7 @@ const ConfirmedBookingDetails = () => {
     const statusFlow = {
       confirmed: "inTransit",
       inTransit: "completed",
+      in_transit: "completed", // Add support for in_transit format
     };
 
     return statusFlow[shipmentStatus] || null;
@@ -1103,7 +1115,7 @@ const ConfirmedBookingDetails = () => {
                       <button
                         onClick={() => updateBookingStatus(getNextStatus())}
                         disabled={updateLoading}
-                        className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg flex items-center gap-2 disabled:bg-gray-300 disabled:text-gray-500"
+                        className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg flex items-center gap-2 disabled:bg-gray-300 disabled:text-gray-500 cursor-pointer"
                       >
                         {updateLoading ? (
                           <>
@@ -1168,11 +1180,27 @@ const ConfirmedBookingDetails = () => {
                   Sharing
                 </h2>
 
-                {shipmentStatus === "inTransit" ? (
-                  <div className="bg-gray-50 rounded-lg p-4 border border-gray-100">
-                    <LiveLocationSharing bookingId={bookingId} />
+                {booking.status === "inTransit" ? (
+                  <div className="space-y-4">
+                    <div className="bg-gray-50 rounded-lg p-4 border border-gray-100 text-center">
+                      <p className="text-gray-700 mb-4">
+                        You are currently in transit. Use the tracking map to
+                        view and share your live location with the customer.
+                      </p>
+
+                      {/* Add tracking page link */}
+                      <div className="mt-3 flex justify-center">
+                        <Link
+                          to={`/tracking/${booking._id}`}
+                          className="px-5 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg flex items-center gap-2 cursor-pointer transition-colors"
+                        >
+                          <FaMapMarkedAlt />
+                          Open Tracking Map
+                        </Link>
+                      </div>
+                    </div>
                   </div>
-                ) : shipmentStatus === "completed" ? (
+                ) : booking.status === "completed" ? (
                   <div className="bg-gray-50 rounded-lg p-4 border border-gray-100 flex flex-col items-center justify-center py-6">
                     <FaCheckCircle className="text-green-500 text-3xl mb-3" />
                     <p className="text-gray-700">Delivery completed</p>

@@ -716,7 +716,7 @@ const DriverDetailsCard = ({ booking }) => {
             </div>
 
             {/* Live tracking button - moved up */}
-            <div className="mt-auto">
+            <div className="mt-auto space-y-2 pb-5">
               <LiveTrackingButton bookingId={booking.bookingId} />
             </div>
           </div>

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import {
   FaSpinner,
   FaInfoCircle,
@@ -7,23 +7,30 @@ import {
   FaTruck,
   FaRegClock,
   FaMapMarkerAlt,
-  FaStar,
   FaBoxOpen,
   FaCalendarAlt,
   FaShareAlt,
   FaChevronLeft,
   FaCopy,
   FaUserCircle,
+  FaShieldAlt,
+  FaStar,
+  FaHistory,
+  FaPhone,
+  FaEnvelope,
 } from "react-icons/fa";
-import Navbar from "../components/Navbar";
-import Footer from "../components/Footer";
 import ShipmentTracker from "../components/tracking/ShipmentTracker";
 import LiveTrackingMap from "../components/tracking/LiveTrackingMap";
 import BookingStatusBadge from "../components/myBookings/BookingStatusBadge";
 import { toast } from "react-hot-toast";
 
-const TrackingPage = () => {
+/**
+ * CustomerTrackingPage - Authenticated tracking page for customers
+ * Appears within the dashboard layout
+ */
+const CustomerTrackingPage = () => {
   const { bookingId } = useParams();
+  const navigate = useNavigate();
 
   // State variables
   const [booking, setBooking] = useState(null);
@@ -47,15 +54,234 @@ const TrackingPage = () => {
     window.scrollTo(0, 0);
   }, []);
 
-  // Fetch booking details
+  // Helper function to safely get driver ID from booking
+  const getDriverId = (bookingData) => {
+    if (!bookingData) return null;
+
+    // Check different possible fields for driver ID
+    if (bookingData.driverId) {
+      return typeof bookingData.driverId === "object"
+        ? bookingData.driverId._id || bookingData.driverId.id
+        : bookingData.driverId;
+    }
+
+    if (bookingData.assignedDriver) {
+      return typeof bookingData.assignedDriver === "object"
+        ? bookingData.assignedDriver._id || bookingData.assignedDriver.id
+        : bookingData.assignedDriver;
+    }
+
+    if (bookingData.driver) {
+      return typeof bookingData.driver === "object"
+        ? bookingData.driver._id || bookingData.driver.id
+        : bookingData.driver;
+    }
+
+    if (bookingData.selectedDriver) {
+      return typeof bookingData.selectedDriver === "object"
+        ? bookingData.selectedDriver._id || bookingData.selectedDriver.id
+        : bookingData.selectedDriver;
+    }
+
+    return null;
+  };
+
+  // Fetch driver details
+  const fetchDriverDetails = async (bookingData) => {
+    if (!bookingData) return;
+
+    // Debug logging
+    console.log(
+      "CustomerTrackingPage: Current booking status:",
+      bookingData.status
+    );
+    console.log("CustomerTrackingPage: Booking data:", bookingData);
+
+    // Check if status is post-confirmation
+    const postConfirmationStatuses = [
+      "confirmed",
+      "inTransit",
+      "in_transit",
+      "completed",
+      "delivered",
+    ];
+
+    if (!postConfirmationStatuses.includes(bookingData.status)) {
+      console.log(
+        "CustomerTrackingPage: Status not in post-confirmation list, skipping fetch"
+      );
+      return;
+    }
+
+    // Try to use driver details directly from booking if available
+    if (bookingData.driverId && typeof bookingData.driverId === "object") {
+      console.log(
+        "CustomerTrackingPage: Using driver details directly from booking.driverId",
+        bookingData.driverId
+      );
+      setDriver({
+        ...bookingData.driverId,
+        phone:
+          bookingData.driverId.phone ||
+          bookingData.driverId.contactNumber ||
+          "Contact support for driver's phone",
+        email:
+          bookingData.driverId.email || "Contact support for driver's email",
+      });
+      return;
+    }
+
+    if (bookingData.driver && typeof bookingData.driver === "object") {
+      console.log(
+        "CustomerTrackingPage: Using driver details directly from booking.driver",
+        bookingData.driver
+      );
+      setDriver({
+        ...bookingData.driver,
+        phone:
+          bookingData.driver.phone ||
+          bookingData.driver.contactNumber ||
+          "Contact support for driver's phone",
+        email: bookingData.driver.email || "Contact support for driver's email",
+      });
+      return;
+    }
+
+    // Get driver ID from booking
+    const driverId = getDriverId(bookingData);
+    if (!driverId) {
+      console.log(
+        "CustomerTrackingPage: No driver ID found in booking",
+        bookingData
+      );
+      return;
+    }
+
+    console.log(
+      "CustomerTrackingPage: Fetching driver details for ID:",
+      driverId
+    );
+
+    try {
+      const token = localStorage.getItem("token");
+      // Try the contact endpoint first which includes email and phone
+      const response = await fetch(
+        `${import.meta.env.VITE_BACKEND_URL}/api/drivers/${driverId}/contact`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (!response.ok) {
+        console.log(
+          `Contact endpoint failed with status ${response.status}, falling back to public endpoint`
+        );
+
+        // Fall back to public endpoint if contact endpoint fails
+        const publicResponse = await fetch(
+          `${import.meta.env.VITE_BACKEND_URL}/api/drivers/${driverId}/public`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+
+        if (!publicResponse.ok) {
+          throw new Error("Could not fetch driver details");
+        } else {
+          // Process public driver endpoint response
+          const data = await publicResponse.json();
+          if (data.success && data.driver) {
+            console.log(
+              "Driver details fetched from public endpoint:",
+              data.driver
+            );
+
+            // Add the phone and email for display purposes (since public API doesn't provide them)
+            const publicDriverId = data.driver.driverId;
+            const demoPhone =
+              "+91 " +
+              (
+                8800000000 +
+                (parseInt(publicDriverId.substring(0, 8), 16) % 99999999)
+              ).toString();
+            const demoEmail = `driver${publicDriverId.substring(
+              0,
+              4
+            )}@shiftly.com`;
+
+            setDriver({
+              ...data.driver,
+              // Add demo contact information
+              phone: demoPhone,
+              email: demoEmail,
+            });
+          } else {
+            throw new Error(data.message || "Driver details not found");
+          }
+        }
+      } else {
+        // Process contact endpoint response which includes real email and phone
+        const data = await response.json();
+        if (data.success && data.driver) {
+          console.log(
+            "Driver details with contact info fetched successfully:",
+            data.driver
+          );
+          setDriver(data.driver);
+        } else {
+          throw new Error(data.message || "Driver details not found");
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching driver details:", error);
+      // Try to use assignment driver as fallback
+      if (
+        bookingData.assignedDriver &&
+        typeof bookingData.assignedDriver === "object"
+      ) {
+        console.log(
+          "CustomerTrackingPage: Using booking.assignedDriver details as fallback after error",
+          bookingData.assignedDriver
+        );
+        setDriver({
+          ...bookingData.assignedDriver,
+          phone:
+            bookingData.assignedDriver.phone ||
+            bookingData.assignedDriver.contactNumber ||
+            "Contact support for driver's phone",
+          email:
+            bookingData.assignedDriver.email ||
+            "Contact support for driver's email",
+        });
+      }
+    }
+  };
+
+  // Fetch booking details using authenticated endpoint
   useEffect(() => {
     const fetchBookingDetails = async () => {
       try {
         setLoading(true);
         setError(null);
 
+        // Get auth token
+        const token = localStorage.getItem("token");
+        if (!token) {
+          throw new Error("Authentication required");
+        }
+
+        // Use the authenticated API endpoint
         const response = await fetch(
-          `${import.meta.env.VITE_BACKEND_URL}/api/tracking/public/${bookingId}`
+          `${import.meta.env.VITE_BACKEND_URL}/api/bookings/find/${bookingId}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
         );
 
         const data = await response.json();
@@ -64,16 +290,12 @@ const TrackingPage = () => {
           throw new Error(data.message || "Failed to fetch booking details");
         }
 
-        if (data.success && data.tracking && data.tracking.booking) {
-          setBooking(data.tracking.booking);
+        if (data.success && data.booking) {
+          console.log("Fetched booking details:", data.booking);
+          setBooking(data.booking);
 
-          // If booking has driver assigned
-          if (
-            data.tracking.booking.driverId &&
-            typeof data.tracking.booking.driverId === "object"
-          ) {
-            setDriver(data.tracking.booking.driverId);
-          }
+          // Fetch driver details after getting booking
+          fetchDriverDetails(data.booking);
         } else {
           setError("Booking not found or you don't have access to view it");
         }
@@ -93,6 +315,7 @@ const TrackingPage = () => {
       if (!bookingId) return;
 
       try {
+        // Use public endpoint instead of authenticated endpoint
         const response = await fetch(
           `${
             import.meta.env.VITE_BACKEND_URL
@@ -115,9 +338,14 @@ const TrackingPage = () => {
     };
   }, [bookingId]);
 
+  // Generate a shareable tracking link
+  const getShareableTrackingLink = () => {
+    return `${window.location.origin}/tracking/${bookingId}`;
+  };
+
   // Copy tracking link to clipboard
   const copyTrackingLink = () => {
-    const trackingUrl = `${window.location.origin}/tracking/${bookingId}`;
+    const trackingUrl = getShareableTrackingLink();
     navigator.clipboard
       .writeText(trackingUrl)
       .then(() => {
@@ -132,7 +360,7 @@ const TrackingPage = () => {
 
   // Share tracking link
   const shareTrackingLink = () => {
-    const trackingUrl = `${window.location.origin}/tracking/${bookingId}`;
+    const trackingUrl = getShareableTrackingLink();
     if (navigator.share) {
       navigator
         .share({
@@ -150,25 +378,22 @@ const TrackingPage = () => {
   // Show user-friendly messages for loading and error states
   if (loading) {
     return (
-      <>
-        <Navbar />
-        <div className="container mx-auto px-4 py-12 min-h-[70vh] flex items-center justify-center">
-          <div className="flex flex-col items-center">
-            <FaSpinner className="animate-spin text-red-500 text-4xl mb-4" />
-            <p className="text-gray-600">Loading booking details...</p>
+      <div className="flex-1 overflow-x-hidden overflow-y-auto p-4 sm:p-6 mt-20 md:ml-22 lg:ml-24">
+        <div className="max-w-6xl mx-auto space-y-6">
+          <div className="flex flex-col items-center justify-center h-96">
+            <FaSpinner className="animate-spin text-red-500 text-3xl mb-4" />
+            <p className="text-gray-600">Loading tracking information...</p>
           </div>
         </div>
-        <Footer />
-      </>
+      </div>
     );
   }
 
   if (error || !booking) {
     return (
-      <>
-        <Navbar />
-        <div className="container mx-auto px-4 py-12 min-h-[70vh]">
-          <div className="max-w-3xl mx-auto bg-white rounded-xl shadow-md p-8 text-center">
+      <div className="flex-1 overflow-x-hidden overflow-y-auto p-4 sm:p-6 mt-20 md:ml-22 lg:ml-24">
+        <div className="max-w-6xl mx-auto space-y-6">
+          <div className="bg-white rounded-xl shadow-md p-8 text-center">
             <div className="text-red-500 mb-4 text-5xl flex justify-center">
               <FaInfoCircle />
             </div>
@@ -178,19 +403,16 @@ const TrackingPage = () => {
             <p className="text-gray-600 mb-6">
               {error || "The booking you're looking for could not be found."}
             </p>
-            <div className="flex justify-center gap-4">
-              <Link
-                to="/"
-                className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg flex items-center gap-2"
-              >
-                <FaChevronLeft />
-                Back to Home
-              </Link>
-            </div>
+            <button
+              onClick={() => navigate("/my-bookings")}
+              className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg flex items-center gap-2 mx-auto cursor-pointer"
+            >
+              <FaChevronLeft />
+              Back to My Bookings
+            </button>
           </div>
         </div>
-        <Footer />
-      </>
+      </div>
     );
   }
 
@@ -236,25 +458,19 @@ const TrackingPage = () => {
     booking.status === "inTransit" || booking.status === "in_transit";
 
   return (
-    <div className="min-h-screen bg-gray-50 mt-20 ">
-      {/* Header bar with back button */}
-      {/* <div className="bg-white shadow-sm">
-        <div className="container mx-auto px-4 py-3">
-          <div className="flex items-center justify-between">
-            <Link
-              to="/"
-              className="flex items-center gap-2 text-gray-700 hover:text-red-600 cursor-pointer"
-            >
-              <FaChevronLeft />
-              <span>Back to Home</span>
-            </Link>
-          </div>
-        </div>
-      </div> */}
+    <div className="flex-1 overflow-x-hidden overflow-y-auto p-4 sm:p-6 mt-20 md:ml-22 lg:ml-24">
+      <div className="max-w-7xl mx-auto space-y-6">
+        {/* Back button to return to booking details */}
+        <button
+          onClick={() => navigate(`/my-bookings/${bookingId}`)}
+          className="flex items-center gap-2 text-gray-600 hover:text-red-600 mb-5 cursor-pointer"
+        >
+          <FaChevronLeft />
+          Back to Booking Details
+        </button>
 
-      <div className="container mx-auto px-4 py-6">
         {/* Header section */}
-        <div className="bg-white rounded-xl shadow-md p-6 mb-6">
+        <div className="bg-white rounded-xl shadow-md p-6">
           <div className="flex flex-wrap justify-between items-center gap-4 mb-2">
             <h1 className="text-2xl font-bold text-gray-900">
               Track Shipment #{booking.bookingId}
@@ -329,38 +545,39 @@ const TrackingPage = () => {
               </div>
             </div>
 
-            {/* Driver details card */}
+            {/* Driver details card - Show driver information directly */}
             {driver && (
               <div className="bg-white rounded-xl shadow-md p-6">
                 <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
                   <FaUserCircle className="text-red-600" /> Driver Information
                 </h2>
 
-                <div className="flex flex-col items-center sm:flex-row sm:items-start gap-4">
-                  {/* Driver Profile - Show initials instead of photo for privacy */}
-                  <div className="w-20 h-20 rounded-full overflow-hidden bg-red-100 flex items-center justify-center flex-shrink-0 text-center">
-                    <span className="text-xl font-bold text-red-600">
-                      {(driver.name || driver.fullName || "Driver")
-                        .split(" ")
-                        .map((name) => name[0])
-                        .join("")
-                        .toUpperCase()
-                        .substring(0, 2)}
-                    </span>
+                {/* Driver profile and basic info */}
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="w-16 h-16 rounded-full overflow-hidden bg-red-100 flex items-center justify-center flex-shrink-0">
+                    {driver.profileImage ? (
+                      <img
+                        src={driver.profileImage}
+                        alt={driver.name || driver.fullName || "Driver"}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <FaUserCircle className="w-10 h-10 text-red-500" />
+                    )}
                   </div>
-
-                  {/* Driver Details - Limited information for public view */}
-                  <div className="flex-grow space-y-2 text-center sm:text-left">
-                    <p className="font-medium text-gray-800">
-                      {/* Only show first name for privacy */}
-                      {
-                        (driver.name || driver.fullName || "Your Driver").split(
-                          " "
-                        )[0]
-                      }
-                    </p>
-
-                    <div className="flex items-center justify-center sm:justify-start gap-2 text-sm">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <p className="font-medium text-gray-900 text-base">
+                        {driver.name || driver.fullName || "Your Driver"}
+                      </p>
+                      {(driver.isVerified || driver.verified) && (
+                        <span className="bg-green-100 text-green-700 text-xs px-2 py-0.5 rounded-full flex items-center gap-1">
+                          <FaShieldAlt size={10} />
+                          Verified
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-gray-600 mt-1">
                       <FaStar className="text-yellow-400" />
                       <span className="font-medium">
                         {typeof driver.rating === "number"
@@ -371,19 +588,89 @@ const TrackingPage = () => {
                           : "4.8"}
                       </span>
                       <span className="text-gray-400">•</span>
-                      <span className="text-gray-600">
-                        {driver.trips || "150"}+ trips
+                      <span>
+                        {driver.trips || driver.completedTrips || "150"}+ trips
                       </span>
                     </div>
-
-                    <p className="text-sm text-gray-600">
-                      Vehicle: {driver.vehicle || "Transport Vehicle"}
+                    <p className="text-xs text-gray-500 mt-1 flex items-center gap-1">
+                      <FaHistory className="text-gray-400" />
+                      {driver.experience || driver.joinedDate
+                        ? `Experience: ${
+                            driver.experience || "Professional Driver"
+                          }`
+                        : "Professional Driver"}
                     </p>
                   </div>
                 </div>
 
-                {/* Share button - moved here */}
-                <div className="mt-4 pt-3 border-t border-gray-100">
+                {/* Contact information */}
+                <div className="space-y-2 border-t border-gray-100 pt-3 mb-4">
+                  <h4 className="text-sm font-medium text-gray-700 mb-2">
+                    Contact Information
+                  </h4>
+
+                  {driver.phone && (
+                    <a
+                      href={`tel:${driver.phone}`}
+                      className="flex items-center gap-3 text-gray-700 hover:text-red-600 cursor-pointer group"
+                    >
+                      <FaPhone className="text-gray-500 group-hover:text-red-500" />
+                      <span className="text-red-500 font-medium">
+                        {driver.phone}
+                      </span>
+                    </a>
+                  )}
+
+                  {driver.email && (
+                    <a
+                      href={`mailto:${driver.email}`}
+                      className="flex items-center gap-3 text-gray-700 hover:text-red-600 cursor-pointer group"
+                    >
+                      <FaEnvelope className="text-gray-500 group-hover:text-red-500" />
+                      <span className="text-red-500 font-medium">
+                        {driver.email}
+                      </span>
+                    </a>
+                  )}
+                </div>
+
+                {/* Vehicle details */}
+                <div className="bg-gray-50 p-3 rounded-lg mb-4">
+                  <h4 className="text-sm font-medium text-gray-700 mb-2">
+                    Vehicle Information
+                  </h4>
+                  <div className="flex items-start gap-3">
+                    <FaTruck className="text-gray-500 mt-0.5" />
+                    <div>
+                      <p className="font-medium text-gray-800">
+                        {driver.vehicleDetails?.basic?.type ||
+                          driver.vehicleDetails?.type ||
+                          driver.vehicle ||
+                          "Transport Vehicle"}
+                      </p>
+                      {driver.vehicleDetails?.make &&
+                        driver.vehicleDetails?.model && (
+                          <p className="text-sm text-gray-600">
+                            {driver.vehicleDetails.make}{" "}
+                            {driver.vehicleDetails.model}
+                          </p>
+                        )}
+                      {driver.vehicleDetails?.capacity && (
+                        <p className="text-sm text-gray-600">
+                          Capacity: {driver.vehicleDetails.capacity}
+                        </p>
+                      )}
+                      {driver.vehicleDetails?.registrationNumber && (
+                        <p className="text-sm text-gray-600 font-medium mt-1">
+                          Reg: {driver.vehicleDetails.registrationNumber}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Share button */}
+                <div className="pt-2 border-t border-gray-100">
                   <button
                     onClick={() => setShowShareOptions(!showShareOptions)}
                     className="flex items-center justify-center gap-2 w-full px-3 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors cursor-pointer"
@@ -395,7 +682,7 @@ const TrackingPage = () => {
                   {showShareOptions && (
                     <div className="mt-3 bg-white shadow-lg rounded-lg z-10 p-3 border border-gray-200">
                       <div className="text-sm text-gray-500 mb-2">
-                        Share this tracking link
+                        Share this tracking link with anyone
                       </div>
                       <div className="flex flex-col gap-2">
                         <button
@@ -403,7 +690,7 @@ const TrackingPage = () => {
                           className="flex items-center gap-2 px-3 py-2 hover:bg-gray-100 rounded w-full text-left cursor-pointer"
                         >
                           <FaCopy className="text-gray-500" />
-                          <span>Copy tracking link</span>
+                          <span>Copy public tracking link</span>
                         </button>
                         <button
                           onClick={shareTrackingLink}
@@ -430,7 +717,7 @@ const TrackingPage = () => {
               {booking.trackingUpdates &&
                 booking.trackingUpdates.length > 0 && (
                   <div className="mt-6 space-y-4">
-                    {/* Filter out duplicate tracking updates and "Driver updated status to" messages */}
+                    {/* Filter out duplicate tracking updates and "Driver updated status to inTransit" messages */}
                     {booking.trackingUpdates
                       .filter(
                         (update, index, self) =>
@@ -441,7 +728,7 @@ const TrackingPage = () => {
                                 t.message === update.message &&
                                 t.timestamp === update.timestamp
                             ) &&
-                          // Filter out "Driver updated status to" messages
+                          // Filter out "Driver updated status to inTransit" messages
                           !update.message.includes("Driver updated status to")
                       )
                       .map((update, index) => (
@@ -474,7 +761,7 @@ const TrackingPage = () => {
                 <FaMapMarkerAlt className="text-red-600" /> Live Tracking
               </h2>
 
-              <div className="lg:h-[550px] h-[700px] relative rounded-lg overflow-hidden">
+              <div className="h-[700px] lg:h-[600px] relative rounded-lg overflow-hidden">
                 <LiveTrackingMap
                   bookingId={bookingId}
                   initialLocation={liveLocation}
@@ -630,4 +917,4 @@ const TrackingPage = () => {
   );
 };
 
-export default TrackingPage;
+export default CustomerTrackingPage;
