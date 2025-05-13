@@ -14,6 +14,8 @@ import {
   FaChevronLeft,
   FaCopy,
   FaUserCircle,
+  FaCheckCircle,
+  FaDirections,
 } from "react-icons/fa";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
@@ -88,9 +90,20 @@ const TrackingPage = () => {
 
     fetchBookingDetails();
 
-    // Polling for live location updates
+    // Polling for live location updates - only if booking is active
     const locationInterval = setInterval(async () => {
       if (!bookingId) return;
+
+      // Stop polling if booking is delivered or completed
+      if (
+        booking &&
+        (booking.status === "delivered" || booking.status === "completed")
+      ) {
+        console.log(
+          "Booking is delivered/completed. Stopping location updates."
+        );
+        return;
+      }
 
       try {
         const response = await fetch(
@@ -113,7 +126,7 @@ const TrackingPage = () => {
     return () => {
       clearInterval(locationInterval);
     };
-  }, [bookingId]);
+  }, [bookingId, booking?.status]);
 
   // Copy tracking link to clipboard
   const copyTrackingLink = () => {
@@ -255,13 +268,29 @@ const TrackingPage = () => {
       <div className="container mx-auto px-4 py-6">
         {/* Header section */}
         <div className="bg-white rounded-xl shadow-md p-6 mb-6">
-          <div className="flex flex-wrap justify-between items-center gap-4 mb-2">
-            <h1 className="text-2xl font-bold text-gray-900">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-2">
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
               Track Shipment #{booking.bookingId}
             </h1>
-            <BookingStatusBadge status={booking.status} />
+            <div className="flex items-center gap-2">
+              {booking.status === "delivered" ||
+              booking.status === "completed" ? (
+                <span className="inline-flex items-center px-3 py-1 bg-green-100 text-green-800 rounded-full whitespace-nowrap">
+                  <FaCheckCircle className="mr-2" />
+                  Delivery Complete
+                </span>
+              ) : booking.status === "inTransit" ||
+                booking.status === "in_transit" ? (
+                <span className="inline-flex items-center px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full whitespace-nowrap">
+                  <span className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse mr-2"></span>
+                  In Transit
+                </span>
+              ) : (
+                <BookingStatusBadge status={booking.status} />
+              )}
+            </div>
           </div>
-          <p className="text-gray-500">
+          <p className="text-gray-500 text-sm">
             Last updated: {formatDate(booking.updatedAt || new Date())} at{" "}
             {formatTime(booking.updatedAt || new Date())}
           </p>
@@ -281,21 +310,21 @@ const TrackingPage = () => {
               <div className="space-y-4">
                 <div>
                   <p className="text-sm text-gray-500">Booking ID</p>
-                  <p className="font-medium text-gray-800">
+                  <p className="font-medium text-gray-800 break-words">
                     {booking.bookingId}
                   </p>
                 </div>
 
                 <div className="flex flex-col sm:flex-row sm:justify-between gap-4">
-                  <div>
+                  <div className="flex-1">
                     <p className="text-sm text-gray-500">Pickup</p>
-                    <p className="font-medium text-gray-800">
+                    <p className="font-medium text-gray-800 break-words">
                       {formatAddress(booking.pickup)}
                     </p>
                   </div>
-                  <div>
+                  <div className="flex-1">
                     <p className="text-sm text-gray-500">Delivery</p>
-                    <p className="font-medium text-gray-800">
+                    <p className="font-medium text-gray-800 break-words">
                       {formatAddress(booking.delivery)}
                     </p>
                   </div>
@@ -333,7 +362,15 @@ const TrackingPage = () => {
             {driver && (
               <div className="bg-white rounded-xl shadow-md p-6">
                 <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                  <FaUserCircle className="text-red-600" /> Driver Information
+                  <FaUserCircle
+                    className={
+                      booking.status === "delivered" ||
+                      booking.status === "completed"
+                        ? "text-green-600"
+                        : "text-red-600"
+                    }
+                  />{" "}
+                  Driver Information
                 </h2>
 
                 <div className="flex flex-col items-center sm:flex-row sm:items-start gap-4">
@@ -422,7 +459,15 @@ const TrackingPage = () => {
             {/* Shipment status */}
             <div className="bg-white rounded-xl shadow-md p-6">
               <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                <FaTruck className="text-red-600" /> Shipment Status
+                <FaTruck
+                  className={
+                    booking.status === "delivered" ||
+                    booking.status === "completed"
+                      ? "text-green-600"
+                      : "text-red-600"
+                  }
+                />{" "}
+                Shipment Status
               </h2>
 
               <ShipmentTracker booking={booking} />
@@ -470,29 +515,92 @@ const TrackingPage = () => {
           <div className="lg:col-span-2 space-y-6">
             {/* Live tracking map */}
             <div className="bg-white rounded-xl shadow-md p-6">
-              <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                <FaMapMarkerAlt className="text-red-600" /> Live Tracking
+              <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <FaMapMarkerAlt
+                    className={
+                      booking.status === "delivered" ||
+                      booking.status === "completed"
+                        ? "text-green-600"
+                        : "text-red-600"
+                    }
+                  />{" "}
+                  Live Tracking
+                </div>
+                {booking.status !== "delivered" &&
+                  booking.status !== "completed" && (
+                    <a
+                      href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(
+                        formatAddress(booking.delivery)
+                      )}&travelmode=driving`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center justify-center gap-2 px-3 py-1.5 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 transition-colors cursor-pointer whitespace-nowrap"
+                    >
+                      <FaDirections size={14} />
+                      <span>Navigate in Maps</span>
+                    </a>
+                  )}
               </h2>
 
-              <div className="lg:h-[550px] h-[700px] relative rounded-lg overflow-hidden">
+              <div className="lg:h-[550px] h-[400px] sm:h-[500px] relative rounded-lg overflow-hidden">
                 <LiveTrackingMap
                   bookingId={bookingId}
                   initialLocation={liveLocation}
+                  isDelivered={
+                    booking.status === "delivered" ||
+                    booking.status === "completed"
+                  }
                 />
               </div>
 
-              {!isActiveDelivery && (
-                <div className="mt-4 p-3 bg-yellow-50 rounded-lg text-center">
-                  <p className="text-sm text-yellow-700">
+              <div className="mt-4 flex flex-col sm:flex-row justify-between gap-3">
+                {!isActiveDelivery ? (
+                  <div
+                    className={`p-3 ${
+                      booking.status === "delivered" ||
+                      booking.status === "completed"
+                        ? "bg-green-50"
+                        : "bg-yellow-50"
+                    } rounded-lg text-center w-full`}
+                  >
                     {booking.status === "completed" ||
-                    booking.status === "delivered"
-                      ? "This shipment has been delivered."
-                      : booking.status === "confirmed"
-                      ? "Your driver will start sharing location when they begin the delivery."
-                      : "Live tracking is not available for this shipment."}
-                  </p>
-                </div>
-              )}
+                    booking.status === "delivered" ? (
+                      <div className="flex items-center justify-center gap-2">
+                        <FaCheckCircle className="text-green-500" />
+                        <p className="text-sm text-green-700 font-medium">
+                          This shipment has been delivered successfully. Live
+                          tracking has ended.
+                        </p>
+                      </div>
+                    ) : booking.status === "confirmed" ? (
+                      <p className="text-sm text-yellow-700">
+                        Your driver will start sharing location when they begin
+                        the delivery.
+                      </p>
+                    ) : (
+                      <p className="text-sm text-yellow-700">
+                        Live tracking is not available for this shipment.
+                      </p>
+                    )}
+                  </div>
+                ) : (
+                  <div className="flex flex-wrap gap-3 w-full justify-center sm:justify-start">
+                    <div className="flex items-center gap-2 px-3 py-2 bg-blue-50 text-blue-700 rounded-lg">
+                      <FaTruck />
+                      <span className="text-sm font-medium">
+                        Driver is sharing location
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 px-3 py-2 bg-green-50 text-green-700 rounded-lg">
+                      <FaRegClock />
+                      <span className="text-sm font-medium">
+                        Updates every minute
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Pickup and delivery details */}
@@ -502,24 +610,26 @@ const TrackingPage = () => {
                   <FaMapMarkerAlt className="text-red-600" /> Pickup Details
                 </h2>
                 <div className="bg-red-50 p-3 rounded-lg">
-                  <p className="font-medium text-gray-800 mb-1">
+                  <p className="font-medium text-gray-800 mb-1 break-words">
                     {formatAddress(booking.pickup)}
                   </p>
                   {booking.pickup?.landmark && (
-                    <p className="text-sm text-gray-600">
+                    <p className="text-sm text-gray-600 break-words">
                       Landmark: {booking.pickup.landmark}
                     </p>
                   )}
                 </div>
                 <div className="mt-3 text-sm text-gray-600">
                   <div className="flex items-center gap-2">
-                    <FaCalendarAlt className="text-gray-500" />
-                    {formatDate(booking.schedule?.date)}
+                    <FaCalendarAlt className="text-gray-500 flex-shrink-0" />
+                    <span className="break-words">
+                      {formatDate(booking.schedule?.date)}
+                    </span>
                   </div>
                   {booking.schedule?.time && (
                     <div className="flex items-center gap-2 mt-1">
-                      <FaRegClock className="text-gray-500" />
-                      {booking.schedule.time}
+                      <FaRegClock className="text-gray-500 flex-shrink-0" />
+                      <span>{booking.schedule.time}</span>
                     </div>
                   )}
                 </div>
@@ -530,11 +640,11 @@ const TrackingPage = () => {
                   <FaMapMarkerAlt className="text-green-600" /> Delivery Details
                 </h2>
                 <div className="bg-green-50 p-3 rounded-lg">
-                  <p className="font-medium text-gray-800 mb-1">
+                  <p className="font-medium text-gray-800 mb-1 break-words">
                     {formatAddress(booking.delivery)}
                   </p>
                   {booking.delivery?.landmark && (
-                    <p className="text-sm text-gray-600">
+                    <p className="text-sm text-gray-600 break-words">
                       Landmark: {booking.delivery.landmark}
                     </p>
                   )}
@@ -542,14 +652,18 @@ const TrackingPage = () => {
                 <div className="mt-3 text-sm text-gray-600">
                   {booking.estimatedArrival ? (
                     <div className="flex items-center gap-2">
-                      <FaRegClock className="text-gray-500" />
-                      Est. Arrival: {formatDate(booking.estimatedArrival)}{" "}
-                      {formatTime(booking.estimatedArrival)}
+                      <FaRegClock className="text-gray-500 flex-shrink-0" />
+                      <span className="break-words">
+                        Est. Arrival: {formatDate(booking.estimatedArrival)}{" "}
+                        {formatTime(booking.estimatedArrival)}
+                      </span>
                     </div>
                   ) : (
                     <div className="flex items-center gap-2">
-                      <FaInfoCircle className="text-gray-500" />
-                      Estimated arrival time not available
+                      <FaInfoCircle className="text-gray-500 flex-shrink-0" />
+                      <span className="break-words">
+                        Estimated arrival time not available
+                      </span>
                     </div>
                   )}
                 </div>

@@ -8,6 +8,7 @@ import {
   FaCalendarAlt,
 } from "react-icons/fa";
 import { format } from "date-fns";
+import PropTypes from "prop-types";
 
 // Helper to sanitize tracking data and prevent MongoDB document errors
 const sanitizeTracking = (tracking) => {
@@ -21,6 +22,7 @@ const sanitizeTracking = (tracking) => {
       // Remove documents property if it exists
       if (item && typeof item === "object") {
         // Create a new object without the documents property
+        // eslint-disable-next-line no-unused-vars
         const { documents, ...cleanItem } = item;
 
         // Ensure dates are in string format
@@ -231,12 +233,19 @@ const ShipmentTracker = ({ booking }) => {
     try {
       return format(new Date(date), "MMM d, yyyy - h:mm a");
     } catch (error) {
+      console.error("Date formatting error:", error);
       return String(date);
     }
   };
 
+  // Check if booking is delivered or completed
+  const isDelivered =
+    booking &&
+    (booking.status === "delivered" || booking.status === "completed");
+
   // Get status text with proper styling
   const getStatusText = (index) => {
+    if (isDelivered) return "text-green-600 font-medium"; // All green for delivered bookings
     if (index < activeStep) return "text-green-600 font-medium";
     if (index === activeStep) return "text-red-600 font-medium";
     return "text-gray-400";
@@ -244,12 +253,14 @@ const ShipmentTracker = ({ booking }) => {
 
   // Get connector line styling
   const getConnectorStyle = (index) => {
+    if (isDelivered) return "bg-green-500"; // All green for delivered bookings
     if (index < activeStep) return "bg-green-500";
     return "bg-gray-300";
   };
 
   // Get icon styling
   const getIconStyle = (index) => {
+    if (isDelivered) return "bg-green-500 text-white"; // All green for delivered bookings
     if (index < activeStep) return "bg-green-500 text-white";
     if (index === activeStep) return "bg-red-500 text-white";
     return "bg-gray-300 text-gray-500";
@@ -279,7 +290,12 @@ const ShipmentTracker = ({ booking }) => {
 
   return (
     <div className="bg-white rounded-xl shadow-lg p-6">
-      <h3 className="text-xl font-bold text-gray-900 mb-6">
+      <h3 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+        {isDelivered ? (
+          <FaCheckCircle className="text-green-600" />
+        ) : (
+          <FaTruck className="text-red-600" />
+        )}
         Shipment Tracking
       </h3>
 
@@ -297,11 +313,11 @@ const ShipmentTracker = ({ booking }) => {
               </div>
               {index < trackingData.length - 1 && (
                 <div
-                  className={`w-1 h-full ${getConnectorStyle(index)} mt-2`}
+                  className={`w-1 ${getConnectorStyle(index)} mt-2`}
                   style={{ height: "30px" }}
                 ></div>
-                  )}
-                </div>
+              )}
+            </div>
 
             {/* Step details */}
             <div className="flex-1">
@@ -315,19 +331,38 @@ const ShipmentTracker = ({ booking }) => {
               {step.location && (
                 <div className="flex items-center text-sm text-gray-500 mt-1">
                   <FaMapMarkerAlt className="mr-1" />
-                  <span>
+                  <span className="break-words">
                     {typeof step.location === "object"
                       ? step.location.address || "Location"
                       : step.location}
                   </span>
                 </div>
               )}
-              </div>
             </div>
-          ))}
+          </div>
+        ))}
       </div>
     </div>
   );
+};
+
+// Add PropTypes validation
+ShipmentTracker.propTypes = {
+  booking: PropTypes.shape({
+    status: PropTypes.string,
+    confirmedAt: PropTypes.oneOfType([PropTypes.string, PropTypes.object]),
+    createdAt: PropTypes.oneOfType([PropTypes.string, PropTypes.object]),
+    pickupReachedAt: PropTypes.oneOfType([PropTypes.string, PropTypes.object]),
+    inTransitAt: PropTypes.oneOfType([PropTypes.string, PropTypes.object]),
+    deliveredAt: PropTypes.oneOfType([PropTypes.string, PropTypes.object]),
+    pickup: PropTypes.shape({
+      address: PropTypes.string,
+    }),
+    delivery: PropTypes.shape({
+      address: PropTypes.string,
+    }),
+    tracking: PropTypes.array,
+  }),
 };
 
 export default ShipmentTracker;

@@ -322,8 +322,8 @@ const ConfirmedBookingDetails = () => {
   const getNextStatus = () => {
     const statusFlow = {
       confirmed: "inTransit",
-      inTransit: "completed",
-      in_transit: "completed", // Add support for in_transit format
+      inTransit: "delivered",
+      in_transit: "delivered", // Add support for in_transit format
     };
 
     return statusFlow[shipmentStatus] || null;
@@ -332,7 +332,7 @@ const ConfirmedBookingDetails = () => {
   const getStatusButtonLabel = () => {
     const labels = {
       inTransit: "Start Transit",
-      completed: "Mark as Delivered",
+      delivered: "Mark as Delivered",
     };
 
     return labels[getNextStatus()] || "";
@@ -341,7 +341,7 @@ const ConfirmedBookingDetails = () => {
   const getStatusButtonIcon = () => {
     const icons = {
       inTransit: <FaShippingFast />,
-      completed: <FaCheckCircle />,
+      delivered: <FaCheckCircle />,
     };
 
     return icons[getNextStatus()] || null;
@@ -396,54 +396,87 @@ const ConfirmedBookingDetails = () => {
         date: booking?.inTransitAt,
       },
       {
-        id: "completed",
+        id: "delivered",
         label: "Delivered",
         icon: <FaCheckCircle />,
         date: booking?.completedAt,
       },
     ];
 
+    // For completed deliveries, ALL steps should be active and green
+    const isDeliveryCompleted = booking.status === "delivered";
+
+    // Map booking status to our status IDs
+    const currentStatusId =
+      booking.status === "in_transit" ? "inTransit" : booking.status;
+
     return (
-      <div className="space-y-2">
+      <div className="space-y-4">
         {statuses.map((status, index) => {
-          const isActive =
-            shipmentStatus === status.id ||
-            statuses.findIndex((s) => s.id === shipmentStatus) > index;
-          const isCompleted =
-            statuses.findIndex((s) => s.id === shipmentStatus) > index;
+          // When delivery is completed, ALL steps are active and green
+          const isActive = isDeliveryCompleted
+            ? true
+            : currentStatusId === status.id ||
+              statuses.findIndex((s) => s.id === currentStatusId) > index;
+
+          const isCurrentStep = currentStatusId === status.id;
 
           return (
             <React.Fragment key={status.id}>
               <div
                 className={`flex items-center ${
-                  isActive ? "text-red-600" : "text-gray-400"
+                  isDeliveryCompleted
+                    ? "text-green-600"
+                    : isActive
+                    ? "text-red-600"
+                    : "text-gray-400"
                 }`}
               >
                 <div
                   className={`h-10 w-10 rounded-full flex items-center justify-center ${
-                    isActive ? "bg-red-100" : "bg-gray-100"
+                    isDeliveryCompleted
+                      ? "bg-green-100"
+                      : isActive
+                      ? "bg-red-100"
+                      : "bg-gray-100"
                   }`}
                 >
                   {status.icon}
                 </div>
                 <div className="ml-4 flex-1">
-                  <div className="flex justify-between">
-                    <p className="font-medium">{status.label}</p>
+                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center">
+                    <p className="font-medium mb-1 sm:mb-0">{status.label}</p>
                     {status.date && (
-                      <p className="text-sm text-gray-500">
+                      <p className="text-sm text-gray-500 sm:ml-4">
                         {formatDate(status.date)}
                       </p>
                     )}
                   </div>
-                  {status.id === shipmentStatus && !isCompleted && (
-                    <p className="text-sm text-red-500">Current Status</p>
+                  {isCurrentStep && (
+                    <p
+                      className={`text-sm ${
+                        isDeliveryCompleted ? "text-green-500" : "text-red-500"
+                      }`}
+                    >
+                      {isDeliveryCompleted && status.id === "delivered"
+                        ? "Delivery Completed Successfully"
+                        : "Current Status"}
+                    </p>
                   )}
                 </div>
               </div>
               {index < statuses.length - 1 && (
                 <div
                   className={`h-8 w-0.5 ml-5 ${
-                    isCompleted ? "bg-red-400" : "bg-gray-200"
+                    isDeliveryCompleted
+                      ? "bg-green-400"
+                      : isActive &&
+                        index <
+                          statuses.findIndex((s) => s.id === currentStatusId)
+                      ? "bg-red-400"
+                      : isActive
+                      ? "bg-red-200"
+                      : "bg-gray-200"
                   }`}
                 ></div>
               )}
@@ -576,18 +609,18 @@ const ConfirmedBookingDetails = () => {
           <div className="bg-white rounded-xl shadow-md p-6">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <h1 className="text-2xl font-bold text-gray-800">
                     Booking #{booking.bookingId}
                   </h1>
                   <span
-                    className={`px-3 py-1 rounded-full text-sm font-medium 
+                    className={`px-3 py-1 rounded-full text-sm font-medium whitespace-nowrap
                     ${
                       shipmentStatus === "confirmed"
                         ? "bg-blue-100 text-blue-800"
                         : shipmentStatus === "inTransit"
                         ? "bg-yellow-100 text-yellow-800"
-                        : shipmentStatus === "completed"
+                        : shipmentStatus === "delivered"
                         ? "bg-green-100 text-green-800"
                         : "bg-gray-100 text-gray-800"
                     }`}
@@ -604,7 +637,7 @@ const ConfirmedBookingDetails = () => {
                     : ""}
                 </p>
               </div>
-              <div>{renderStatusButton()}</div>
+              <div className="mt-2 sm:mt-0">{renderStatusButton()}</div>
             </div>
           </div>
         </div>
@@ -1084,13 +1117,31 @@ const ConfirmedBookingDetails = () => {
                   Timeline
                 </h2>
 
-                <div className="p-4 bg-red-50 rounded-lg mb-6 border border-red-100">
-                  <div className="flex items-center gap-2">
-                    <FaInfoCircle className="text-red-500" />
-                    <p className="text-red-700 text-sm">
-                      Update the delivery status as you progress through your
-                      journey. The customer will be notified of each status
-                      change.
+                <div
+                  className={`p-4 ${
+                    booking.status === "delivered"
+                      ? "bg-green-50 border-green-100"
+                      : "bg-red-50 border-red-100"
+                  } rounded-lg mb-6 border`}
+                >
+                  <div className="flex items-start gap-2">
+                    <FaInfoCircle
+                      className={
+                        booking.status === "delivered"
+                          ? "text-green-500 mt-1"
+                          : "text-red-500 mt-1"
+                      }
+                    />
+                    <p
+                      className={
+                        booking.status === "delivered"
+                          ? "text-green-700 text-sm"
+                          : "text-red-700 text-sm"
+                      }
+                    >
+                      {booking.status === "delivered"
+                        ? "The shipment has been successfully delivered to the customer. Thank you for completing this delivery!"
+                        : "Keep your customer informed about their delivery. The status timeline shows your progress through each stage."}
                     </p>
                   </div>
                 </div>
@@ -1098,24 +1149,32 @@ const ConfirmedBookingDetails = () => {
                 {renderStatusTimeline()}
 
                 <div className="mt-6 pt-6 border-t border-gray-200">
-                  <div className="flex justify-between items-center">
+                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
                     <div>
                       <h3 className="font-medium text-gray-800">
                         Current Status
                       </h3>
-                      <p className="text-gray-600 text-sm mt-1">
-                        {shipmentStatus === "confirmed" && "Ready for pickup"}
-                        {shipmentStatus === "inTransit" &&
+                      <p
+                        className={`text-sm mt-1 ${
+                          booking.status === "delivered"
+                            ? "text-green-600 font-medium"
+                            : "text-gray-600"
+                        }`}
+                      >
+                        {booking.status === "confirmed" && "Ready for pickup"}
+                        {(booking.status === "inTransit" ||
+                          booking.status === "in_transit") &&
                           "On the way to delivery location"}
-                        {shipmentStatus === "completed" && "Delivery completed"}
+                        {booking.status === "delivered" &&
+                          "🎉 Delivery successfully completed"}
                       </p>
                     </div>
 
-                    {getNextStatus() && (
+                    {getNextStatus() && booking.status !== "delivered" && (
                       <button
                         onClick={() => updateBookingStatus(getNextStatus())}
                         disabled={updateLoading}
-                        className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg flex items-center gap-2 disabled:bg-gray-300 disabled:text-gray-500 cursor-pointer"
+                        className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg flex items-center gap-2 disabled:bg-gray-300 disabled:text-gray-500 cursor-pointer w-full sm:w-auto justify-center"
                       >
                         {updateLoading ? (
                           <>
@@ -1130,6 +1189,13 @@ const ConfirmedBookingDetails = () => {
                         )}
                       </button>
                     )}
+
+                    {booking.status === "delivered" && (
+                      <div className="px-4 py-2 bg-green-100 text-green-800 rounded-lg flex items-center gap-2 w-full sm:w-auto justify-center">
+                        <FaCheckCircle />
+                        Delivery Completed
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -1137,23 +1203,31 @@ const ConfirmedBookingDetails = () => {
               {/* Customer Support - Moved to be after status timeline */}
               <div className="bg-white rounded-xl shadow-md p-6">
                 <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                  <FaInfoCircle className="text-red-600" /> Need Help?
+                  <FaInfoCircle
+                    className={
+                      booking.status === "delivered"
+                        ? "text-green-600"
+                        : "text-red-600"
+                    }
+                  />
+                  Need Help?
                 </h2>
 
                 <div className="p-4 bg-gray-50 rounded-lg border border-gray-100">
                   <p className="text-gray-700 mb-3">
-                    If you encounter any issues during delivery, contact our
-                    support team:
+                    {booking.status === "delivered"
+                      ? "If you have any questions about this completed delivery, contact our support team:"
+                      : "If you encounter any issues during delivery, contact our support team:"}
                   </p>
 
                   <div className="space-y-3">
                     <div className="flex items-center gap-2">
                       <FaPhone className="text-red-500" />
                       <a
-                        href="tel:+918800880088"
+                        href="tel:+918765432100"
                         className="text-red-600 hover:underline cursor-pointer"
                       >
-                        +91 8800 880088
+                        +91 8765432100
                       </a>
                     </div>
 
@@ -1173,14 +1247,50 @@ const ConfirmedBookingDetails = () => {
 
             {/* Right Column - Location Sharing */}
             <div className="space-y-6">
-              {/* Live Location Sharing */}
+              {/* Live Location Sharing - Completely replaced using booking.status directly */}
               <div className="bg-white rounded-xl shadow-md p-6">
                 <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                  <FaLocationArrow className="text-red-600" /> Live Location
-                  Sharing
+                  <FaLocationArrow
+                    className={
+                      booking.status === "delivered"
+                        ? "text-green-600"
+                        : "text-red-600"
+                    }
+                  />
+                  {booking.status === "delivered"
+                    ? "Delivery Map"
+                    : "Live Location Sharing"}
                 </h2>
 
-                {booking.status === "inTransit" ? (
+                {booking.status === "delivered" ? (
+                  /* COMPLETED BOOKING - Show delivery completed with green styling */
+                  <div className="space-y-4">
+                    <div className="bg-green-50 rounded-lg p-5 border border-green-100 text-center">
+                      <div className="flex flex-col items-center mb-4">
+                        <FaCheckCircle className="text-green-500 text-3xl mb-3" />
+                        <p className="text-gray-800 font-medium">
+                          Delivery Completed Successfully
+                        </p>
+                        <p className="text-gray-600 text-sm mt-1 mb-5">
+                          You can view the delivery route and details
+                        </p>
+                      </div>
+
+                      {/* Add tracking page link */}
+                      <div className="mt-3 flex justify-center">
+                        <Link
+                          to={`/tracking/${booking._id}`}
+                          className="px-5 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg flex items-center gap-2 cursor-pointer transition-colors"
+                        >
+                          <FaMapMarkedAlt />
+                          View Delivery Map
+                        </Link>
+                      </div>
+                    </div>
+                  </div>
+                ) : booking.status === "inTransit" ||
+                  booking.status === "in_transit" ? (
+                  /* IN TRANSIT BOOKING - Show transit information with red styling */
                   <div className="space-y-4">
                     <div className="bg-gray-50 rounded-lg p-4 border border-gray-100 text-center">
                       <p className="text-gray-700 mb-4">
@@ -1200,15 +1310,8 @@ const ConfirmedBookingDetails = () => {
                       </div>
                     </div>
                   </div>
-                ) : booking.status === "completed" ? (
-                  <div className="bg-gray-50 rounded-lg p-4 border border-gray-100 flex flex-col items-center justify-center py-6">
-                    <FaCheckCircle className="text-green-500 text-3xl mb-3" />
-                    <p className="text-gray-700">Delivery completed</p>
-                    <p className="text-sm text-gray-500 mt-1">
-                      Location sharing is no longer needed
-                    </p>
-                  </div>
                 ) : (
+                  /* CONFIRMED BOOKING - Show start transit option with yellow styling */
                   <div className="bg-gray-50 rounded-lg p-4 border border-gray-100 text-center py-4">
                     <div className="flex flex-col items-center mb-4">
                       <FaExclamationTriangle className="text-yellow-500 text-3xl mb-3" />
@@ -1244,23 +1347,83 @@ const ConfirmedBookingDetails = () => {
               {/* Delivery Instructions */}
               <div className="bg-white rounded-xl shadow-md p-6">
                 <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                  <FaClipboardList className="text-red-600" /> Delivery
-                  Instructions
+                  <FaClipboardList
+                    className={
+                      booking.status === "delivered"
+                        ? "text-green-600"
+                        : "text-red-600"
+                    }
+                  />
+                  {booking.status === "delivered"
+                    ? "Delivery Summary"
+                    : "Delivery Instructions"}
                 </h2>
 
-                <div className="p-4 bg-blue-50 rounded-lg border border-blue-100">
+                <div
+                  className={`p-4 ${
+                    booking.status === "delivered"
+                      ? "bg-green-50 border-green-100"
+                      : "bg-blue-50 border-blue-100"
+                  } rounded-lg border`}
+                >
                   <div className="space-y-3">
-                    <p className="text-gray-700 font-medium">
-                      Instructions for Delivery:
-                    </p>
+                    {booking.status === "delivered" ? (
+                      <>
+                        <p className="text-gray-700 font-medium flex items-center gap-2">
+                          <FaCheckCircle className="text-green-500" /> Delivery
+                          Completed
+                        </p>
+                        <p className="text-gray-600 text-sm">
+                          This delivery has been successfully completed. The
+                          customer has received their shipment.
+                        </p>
+                        <div className="pt-3 border-t border-green-200 mt-3">
+                          <p className="text-gray-700 font-medium">
+                            Delivery Details:
+                          </p>
+                          <div className="mt-2 text-sm text-gray-600">
+                            <div className="flex justify-between py-1">
+                              <span>Delivery Date:</span>
+                              <span className="font-medium">
+                                {formatDate(booking?.completedAt || new Date())}
+                              </span>
+                            </div>
+                            <div className="flex justify-between py-1">
+                              <span>Delivery Location:</span>
+                              <span className="font-medium">
+                                {
+                                  formatLocation(booking?.delivery).split(
+                                    ","
+                                  )[0]
+                                }
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-gray-700 font-medium">
+                          Instructions for Delivery:
+                        </p>
 
-                    <ul className="list-disc pl-5 space-y-2 text-gray-600 text-sm">
-                      <li>Confirm the delivery address before proceeding</li>
-                      <li>Contact the customer before arrival</li>
-                      <li>Verify the recipient's identity before handover</li>
-                      <li>Take a photo of the delivered goods if possible</li>
-                      <li>Update the status to "Delivered" once completed</li>
-                    </ul>
+                        <ul className="list-disc pl-5 space-y-2 text-gray-600 text-sm">
+                          <li>
+                            Confirm the delivery address before proceeding
+                          </li>
+                          <li>Contact the customer before arrival</li>
+                          <li>
+                            Verify the recipient's identity before handover
+                          </li>
+                          <li>
+                            Take a photo of the delivered goods if possible
+                          </li>
+                          <li>
+                            Update the status to "Delivered" once completed
+                          </li>
+                        </ul>
+                      </>
+                    )}
 
                     {booking.schedule?.specialInstructions &&
                       typeof booking.schedule.specialInstructions ===

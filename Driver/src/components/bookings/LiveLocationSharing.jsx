@@ -8,6 +8,9 @@ import {
   FaCheck,
   FaLocationArrow,
   FaSync,
+  FaSpinner,
+  FaTimes,
+  FaExclamationCircle,
 } from "react-icons/fa";
 import { toast } from "react-hot-toast";
 import PropTypes from "prop-types";
@@ -36,6 +39,8 @@ const LiveLocationSharing = ({
   const [lastLocation, setLastLocation] = useState(null);
   const [lastUpdateTime, setLastUpdateTime] = useState(null);
   const [permissionStatus, setPermissionStatus] = useState("unknown");
+  const [isLoading, setIsLoading] = useState(false);
+  const [isGeolocationAvailable, setIsGeolocationAvailable] = useState(true);
 
   // Get consistent localStorage keys
   const { sharingStateKey, lastLocationKey, manuallyStoppedKey } =
@@ -140,6 +145,23 @@ const LiveLocationSharing = ({
       }
     };
   }, [bookingId, sharingStateKey, lastLocationKey, manuallyStoppedKey]);
+
+  // Add logic to check if the booking is delivered and stop location sharing
+  useEffect(() => {
+    // If the booking is completed, stop location sharing
+    if (bookingStatus === "delivered" || bookingStatus === "completed") {
+      console.log("Booking is delivered/completed. Stopping location sharing.");
+      setIsSharing(false);
+      localStorage.setItem(sharingStateKey, "false");
+
+      // Clean up the watcher if it exists
+      if (watchIdRef.current) {
+        navigator.geolocation.clearWatch(watchIdRef.current);
+        watchIdRef.current = null;
+        console.log("Cleared geolocation watch due to delivered status");
+      }
+    }
+  }, [bookingStatus, sharingStateKey]);
 
   // Function to update driver location on the server
   const updateDriverLocation = (position) => {
@@ -498,126 +520,137 @@ const LiveLocationSharing = ({
   };
 
   return (
-    <div className="flex flex-col">
-      {/* Status description */}
-      <div className="mb-4 p-4 bg-blue-50 rounded-lg border border-blue-100">
-        <div className="flex items-start gap-3">
-          <FaInfoCircle className="text-blue-500 mt-1" />
-          <div>
-            <p className="text-blue-800 font-medium mb-1">
-              Status:{" "}
-              {bookingStatus?.charAt(0).toUpperCase() +
-                bookingStatus?.slice(1).replace(/_/g, " ")}
-            </p>
-            <p className="text-blue-700 text-sm">{getStatusDescription()}</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Important in-transit message */}
-      {(bookingStatus === "inTransit" || bookingStatus === "in_transit") && (
-        <div className="mb-4 p-4 bg-yellow-50 rounded-lg border border-yellow-100">
-          <div className="flex items-start gap-3">
-            <FaExclamationTriangle className="text-yellow-500 mt-1" />
-            <p className="text-yellow-800 text-sm">
-              <span className="font-medium">Important:</span> Always keep
-              location sharing enabled during transit for accurate delivery
-              tracking. The customer relies on this to track their shipment.
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* Error message */}
-      {locationError && (
-        <div className="mb-4 p-4 bg-red-50 text-red-700 rounded-lg flex items-start gap-3 w-full border border-red-100">
-          <FaExclamationTriangle className="mt-1" />
-          <div>
-            <p className="font-medium mb-1">Location Error</p>
-            <p className="text-sm">{locationError}</p>
-            {permissionStatus === "denied" && (
-              <div className="mt-2 pt-2 border-t border-red-200">
-                <p className="text-sm font-semibold">How to fix:</p>
-                <ol className="list-decimal text-xs ml-5 mt-1 space-y-1">
-                  <li>
-                    Click the lock/info icon in your browser's address bar
-                  </li>
-                  <li>Find "Location" or "Site settings"</li>
-                  <li>Change permission to "Allow"</li>
-                  <li>Reload this page</li>
-                </ol>
+    <div className="rounded-lg overflow-hidden">
+      {/* Don't render sharing controls if the booking is delivered */}
+      {bookingStatus === "delivered" || bookingStatus === "completed" ? (
+        // For delivered bookings, we already show the delivery completed UI from the parent component
+        <p className="hidden">Location sharing has been stopped.</p>
+      ) : (
+        // For active bookings, show the sharing controls
+        <div>
+          <div
+            className={`p-4 ${
+              isSharing ? "bg-green-50" : "bg-gray-50"
+            } rounded-lg`}
+          >
+            <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
+              <div className="flex items-center gap-3">
+                <div
+                  className={`flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center ${
+                    isSharing ? "bg-green-100" : "bg-gray-200"
+                  }`}
+                >
+                  {isLoading ? (
+                    <FaSpinner className="text-gray-500 animate-spin text-xl" />
+                  ) : isSharing ? (
+                    <FaToggleOn className="text-green-600 text-3xl" />
+                  ) : (
+                    <FaToggleOff className="text-gray-500 text-3xl" />
+                  )}
+                </div>
+                <div>
+                  <h3 className="font-medium">
+                    {isSharing
+                      ? "Location sharing is enabled"
+                      : "Location sharing is disabled"}
+                  </h3>
+                  <p className="text-sm text-gray-600 mt-1">
+                    {isSharing
+                      ? "Your live location is being shared with the customer"
+                      : "Enable location sharing to help customer track your delivery"}
+                  </p>
+                </div>
               </div>
-            )}
+
+              <button
+                onClick={isSharing ? stopLocationSharing : startLocationSharing}
+                disabled={isLoading || !isGeolocationAvailable}
+                className={`${
+                  isSharing
+                    ? "bg-red-500 hover:bg-red-600"
+                    : "bg-green-600 hover:bg-green-700"
+                } px-4 py-2 text-white rounded-lg disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex items-center gap-2 w-full sm:w-auto justify-center`}
+              >
+                {isLoading ? (
+                  <>
+                    <FaSpinner className="animate-spin" />
+                    Processing...
+                  </>
+                ) : isSharing ? (
+                  <>
+                    <FaTimes />
+                    Stop Sharing
+                  </>
+                ) : (
+                  <>
+                    <FaLocationArrow />
+                    Start Sharing
+                  </>
+                )}
+              </button>
+            </div>
           </div>
-        </div>
-      )}
 
-      {/* Location sharing control */}
-      <div className="flex flex-col items-center mb-4">
-        <p className="text-sm text-gray-700 mb-3">{getActionInstruction()}</p>
-        <button
-          onClick={toggleLocationSharing}
-          className={`flex items-center gap-3 px-6 py-3 rounded-lg transition-colors cursor-pointer ${
-            isSharing
-              ? "bg-green-500 hover:bg-green-600 text-white"
-              : "bg-red-500 hover:bg-red-600 text-white"
-          }`}
-        >
-          {isSharing ? <FaToggleOn size={24} /> : <FaToggleOff size={24} />}
-          {isSharing ? "Stop Sharing Location" : "Start Sharing Location"}
-        </button>
-      </div>
+          {lastUpdateTime && isSharing && (
+            <div className="mt-3 text-sm text-gray-600 flex justify-between items-center">
+              <span>
+                Last updated:{" "}
+                {new Date(lastUpdateTime).toLocaleTimeString([], {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                  second: "2-digit",
+                })}
+              </span>
+              <span className="flex items-center">
+                <span className="h-2 w-2 bg-green-500 rounded-full animate-pulse mr-1"></span>
+                Live
+              </span>
+            </div>
+          )}
 
-      {/* Location status */}
-      {isSharing && (
-        <div
-          className={`w-full text-center p-4 rounded-lg border ${
-            lastLocation
-              ? "bg-green-50 border-green-100"
-              : "bg-yellow-50 border-yellow-100"
-          }`}
-        >
-          {lastLocation ? (
-            <>
-              <div className="flex items-center justify-center gap-2 mb-2">
-                <FaCheck className="text-green-500" />
-                <p className="text-sm text-green-700 font-medium">
-                  Currently sharing your location
-                </p>
+          {locationError && (
+            <div className="mt-3 p-3 bg-red-50 text-red-700 rounded-lg border border-red-100 text-sm">
+              <div className="flex items-start gap-2">
+                <FaExclamationCircle className="text-red-500 mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="font-medium">Location Error</p>
+                  <p className="mt-1">{locationError}</p>
+                </div>
               </div>
-              <p className="font-medium text-gray-800">
-                Lat: {lastLocation.lat.toFixed(6)}, Lng:{" "}
-                {lastLocation.lng.toFixed(6)}
-              </p>
-              {lastUpdateTime && (
-                <p className="text-xs text-gray-500 mt-1 flex items-center justify-center gap-1">
-                  <FaSync className={"text-green-500 animate-spin"} />
-                  Last update sent: {lastUpdateTime.toLocaleTimeString()}
-                </p>
-              )}
-              <p className="text-xs text-gray-500 mt-1">
-                Updates sent every 20 seconds
-              </p>
-            </>
-          ) : (
-            <div className="flex items-center justify-center gap-2">
-              <FaLocationArrow className="text-yellow-500 animate-pulse" />
-              <p className="text-sm text-yellow-700">
-                Getting your current location...
-              </p>
+            </div>
+          )}
+
+          {!isGeolocationAvailable && (
+            <div className="mt-3 p-3 bg-yellow-50 text-yellow-700 rounded-lg border border-yellow-100 text-sm">
+              <div className="flex items-start gap-2">
+                <FaExclamationTriangle className="text-yellow-500 mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="font-medium">Location sharing not available</p>
+                  <p className="mt-1">
+                    Geolocation is not supported or permission has been denied.
+                    Please check your browser settings.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {isSharing && permissionStatus === "denied" && (
+            <div className="mt-3 p-3 bg-red-50 text-red-700 rounded-lg border border-red-100 text-sm">
+              <div className="flex items-start gap-2">
+                <FaExclamationCircle className="text-red-500 mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="font-medium">Location Permission Denied</p>
+                  <p className="mt-1">
+                    You have denied location permission. Please enable location
+                    access in your browser settings to continue sharing.
+                  </p>
+                </div>
+              </div>
             </div>
           )}
         </div>
       )}
-
-      {/* Info text */}
-      <div className="mt-4 text-xs text-gray-600 text-center w-full">
-        <p>
-          {isSharing
-            ? "Your location is being shared with the customer in real-time"
-            : "Enable location sharing to help the customer track their delivery"}
-        </p>
-      </div>
     </div>
   );
 };

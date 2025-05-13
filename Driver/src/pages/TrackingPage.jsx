@@ -59,7 +59,7 @@ function createTruckIcon() {
     strokeWeight: 0,
     scale: 0.05,
     anchor: new window.google.maps.Point(14, 11.5),
-    rotation: 0
+    rotation: 0,
   };
 }
 
@@ -688,12 +688,12 @@ const TrackingPage = () => {
           <div className="bg-white rounded-xl shadow-md p-6">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2 mb-1">
                   <h1 className="text-2xl font-bold text-gray-800">
                     Live Tracking - #{booking.bookingId}
                   </h1>
                   <span
-                    className={`px-3 py-1 rounded-full text-sm font-medium 
+                    className={`px-3 py-1 rounded-full text-sm font-medium whitespace-nowrap
                     ${
                       booking.status === "confirmed"
                         ? "bg-blue-100 text-blue-800"
@@ -729,9 +729,15 @@ const TrackingPage = () => {
               <div>
                 {booking.status === "inTransit" ||
                 booking.status === "in_transit" ? (
-                  <span className="inline-flex items-center px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full">
+                  <span className="inline-flex items-center px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full whitespace-nowrap">
                     <span className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse mr-2"></span>
                     Active Delivery
+                  </span>
+                ) : booking.status === "delivered" ||
+                  booking.status === "completed" ? (
+                  <span className="inline-flex items-center px-3 py-1 bg-green-100 text-green-800 rounded-full whitespace-nowrap">
+                    <FaCheckCircle className="mr-2" />
+                    Delivery Complete
                   </span>
                 ) : null}
               </div>
@@ -745,16 +751,19 @@ const TrackingPage = () => {
             {/* Map container */}
             <div className="bg-white rounded-xl shadow-md overflow-hidden">
               <div className="p-4 bg-gray-50 border-b border-gray-200">
-                <div className="flex justify-between items-center">
+                <div className="flex flex-col sm:flex-row justify-between items-center gap-2">
                   <h2 className="text-lg font-semibold flex items-center gap-2">
-                    <FaMapMarkedAlt className="text-red-600" /> Live Location
-                    Map
+                    <FaMapMarkedAlt className="text-red-600" />
+                    {booking.status === "delivered" ||
+                    booking.status === "completed"
+                      ? "Delivery Map"
+                      : "Live Location Map"}
                   </h2>
 
                   {/* Route controls */}
                   <button
                     onClick={directionsShown ? hideRoute : calculateRoute}
-                    className="flex items-center gap-2 px-3 py-1.5 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 transition-colors"
+                    className="flex items-center justify-center gap-2 px-3 py-1.5 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 transition-colors w-full sm:w-auto"
                   >
                     <FaRoute size={14} />
                     <span>{directionsShown ? "Hide Route" : "Show Route"}</span>
@@ -768,7 +777,7 @@ const TrackingPage = () => {
               </div>
 
               <div className="p-4 bg-gray-50 border-t border-gray-200">
-                <div className="flex flex-wrap gap-4 justify-between items-center">
+                <div className="flex flex-col sm:flex-row gap-4 justify-between items-center">
                   {/* Distance and ETA */}
                   {distance || eta ? (
                     <div className="flex items-center gap-4 text-sm">
@@ -792,41 +801,44 @@ const TrackingPage = () => {
                   )}
 
                   {/* Map control buttons */}
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap w-full sm:w-auto justify-center sm:justify-end gap-2">
                     {/* Find Me button */}
                     <button
                       onClick={centerOnDriverLocation}
                       disabled={!driverLocation}
-                      className={`flex items-center gap-2 px-3 py-2.5 
+                      className={`flex items-center justify-center gap-2 px-3 py-2 
                         ${
                           !driverLocation
                             ? "bg-gray-300 cursor-not-allowed"
                             : "bg-blue-600 hover:bg-blue-700 cursor-pointer"
                         } 
-                        text-white text-sm rounded-lg transition-colors`}
+                        text-white text-sm rounded-lg transition-colors min-w-[100px]`}
                     >
                       <FaLocationArrow size={14} />
                       <span>Find Me</span>
                     </button>
 
-                    {/* Navigate in Google button */}
-                    {booking.pickup && booking.delivery && (
-                      <button
-                        onClick={() => {
-                          const destination = formatAddress(booking.delivery);
-                          const encodedDestination =
-                            encodeURIComponent(destination);
-                          window.open(
-                            `https://www.google.com/maps/dir/?api=1&destination=${encodedDestination}&travelmode=driving`,
-                            "_blank"
-                          );
-                        }}
-                        className="flex items-center gap-2 px-3 py-2.5 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 transition-colors cursor-pointer"
-                      >
-                        <FaDirections size={14} />
-                        <span>Navigate in Google Maps</span>
-                      </button>
-                    )}
+                    {/* Navigate in Google button - don't show for delivered bookings */}
+                    {booking.pickup &&
+                      booking.delivery &&
+                      booking.status !== "delivered" &&
+                      booking.status !== "completed" && (
+                        <button
+                          onClick={() => {
+                            const destination = formatAddress(booking.delivery);
+                            const encodedDestination =
+                              encodeURIComponent(destination);
+                            window.open(
+                              `https://www.google.com/maps/dir/?api=1&destination=${encodedDestination}&travelmode=driving`,
+                              "_blank"
+                            );
+                          }}
+                          className="flex items-center justify-center gap-2 px-3 py-2 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 transition-colors cursor-pointer min-w-[200px]"
+                        >
+                          <FaDirections size={14} />
+                          <span>Navigate in Google Maps</span>
+                        </button>
+                      )}
                   </div>
                 </div>
               </div>
@@ -835,15 +847,60 @@ const TrackingPage = () => {
             {/* Location sharing component */}
             <div className="bg-white rounded-xl shadow-md p-6">
               <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                <FaLocationArrow className="text-red-600" /> Live Location
-                Sharing
+                <FaLocationArrow
+                  className={
+                    booking.status === "delivered" ||
+                    booking.status === "completed"
+                      ? "text-green-600"
+                      : "text-red-600"
+                  }
+                />
+                {booking.status === "delivered" ||
+                booking.status === "completed"
+                  ? "Delivery Completed"
+                  : "Live Location Sharing"}
               </h2>
 
-              <LiveLocationSharing
-                bookingId={bookingId}
-                bookingStatus={booking?.status}
-                onLocationUpdate={handleLocationUpdate}
-              />
+              {booking.status === "delivered" ||
+              booking.status === "completed" ? (
+                <div className="bg-green-50 rounded-lg p-5 border border-green-100 text-center">
+                  <div className="flex flex-col items-center mb-4">
+                    <FaCheckCircle className="text-green-500 text-3xl mb-3" />
+                    <p className="text-gray-800 font-medium">
+                      Delivery Completed Successfully
+                    </p>
+                    <p className="text-gray-600 text-sm mt-1 mb-2">
+                      Location sharing has been stopped as the delivery is
+                      complete
+                    </p>
+                  </div>
+
+                  <div className="flex items-center justify-center gap-4 text-sm bg-green-100 p-3 rounded-lg">
+                    {distance && (
+                      <div className="flex items-center gap-2 text-gray-700">
+                        <FaShippingFast className="text-green-600" />
+                        <span className="font-medium">
+                          Distance: {distance}
+                        </span>
+                      </div>
+                    )}
+                    {booking.completedAt && (
+                      <div className="flex items-center gap-2 text-gray-700">
+                        <FaCheckCircle className="text-green-600" />
+                        <span className="font-medium">
+                          Delivered: {formatDate(booking.completedAt)}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <LiveLocationSharing
+                  bookingId={bookingId}
+                  bookingStatus={booking?.status}
+                  onLocationUpdate={handleLocationUpdate}
+                />
+              )}
             </div>
           </div>
 
@@ -852,13 +909,21 @@ const TrackingPage = () => {
             {/* Customer card */}
             <div className="bg-white rounded-xl shadow-md p-6">
               <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                <FaUser className="text-red-600" /> Customer Details
+                <FaUser
+                  className={
+                    booking.status === "delivered" ||
+                    booking.status === "completed"
+                      ? "text-green-600"
+                      : "text-red-600"
+                  }
+                />
+                Customer Details
               </h2>
 
               {customer ? (
                 <div className="flex flex-col">
                   <div className="flex items-center gap-4 mb-4">
-                    <div className="h-16 w-16 rounded-full bg-red-50 border border-red-100 flex items-center justify-center">
+                    <div className="h-16 w-16 rounded-full bg-red-50 border border-red-100 flex items-center justify-center flex-shrink-0">
                       {customer.profileImage ? (
                         <img
                           src={customer.profileImage}
@@ -869,11 +934,11 @@ const TrackingPage = () => {
                         <FaUser className="text-red-400 text-2xl" />
                       )}
                     </div>
-                    <div>
-                      <p className="font-semibold text-gray-800 text-lg">
+                    <div className="flex-grow">
+                      <p className="font-semibold text-gray-800 text-lg line-clamp-1">
                         {customer.fullName || customer.name || "Customer"}
                       </p>
-                      <p className="text-sm text-gray-600 mt-1">
+                      <p className="text-sm text-gray-600 mt-1 line-clamp-1">
                         {customer.email || "Email not available"}
                       </p>
                     </div>
@@ -883,7 +948,14 @@ const TrackingPage = () => {
                   {customer.phone && (
                     <a
                       href={`tel:${customer.phone}`}
-                      className="flex items-center justify-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                      className={`flex items-center justify-center gap-2 px-4 py-2 
+                        ${
+                          booking.status === "delivered" ||
+                          booking.status === "completed"
+                            ? "bg-green-600 hover:bg-green-700"
+                            : "bg-red-600 hover:bg-red-700"
+                        } 
+                        text-white rounded-lg transition-colors`}
                     >
                       <FaPhone />
                       <span>Call Customer</span>
@@ -905,7 +977,15 @@ const TrackingPage = () => {
             {/* Booking details card */}
             <div className="bg-white rounded-xl shadow-md p-6">
               <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                <FaShippingFast className="text-red-600" /> Booking Details
+                <FaShippingFast
+                  className={
+                    booking.status === "delivered" ||
+                    booking.status === "completed"
+                      ? "text-green-600"
+                      : "text-red-600"
+                  }
+                />
+                Booking Details
               </h2>
 
               <div className="space-y-4">
@@ -914,11 +994,11 @@ const TrackingPage = () => {
                   <div className="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
                     <FaMapMarkerAlt className="text-green-600" />
                   </div>
-                  <div>
+                  <div className="flex-grow">
                     <p className="font-medium text-green-800">
                       Pickup Location
                     </p>
-                    <p className="text-gray-700 text-sm mt-1">
+                    <p className="text-gray-700 text-sm mt-1 break-words">
                       {formatAddress(booking.pickup)}
                     </p>
                   </div>
@@ -929,18 +1009,18 @@ const TrackingPage = () => {
                   <div className="h-10 w-10 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
                     <FaMapMarkerAlt className="text-red-600" />
                   </div>
-                  <div>
+                  <div className="flex-grow">
                     <p className="font-medium text-red-800">
                       Delivery Location
                     </p>
-                    <p className="text-gray-700 text-sm mt-1">
+                    <p className="text-gray-700 text-sm mt-1 break-words">
                       {formatAddress(booking.delivery)}
                     </p>
                   </div>
                 </div>
 
                 {/* Date and time */}
-                <div className="mt-4 grid grid-cols-2 gap-4">
+                <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="text-sm">
                     <p className="text-gray-500">Date</p>
                     <p className="font-medium text-gray-800">
@@ -955,18 +1035,35 @@ const TrackingPage = () => {
                   </div>
                 </div>
 
-                {/* Vehicle type if available */}
-                {booking.vehicle ||
-                  (booking.vehicleType && (
-                    <div className="text-sm mt-2">
-                      <p className="text-gray-500">Vehicle Type</p>
-                      <p className="font-medium text-gray-800">
-                        {booking.vehicle ||
-                          booking.vehicleType ||
-                          "Not specified"}
+                {/* Delivery status for completed deliveries */}
+                {(booking.status === "delivered" ||
+                  booking.status === "completed") && (
+                  <div className="mt-2 p-3 bg-green-50 rounded-lg border border-green-100">
+                    <div className="flex items-center gap-2">
+                      <FaCheckCircle className="text-green-500" />
+                      <p className="font-medium text-green-800">
+                        Delivery Completed
                       </p>
                     </div>
-                  ))}
+                    {booking.completedAt && (
+                      <p className="text-sm text-gray-700 mt-1 ml-6">
+                        Completed on: {formatDate(booking.completedAt)}
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {/* Vehicle type if available */}
+                {(booking.vehicle || booking.vehicleType) && (
+                  <div className="text-sm mt-2">
+                    <p className="text-gray-500">Vehicle Type</p>
+                    <p className="font-medium text-gray-800">
+                      {booking.vehicle ||
+                        booking.vehicleType ||
+                        "Not specified"}
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
           </div>

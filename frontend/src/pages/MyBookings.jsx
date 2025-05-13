@@ -17,8 +17,9 @@ const MyBookings = () => {
   // Set dynamic page title when component mounts
   useEffect(() => {
     // Update the document title
-    document.title = "My Bookings | View Your Orders | Shiftly - A Seamless Transport System";
-    
+    document.title =
+      "My Bookings | View Your Orders | Shiftly - A Seamless Transport System";
+
     // Optional: Restore the original title when component unmounts
     return () => {
       document.title = "Shiftly | A Seamless Transport System";
@@ -35,15 +36,15 @@ const MyBookings = () => {
     if (!loading && !isProfileComplete) {
       setShowProfileModal(true);
     }
-    
+
     // Only fetch bookings if not loading the profile check
     if (!loading) {
       fetchBookings();
     }
   }, [loading, isProfileComplete]);
 
-   // Navigate to profile page
-   const goToProfile = () => {
+  // Navigate to profile page
+  const goToProfile = () => {
     if (user && user.username) {
       navigate(`/user/${user.username}`);
     }
@@ -79,6 +80,15 @@ const MyBookings = () => {
 
   const getFilteredBookings = () => {
     if (activeFilter === "all") return bookings;
+
+    // Special case for "completed" filter to include both "completed" and "delivered" statuses
+    if (activeFilter === "completed") {
+      return bookings.filter(
+        (booking) =>
+          booking.status === "completed" || booking.status === "delivered"
+      );
+    }
+
     return bookings.filter((booking) => booking.status === activeFilter);
   };
 
@@ -113,9 +123,14 @@ const MyBookings = () => {
                 <FaExclamationCircle className="h-5 w-5 text-red-500" />
               </div>
               <div className="ml-3">
-                <h3 className="text-sm font-medium text-red-800">Profile Update Required</h3>
+                <h3 className="text-sm font-medium text-red-800">
+                  Profile Update Required
+                </h3>
                 <div className="mt-2 text-sm text-red-700">
-                  <p>Please update your mobile number in your profile to view your bookings.</p>
+                  <p>
+                    Please update your mobile number in your profile to view
+                    your bookings.
+                  </p>
                 </div>
                 <div className="mt-4">
                   <button
@@ -140,6 +155,7 @@ const MyBookings = () => {
                     "confirmed",
                     "inTransit",
                     "completed",
+                    "delivered",
                     "cancelled",
                   ].map((status) => (
                     <button
@@ -170,6 +186,8 @@ const MyBookings = () => {
                 <p className="text-gray-500">
                   {activeFilter === "all"
                     ? "Your bookings will appear here once you make a booking"
+                    : activeFilter === "completed"
+                    ? "You don't have any completed or delivered bookings at the moment"
                     : `You don't have any ${activeFilter} bookings at the moment`}
                 </p>
               </div>
@@ -185,8 +203,8 @@ const MyBookings = () => {
 
         {/* Profile Update Modal */}
         {!loading && user && (
-          <ProfileUpdateModal 
-            isOpen={showProfileModal} 
+          <ProfileUpdateModal
+            isOpen={showProfileModal}
             onClose={() => setShowProfileModal(false)}
             username={user.username}
           />

@@ -17,6 +17,7 @@ import PriceDetailsCard from "../components/bookingDetails/PriceDetailsCard";
 import DriverDetailsCard from "../components/bookingDetails/DriverDetailsCard";
 import { useWebSocket } from "../context/WebSocketContext";
 import { toast } from "react-hot-toast";
+import ShipmentStatusCard from "../components/bookingDetails/ShipmentStatusCard";
 
 /**
  * @typedef {Object} DriverBid
@@ -667,6 +668,12 @@ const BookingDetailPage = () => {
           booking.status === "completed" ||
           booking.status === "delivered") && (
           <>
+            {/* Show ShipmentStatusCard for delivered/completed bookings */}
+            {(booking.status === "delivered" ||
+              booking.status === "completed") && (
+              <ShipmentStatusCard booking={booking} />
+            )}
+
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
               <div className="lg:col-span-2">
                 <ShipmentTracker booking={booking} />

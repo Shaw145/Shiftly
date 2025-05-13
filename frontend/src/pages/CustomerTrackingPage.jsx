@@ -18,6 +18,8 @@ import {
   FaHistory,
   FaPhone,
   FaEnvelope,
+  FaCheckCircle,
+  FaDirections,
 } from "react-icons/fa";
 import ShipmentTracker from "../components/tracking/ShipmentTracker";
 import LiveTrackingMap from "../components/tracking/LiveTrackingMap";
@@ -314,6 +316,17 @@ const CustomerTrackingPage = () => {
     const locationInterval = setInterval(async () => {
       if (!bookingId) return;
 
+      // Stop polling if booking is delivered or completed
+      if (
+        booking &&
+        (booking.status === "delivered" || booking.status === "completed")
+      ) {
+        console.log(
+          "Booking is delivered/completed. Stopping location updates."
+        );
+        return;
+      }
+
       try {
         // Use public endpoint instead of authenticated endpoint
         const response = await fetch(
@@ -336,7 +349,7 @@ const CustomerTrackingPage = () => {
     return () => {
       clearInterval(locationInterval);
     };
-  }, [bookingId]);
+  }, [bookingId, booking?.status]);
 
   // Generate a shareable tracking link
   const getShareableTrackingLink = () => {
@@ -471,13 +484,29 @@ const CustomerTrackingPage = () => {
 
         {/* Header section */}
         <div className="bg-white rounded-xl shadow-md p-6">
-          <div className="flex flex-wrap justify-between items-center gap-4 mb-2">
-            <h1 className="text-2xl font-bold text-gray-900">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-2">
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
               Track Shipment #{booking.bookingId}
             </h1>
-            <BookingStatusBadge status={booking.status} />
+            <div className="flex items-center gap-2">
+              {booking.status === "delivered" ||
+              booking.status === "completed" ? (
+                <span className="inline-flex items-center px-3 py-1 bg-green-100 text-green-800 rounded-full whitespace-nowrap">
+                  <FaCheckCircle className="mr-2" />
+                  Delivery Complete
+                </span>
+              ) : booking.status === "inTransit" ||
+                booking.status === "in_transit" ? (
+                <span className="inline-flex items-center px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full whitespace-nowrap">
+                  <span className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse mr-2"></span>
+                  In Transit
+                </span>
+              ) : (
+                <BookingStatusBadge status={booking.status} />
+              )}
+            </div>
           </div>
-          <p className="text-gray-500">
+          <p className="text-gray-500 text-sm">
             Last updated: {formatDate(booking.updatedAt || new Date())} at{" "}
             {formatTime(booking.updatedAt || new Date())}
           </p>
@@ -490,28 +519,35 @@ const CustomerTrackingPage = () => {
             {/* Booking info */}
             <div className="bg-white rounded-xl shadow-md p-6">
               <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                <FaClipboardCheck className="text-red-600" /> Booking
-                Information
+                <FaClipboardCheck
+                  className={
+                    booking.status === "delivered" ||
+                    booking.status === "completed"
+                      ? "text-green-600"
+                      : "text-red-600"
+                  }
+                />{" "}
+                Booking Information
               </h2>
 
               <div className="space-y-4">
                 <div>
                   <p className="text-sm text-gray-500">Booking ID</p>
-                  <p className="font-medium text-gray-800">
+                  <p className="font-medium text-gray-800 break-words">
                     {booking.bookingId}
                   </p>
                 </div>
 
                 <div className="flex flex-col sm:flex-row sm:justify-between gap-4">
-                  <div>
+                  <div className="flex-1">
                     <p className="text-sm text-gray-500">Pickup</p>
-                    <p className="font-medium text-gray-800">
+                    <p className="font-medium text-gray-800 break-words">
                       {formatAddress(booking.pickup)}
                     </p>
                   </div>
-                  <div>
+                  <div className="flex-1">
                     <p className="text-sm text-gray-500">Delivery</p>
-                    <p className="font-medium text-gray-800">
+                    <p className="font-medium text-gray-800 break-words">
                       {formatAddress(booking.delivery)}
                     </p>
                   </div>
@@ -549,7 +585,15 @@ const CustomerTrackingPage = () => {
             {driver && (
               <div className="bg-white rounded-xl shadow-md p-6">
                 <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                  <FaUserCircle className="text-red-600" /> Driver Information
+                  <FaUserCircle
+                    className={
+                      booking.status === "delivered" ||
+                      booking.status === "completed"
+                        ? "text-green-600"
+                        : "text-red-600"
+                    }
+                  />{" "}
+                  Driver Information
                 </h2>
 
                 {/* Driver profile and basic info */}
@@ -565,8 +609,8 @@ const CustomerTrackingPage = () => {
                       <FaUserCircle className="w-10 h-10 text-red-500" />
                     )}
                   </div>
-                  <div>
-                    <div className="flex items-center gap-2">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <p className="font-medium text-gray-900 text-base">
                         {driver.name || driver.fullName || "Your Driver"}
                       </p>
@@ -577,7 +621,7 @@ const CustomerTrackingPage = () => {
                         </span>
                       )}
                     </div>
-                    <div className="flex items-center gap-2 text-sm text-gray-600 mt-1">
+                    <div className="flex items-center gap-2 text-sm text-gray-600 mt-1 flex-wrap">
                       <FaStar className="text-yellow-400" />
                       <span className="font-medium">
                         {typeof driver.rating === "number"
@@ -592,13 +636,15 @@ const CustomerTrackingPage = () => {
                         {driver.trips || driver.completedTrips || "150"}+ trips
                       </span>
                     </div>
-                    <p className="text-xs text-gray-500 mt-1 flex items-center gap-1">
-                      <FaHistory className="text-gray-400" />
-                      {driver.experience || driver.joinedDate
-                        ? `Experience: ${
-                            driver.experience || "Professional Driver"
-                          }`
-                        : "Professional Driver"}
+                    <p className="text-xs text-gray-500 mt-1 flex items-center gap-1 truncate">
+                      <FaHistory className="text-gray-400 flex-shrink-0" />
+                      <span className="truncate">
+                        {driver.experience || driver.joinedDate
+                          ? `Experience: ${
+                              driver.experience || "Professional Driver"
+                            }`
+                          : "Professional Driver"}
+                      </span>
                     </p>
                   </div>
                 </div>
@@ -612,9 +658,9 @@ const CustomerTrackingPage = () => {
                   {driver.phone && (
                     <a
                       href={`tel:${driver.phone}`}
-                      className="flex items-center gap-3 text-gray-700 hover:text-red-600 cursor-pointer group"
+                      className="flex items-center gap-3 text-gray-700 hover:text-red-600 cursor-pointer group break-all"
                     >
-                      <FaPhone className="text-gray-500 group-hover:text-red-500" />
+                      <FaPhone className="text-gray-500 group-hover:text-red-500 flex-shrink-0" />
                       <span className="text-red-500 font-medium">
                         {driver.phone}
                       </span>
@@ -624,9 +670,9 @@ const CustomerTrackingPage = () => {
                   {driver.email && (
                     <a
                       href={`mailto:${driver.email}`}
-                      className="flex items-center gap-3 text-gray-700 hover:text-red-600 cursor-pointer group"
+                      className="flex items-center gap-3 text-gray-700 hover:text-red-600 cursor-pointer group break-all"
                     >
-                      <FaEnvelope className="text-gray-500 group-hover:text-red-500" />
+                      <FaEnvelope className="text-gray-500 group-hover:text-red-500 flex-shrink-0" />
                       <span className="text-red-500 font-medium">
                         {driver.email}
                       </span>
@@ -640,9 +686,9 @@ const CustomerTrackingPage = () => {
                     Vehicle Information
                   </h4>
                   <div className="flex items-start gap-3">
-                    <FaTruck className="text-gray-500 mt-0.5" />
-                    <div>
-                      <p className="font-medium text-gray-800">
+                    <FaTruck className="text-gray-500 mt-0.5 flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-gray-800 break-words">
                         {driver.vehicleDetails?.basic?.type ||
                           driver.vehicleDetails?.type ||
                           driver.vehicle ||
@@ -650,7 +696,7 @@ const CustomerTrackingPage = () => {
                       </p>
                       {driver.vehicleDetails?.make &&
                         driver.vehicleDetails?.model && (
-                          <p className="text-sm text-gray-600">
+                          <p className="text-sm text-gray-600 break-words">
                             {driver.vehicleDetails.make}{" "}
                             {driver.vehicleDetails.model}
                           </p>
@@ -709,7 +755,15 @@ const CustomerTrackingPage = () => {
             {/* Shipment status */}
             <div className="bg-white rounded-xl shadow-md p-6">
               <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                <FaTruck className="text-red-600" /> Shipment Status
+                <FaTruck
+                  className={
+                    booking.status === "delivered" ||
+                    booking.status === "completed"
+                      ? "text-green-600"
+                      : "text-red-600"
+                  }
+                />{" "}
+                Shipment Status
               </h2>
 
               <ShipmentTracker booking={booking} />
@@ -757,29 +811,92 @@ const CustomerTrackingPage = () => {
           <div className="lg:col-span-2 space-y-6">
             {/* Live tracking map */}
             <div className="bg-white rounded-xl shadow-md p-6">
-              <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                <FaMapMarkerAlt className="text-red-600" /> Live Tracking
+              <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <FaMapMarkerAlt
+                    className={
+                      booking.status === "delivered" ||
+                      booking.status === "completed"
+                        ? "text-green-600"
+                        : "text-red-600"
+                    }
+                  />{" "}
+                  Live Tracking
+                </div>
+                {booking.status !== "delivered" &&
+                  booking.status !== "completed" && (
+                    <a
+                      href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(
+                        formatAddress(booking.delivery)
+                      )}&travelmode=driving`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center justify-center gap-2 px-3 py-1.5 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 transition-colors cursor-pointer whitespace-nowrap"
+                    >
+                      <FaDirections size={14} />
+                      <span>Navigate in Maps</span>
+                    </a>
+                  )}
               </h2>
 
-              <div className="h-[700px] lg:h-[600px] relative rounded-lg overflow-hidden">
+              <div className="h-[400px] sm:h-[500px] lg:h-[600px] relative rounded-lg overflow-hidden">
                 <LiveTrackingMap
                   bookingId={bookingId}
                   initialLocation={liveLocation}
+                  isDelivered={
+                    booking.status === "delivered" ||
+                    booking.status === "completed"
+                  }
                 />
               </div>
 
-              {!isActiveDelivery && (
-                <div className="mt-4 p-3 bg-yellow-50 rounded-lg text-center">
-                  <p className="text-sm text-yellow-700">
+              <div className="mt-4 flex flex-col sm:flex-row justify-between gap-3">
+                {!isActiveDelivery ? (
+                  <div
+                    className={`p-3 ${
+                      booking.status === "delivered" ||
+                      booking.status === "completed"
+                        ? "bg-green-50"
+                        : "bg-yellow-50"
+                    } rounded-lg text-center w-full`}
+                  >
                     {booking.status === "completed" ||
-                    booking.status === "delivered"
-                      ? "This shipment has been delivered."
-                      : booking.status === "confirmed"
-                      ? "Your driver will start sharing location when they begin the delivery."
-                      : "Live tracking is not available for this shipment."}
-                  </p>
-                </div>
-              )}
+                    booking.status === "delivered" ? (
+                      <div className="flex items-center justify-center gap-2">
+                        <FaCheckCircle className="text-green-500" />
+                        <p className="text-sm text-green-700 font-medium">
+                          This shipment has been delivered successfully. Live
+                          tracking has ended.
+                        </p>
+                      </div>
+                    ) : booking.status === "confirmed" ? (
+                      <p className="text-sm text-yellow-700">
+                        Your driver will start sharing location when they begin
+                        the delivery.
+                      </p>
+                    ) : (
+                      <p className="text-sm text-yellow-700">
+                        Live tracking is not available for this shipment.
+                      </p>
+                    )}
+                  </div>
+                ) : (
+                  <div className="flex flex-wrap gap-3 w-full justify-center sm:justify-start">
+                    <div className="flex items-center gap-2 px-3 py-2 bg-blue-50 text-blue-700 rounded-lg">
+                      <FaTruck />
+                      <span className="text-sm font-medium">
+                        Driver is sharing location
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 px-3 py-2 bg-green-50 text-green-700 rounded-lg">
+                      <FaRegClock />
+                      <span className="text-sm font-medium">
+                        Updates every minute
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Pickup and delivery details */}
@@ -789,24 +906,26 @@ const CustomerTrackingPage = () => {
                   <FaMapMarkerAlt className="text-red-600" /> Pickup Details
                 </h2>
                 <div className="bg-red-50 p-3 rounded-lg">
-                  <p className="font-medium text-gray-800 mb-1">
+                  <p className="font-medium text-gray-800 mb-1 break-words">
                     {formatAddress(booking.pickup)}
                   </p>
                   {booking.pickup?.landmark && (
-                    <p className="text-sm text-gray-600">
+                    <p className="text-sm text-gray-600 break-words">
                       Landmark: {booking.pickup.landmark}
                     </p>
                   )}
                 </div>
                 <div className="mt-3 text-sm text-gray-600">
                   <div className="flex items-center gap-2">
-                    <FaCalendarAlt className="text-gray-500" />
-                    {formatDate(booking.schedule?.date)}
+                    <FaCalendarAlt className="text-gray-500 flex-shrink-0" />
+                    <span className="break-words">
+                      {formatDate(booking.schedule?.date)}
+                    </span>
                   </div>
                   {booking.schedule?.time && (
                     <div className="flex items-center gap-2 mt-1">
-                      <FaRegClock className="text-gray-500" />
-                      {booking.schedule.time}
+                      <FaRegClock className="text-gray-500 flex-shrink-0" />
+                      <span>{booking.schedule.time}</span>
                     </div>
                   )}
                 </div>
@@ -817,11 +936,11 @@ const CustomerTrackingPage = () => {
                   <FaMapMarkerAlt className="text-green-600" /> Delivery Details
                 </h2>
                 <div className="bg-green-50 p-3 rounded-lg">
-                  <p className="font-medium text-gray-800 mb-1">
+                  <p className="font-medium text-gray-800 mb-1 break-words">
                     {formatAddress(booking.delivery)}
                   </p>
                   {booking.delivery?.landmark && (
-                    <p className="text-sm text-gray-600">
+                    <p className="text-sm text-gray-600 break-words">
                       Landmark: {booking.delivery.landmark}
                     </p>
                   )}
@@ -829,14 +948,18 @@ const CustomerTrackingPage = () => {
                 <div className="mt-3 text-sm text-gray-600">
                   {booking.estimatedArrival ? (
                     <div className="flex items-center gap-2">
-                      <FaRegClock className="text-gray-500" />
-                      Est. Arrival: {formatDate(booking.estimatedArrival)}{" "}
-                      {formatTime(booking.estimatedArrival)}
+                      <FaRegClock className="text-gray-500 flex-shrink-0" />
+                      <span className="break-words">
+                        Est. Arrival: {formatDate(booking.estimatedArrival)}{" "}
+                        {formatTime(booking.estimatedArrival)}
+                      </span>
                     </div>
                   ) : (
                     <div className="flex items-center gap-2">
-                      <FaInfoCircle className="text-gray-500" />
-                      Estimated arrival time not available
+                      <FaInfoCircle className="text-gray-500 flex-shrink-0" />
+                      <span className="break-words">
+                        Estimated arrival time not available
+                      </span>
                     </div>
                   )}
                 </div>

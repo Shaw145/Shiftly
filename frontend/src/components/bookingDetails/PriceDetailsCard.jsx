@@ -1,4 +1,5 @@
 import { calculateBookingPrice } from "../../utils/priceCalculator";
+import PropTypes from "prop-types";
 
 const PriceDetailsCard = ({ booking }) => {
   // Helper function to safely get payment amount
@@ -70,7 +71,9 @@ const PriceDetailsCard = ({ booking }) => {
       if (
         (booking.status === "confirmed" ||
           booking.status === "inTransit" ||
-          booking.status === "completed") &&
+          booking.status === "in_transit" ||
+          booking.status === "completed" ||
+          booking.status === "delivered") &&
         booking.estimatedPrice?.min
       ) {
         return parseFloat(booking.estimatedPrice.min);
@@ -109,7 +112,8 @@ const PriceDetailsCard = ({ booking }) => {
     booking.status === "confirmed" ||
     booking.status === "inTransit" ||
     booking.status === "in_transit" ||
-    booking.status === "completed"
+    booking.status === "completed" ||
+    booking.status === "delivered"
   ) {
     // Calculate GST and base amount
     const gstAmount = Math.round(totalPrice * 0.18);
@@ -145,20 +149,40 @@ const PriceDetailsCard = ({ booking }) => {
 
     const urgencyCharge = Math.round(baseSubtotal * urgencyMultiplier);
 
+    // Check if the booking is completed or delivered
+    const isCompleted =
+      booking.status === "completed" || booking.status === "delivered";
+
     return (
       <div className="bg-white rounded-xl shadow-lg p-6">
         <h2 className="text-xl font-bold text-gray-900 mb-4">Price Details</h2>
 
         {/* Show estimated price range for reference */}
-        <div className="bg-blue-50 rounded-lg p-4 mb-6">
-          <p className="text-sm text-blue-700">
+        <div
+          className={`${
+            isCompleted ? "bg-green-50 border border-green-100" : "bg-blue-50"
+          } rounded-lg p-4 mb-6`}
+        >
+          <p
+            className={`text-sm ${
+              isCompleted ? "text-green-700" : "text-blue-700"
+            }`}
+          >
             Estimated Price Range: ₹{booking.estimatedPrice?.min || 0} - ₹
             {booking.estimatedPrice?.max || 0}
           </p>
-          <p className="text-sm font-semibold text-blue-800 mt-1">
+          <p
+            className={`text-sm font-semibold ${
+              isCompleted ? "text-green-800" : "text-blue-800"
+            } mt-1`}
+          >
             Final Price: ₹{totalPrice.toLocaleString("en-IN")}
           </p>
-          {booking.finalPrice ? (
+          {isCompleted ? (
+            <p className="text-xs text-green-600 mt-1">
+              Payment completed. This is the final amount charged.
+            </p>
+          ) : booking.finalPrice ? (
             <p className="text-xs text-blue-600 mt-1">
               Payment completed. This is the final amount charged.
             </p>
@@ -173,23 +197,25 @@ const PriceDetailsCard = ({ booking }) => {
         <div className="space-y-3">
           <div className="flex justify-between items-center">
             <span className="text-gray-600">Base Fare</span>
-            <span className="text-gray-900">₹{baseFare}</span>
+            <span className="text-gray-900 ml-2 text-right">₹{baseFare}</span>
           </div>
-          <div className="flex justify-between items-center">
+          <div className="flex justify-between items-center flex-wrap">
             <span className="text-gray-600">
               Distance Charge ({booking.distance || "N/A"} km)
             </span>
-            <span className="text-gray-900">₹{distanceCharge}</span>
+            <span className="text-gray-900 ml-2 text-right">
+              ₹{distanceCharge}
+            </span>
           </div>
           <div className="flex justify-between items-center">
             <span className="text-gray-600">Goods Handling Fee</span>
-            <span className="text-gray-900">₹{goodsFee}</span>
+            <span className="text-gray-900 ml-2 text-right">₹{goodsFee}</span>
           </div>
 
           {/* Always show insurance */}
-          <div className="flex justify-between items-center">
+          <div className="flex justify-between items-center flex-wrap">
             <span className="text-gray-600">Insurance Coverage</span>
-            <span className="text-gray-900">
+            <span className="text-gray-900 ml-2 text-right">
               {booking.schedule?.insurance === "none"
                 ? "No Insurance (₹0)"
                 : booking.schedule?.insurance === "basic"
@@ -199,9 +225,9 @@ const PriceDetailsCard = ({ booking }) => {
           </div>
 
           {/* Always show urgency */}
-          <div className="flex justify-between items-center">
+          <div className="flex justify-between items-center flex-wrap">
             <span className="text-gray-600">Delivery Speed</span>
-            <span className="text-gray-900">
+            <span className="text-gray-900 ml-2 text-right">
               {booking.schedule?.urgency === "standard"
                 ? "Standard (No Extra Charge)"
                 : booking.schedule?.urgency === "express"
@@ -212,13 +238,19 @@ const PriceDetailsCard = ({ booking }) => {
 
           <div className="flex justify-between items-center">
             <span className="text-gray-600">GST (18%)</span>
-            <span className="text-gray-900">₹{gstAmount}</span>
+            <span className="text-gray-900 ml-2 text-right">₹{gstAmount}</span>
           </div>
 
           <div className="border-t pt-3 mt-3">
             <div className="flex justify-between items-center font-bold">
               <span className="text-gray-900">Total Amount</span>
-              <span className="text-xl text-red-600">₹{totalPrice}</span>
+              <span
+                className={`text-xl ${
+                  isCompleted ? "text-green-600" : "text-red-600"
+                } ml-2 text-right`}
+              >
+                ₹{totalPrice}
+              </span>
             </div>
           </div>
         </div>
@@ -233,6 +265,44 @@ const PriceDetailsCard = ({ booking }) => {
       <p className="text-gray-600">Price information not available</p>
     </div>
   );
+};
+
+// Add PropTypes validation
+PriceDetailsCard.propTypes = {
+  booking: PropTypes.shape({
+    status: PropTypes.string,
+    finalPrice: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+    price: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+    payment: PropTypes.shape({
+      amount: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+    }),
+    paymentId: PropTypes.oneOfType([
+      PropTypes.string,
+      PropTypes.shape({
+        amount: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+      }),
+    ]),
+    driverId: PropTypes.oneOfType([
+      PropTypes.string,
+      PropTypes.shape({
+        price: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+      }),
+    ]),
+    acceptedBid: PropTypes.shape({
+      amount: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+      price: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+    }),
+    driverBids: PropTypes.array,
+    estimatedPrice: PropTypes.shape({
+      min: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+      max: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+    }),
+    distance: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+    schedule: PropTypes.shape({
+      insurance: PropTypes.string,
+      urgency: PropTypes.string,
+    }),
+  }),
 };
 
 export default PriceDetailsCard;

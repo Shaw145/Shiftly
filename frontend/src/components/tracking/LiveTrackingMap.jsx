@@ -6,6 +6,7 @@ import {
   FaInfoCircle,
   FaTruck,
   FaClock,
+  FaCheckCircle,
 } from "react-icons/fa";
 import PropTypes from "prop-types";
 
@@ -28,7 +29,11 @@ const loadGoogleMapsScript = (callback) => {
   document.head.appendChild(script);
 };
 
-const LiveTrackingMap = ({ bookingId, initialLocation }) => {
+const LiveTrackingMap = ({
+  bookingId,
+  initialLocation,
+  isDelivered = false,
+}) => {
   // State for location and UI
   const [location, setLocation] = useState(initialLocation);
   const [bookingDetails, setBookingDetails] = useState(null);
@@ -153,7 +158,7 @@ const LiveTrackingMap = ({ bookingId, initialLocation }) => {
     const directionsRenderer = new window.google.maps.DirectionsRenderer({
       suppressMarkers: true,
       polylineOptions: {
-        strokeColor: "#ff4444",
+        strokeColor: isDelivered ? "#4CAF50" : "#ff4444", // Green for delivered, red for active
         strokeOpacity: 0.8,
         strokeWeight: 5,
       },
@@ -170,75 +175,118 @@ const LiveTrackingMap = ({ bookingId, initialLocation }) => {
       addMarkerFromAddress(bookingDetails.delivery, "delivery");
     }
 
-    // Add driver marker with custom truck icon
-    const driverMarker = new window.google.maps.Marker({
-      map: mapInstance,
-      icon: {
-        // Use a custom truck SVG icon
-        url:
-          "data:image/svg+xml;charset=UTF-8," +
-          encodeURIComponent(`
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--!Font Awesome Free 6.7.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2025 Fonticons, Inc.--><path fill="#ea1010" d="M48 0C21.5 0 0 21.5 0 48L0 368c0 26.5 21.5 48 48 48l16 0c0 53 43 96 96 96s96-43 96-96l128 0c0 53 43 96 96 96s96-43 96-96l32 0c17.7 0 32-14.3 32-32s-14.3-32-32-32l0-64 0-32 0-18.7c0-17-6.7-33.3-18.7-45.3L512 114.7c-12-12-28.3-18.7-45.3-18.7L416 96l0-48c0-26.5-21.5-48-48-48L48 0zM416 160l50.7 0L544 237.3l0 18.7-128 0 0-96zM112 416a48 48 0 1 1 96 0 48 48 0 1 1 -96 0zm368-48a48 48 0 1 1 0 96 48 48 0 1 1 0-96z"/></svg>
-
-        `),
-        scaledSize: new window.google.maps.Size(40, 40),
-        anchor: new window.google.maps.Point(20, 20),
-        origin: new window.google.maps.Point(0, 0),
-      },
-      title: "Driver Location",
-      zIndex: 10, // Put the truck on top of other markers
-    });
-    driverMarkerRef.current = driverMarker;
-
-    // Pulse effect around driver marker
-    const pulseRadius = new window.google.maps.Circle({
-      strokeColor: "#ff4444",
-      strokeOpacity: 0.5,
-      strokeWeight: 2,
-      fillColor: "#ff4444",
-      fillOpacity: 0.1,
-      map: mapInstance,
-      radius: 80,
-    });
-
-    // Connect pulse to driver position
-    driverMarker.addListener("position_changed", () => {
-      pulseRadius.setCenter(driverMarker.getPosition());
-    });
-
-    // If we already have a location, set it
-    if (location) {
-      const position = new window.google.maps.LatLng(
-        location.lat,
-        location.lng
-      );
-      driverMarker.setPosition(position);
-      pulseRadius.setCenter(position);
-
-      // Center map on driver location
-      mapInstance.setCenter(position);
-      mapInstance.setZoom(15);
-
-      // Calculate ETA if delivery marker exists
+    // Special handling for delivered bookings
+    if (isDelivered) {
+      // For delivered bookings, show the completed route rather than live tracking
+      // Add a completion marker at the delivery location
       if (deliveryMarkerRef.current) {
-        calculateEta(position, deliveryMarkerRef.current.getPosition());
+        // Create a completion indicator at delivery
+        new window.google.maps.Marker({
+          position: deliveryMarkerRef.current.getPosition(),
+          map: mapInstance,
+          icon: {
+            path: window.google.maps.SymbolPath.CIRCLE,
+            scale: 10,
+            fillColor: "#4CAF50",
+            fillOpacity: 1,
+            strokeColor: "#FFFFFF",
+            strokeWeight: 2,
+          },
+          zIndex: 11,
+        });
+
+        // Add completion message as an InfoWindow
+        const infoWindow = new window.google.maps.InfoWindow({
+          content: `
+            <div style="padding: 8px; text-align: center;">
+              <div style="color: #4CAF50; font-weight: bold; margin-bottom: 4px;">
+                Delivery Completed
+              </div>
+              <div style="font-size: 12px; color: #555;">
+                ${new Date(
+                  bookingDetails.updatedAt ||
+                    bookingDetails.completedAt ||
+                    new Date()
+                ).toLocaleDateString()}
+              </div>
+            </div>
+          `,
+        });
+
+        // Show info window by default for delivered bookings
+        infoWindow.open(mapInstance, deliveryMarkerRef.current);
       }
     } else {
-      // If no live location yet, show directions between pickup and delivery points
-      setTimeout(() => {
-        if (pickupMarkerRef.current && deliveryMarkerRef.current) {
-          calculateRoute();
+      // Add driver marker with custom truck icon for active deliveries
+      const driverMarker = new window.google.maps.Marker({
+        map: mapInstance,
+        icon: {
+          // Use a custom truck SVG icon
+          url:
+            "data:image/svg+xml;charset=UTF-8," +
+            encodeURIComponent(`
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--!Font Awesome Free 6.7.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2025 Fonticons, Inc.--><path fill="#ea1010" d="M48 0C21.5 0 0 21.5 0 48L0 368c0 26.5 21.5 48 48 48l16 0c0 53 43 96 96 96s96-43 96-96l128 0c0 53 43 96 96 96s96-43 96-96l32 0c17.7 0 32-14.3 32-32s-14.3-32-32-32l0-64 0-32 0-18.7c0-17-6.7-33.3-18.7-45.3L512 114.7c-12-12-28.3-18.7-45.3-18.7L416 96l0-48c0-26.5-21.5-48-48-48L48 0zM416 160l50.7 0L544 237.3l0 18.7-128 0 0-96zM112 416a48 48 0 1 1 96 0 48 48 0 1 1 -96 0zm368-48a48 48 0 1 1 0 96 48 48 0 1 1 0-96z"/></svg>
+
+            `),
+          scaledSize: new window.google.maps.Size(40, 40),
+          anchor: new window.google.maps.Point(20, 20),
+          origin: new window.google.maps.Point(0, 0),
+        },
+        title: "Driver Location",
+        zIndex: 10, // Put the truck on top of other markers
+      });
+      driverMarkerRef.current = driverMarker;
+
+      // Pulse effect around driver marker
+      const pulseRadius = new window.google.maps.Circle({
+        strokeColor: "#ff4444",
+        strokeOpacity: 0.5,
+        strokeWeight: 2,
+        fillColor: "#ff4444",
+        fillOpacity: 0.1,
+        map: mapInstance,
+        radius: 80,
+      });
+
+      // Connect pulse to driver position
+      driverMarker.addListener("position_changed", () => {
+        pulseRadius.setCenter(driverMarker.getPosition());
+      });
+
+      // If we already have a location, set it
+      if (location) {
+        const position = new window.google.maps.LatLng(
+          location.lat,
+          location.lng
+        );
+        driverMarker.setPosition(position);
+        pulseRadius.setCenter(position);
+
+        // Center map on driver location
+        mapInstance.setCenter(position);
+        mapInstance.setZoom(15);
+
+        // Calculate ETA if delivery marker exists
+        if (deliveryMarkerRef.current) {
+          calculateEta(position, deliveryMarkerRef.current.getPosition());
         }
-      }, 1000);
+      }
     }
+
+    // Always calculate route between pickup and delivery for all bookings
+    setTimeout(() => {
+      if (pickupMarkerRef.current && deliveryMarkerRef.current) {
+        calculateRoute();
+      }
+    }, 1000);
 
     // Set directions shown state
     setDirectionsShown(true);
-  }, [googleMapsLoaded, bookingDetails, location]);
+  }, [googleMapsLoaded, bookingDetails, location, isDelivered]);
 
   // Set up WebSocket connection for live updates
   useEffect(() => {
-    if (!bookingId) return;
+    if (!bookingId || isDelivered) return; // Don't set up websocket if delivered
 
     // Determine the protocol based on the current page protocol
     const wsProtocol = window.location.protocol === "https:" ? "wss:" : "ws:";
@@ -318,39 +366,43 @@ const LiveTrackingMap = ({ bookingId, initialLocation }) => {
         socket.close();
       }
     };
-  }, [bookingId]);
+  }, [bookingId, isDelivered]);
 
-  // Poll for driver location updates as a fallback for WebSocket
+  // Set up interval polling for driver location
   useEffect(() => {
-    // Avoid websocket + polling race conditions by having a delay
-    const pollInterval = 15000; // 15 seconds
+    if (!bookingId || isDelivered) return; // Don't poll if delivered
 
-    const pollDriverLocation = async () => {
-      try {
-        const response = await fetch(
-          `${
-            import.meta.env.VITE_BACKEND_URL
-          }/api/tracking/public/${bookingId}/location`
-        );
+    // Poll driver location every 20 seconds
+    const intervalId = setInterval(() => {
+      pollDriverLocation();
+    }, 20000);
 
-        const data = await response.json();
+    // Initial poll
+    pollDriverLocation();
 
-        if (response.ok && data.success && data.location) {
-          setLocation(data.location);
-        }
-      } catch (error) {
-        console.error("Error polling driver location:", error);
-      }
-    };
-
-    // Start polling
-    const intervalId = setInterval(pollDriverLocation, pollInterval);
-
-    // Clean up on unmount
     return () => {
       clearInterval(intervalId);
     };
-  }, [bookingId]);
+  }, [bookingId, isDelivered]);
+
+  // Poll driver location function
+  const pollDriverLocation = async () => {
+    try {
+      const response = await fetch(
+        `${
+          import.meta.env.VITE_BACKEND_URL
+        }/api/tracking/public/${bookingId}/location`
+      );
+
+      const data = await response.json();
+
+      if (response.ok && data.success && data.location) {
+        setLocation(data.location);
+      }
+    } catch (error) {
+      console.error("Error polling driver location:", error);
+    }
+  };
 
   // Add marker from address
   const addMarkerFromAddress = (addressObject, type) => {
@@ -665,10 +717,12 @@ LiveTrackingMap.propTypes = {
     lat: PropTypes.number.isRequired,
     lng: PropTypes.number.isRequired,
   }),
+  isDelivered: PropTypes.bool,
 };
 
 LiveTrackingMap.defaultProps = {
   initialLocation: null,
+  isDelivered: false,
 };
 
 export default LiveTrackingMap;
