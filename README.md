@@ -72,10 +72,10 @@ The platform provides role-based dashboards for customers and drivers, supports 
 ## 🚀 Getting Started
 
 ### Prerequisites
-- Node.js (v18 or higher)
-- MongoDB
+- [Node.js (v18 or higher)](https://nodejs.org/en/download)
+- [MongoDB](https://www.mongodb.com/)
 - npm or yarn
-- Google Maps API key
+- [Google Maps API key](https://console.cloud.google.com/)
 - [OpenRouteService Account](https://openrouteservice.org/)
 - [Twilio Account](https://www.twilio.com/en-us)
 - [Cloudinary Account](https://cloudinary.com/)
@@ -147,6 +147,7 @@ The platform provides role-based dashboards for customers and drivers, supports 
    VITE_API_URL=http://localhost:5000
    VITE_GOOGLE_MAPS_API_KEY=your_google_maps_api_key
    ```
+   use `VITE_WS_URL=wss://[Backend_URL]/ws` for real deployment
 
 5. **Start the Application**
    ```bash
