@@ -208,8 +208,8 @@ const LiveTrackingMap = ({
                     bookingDetails.completedAt ||
                     new Date()
                 ).toLocaleDateString()}
-              </div>
-            </div>
+        </div>
+      </div>
           `,
         });
 
@@ -703,8 +703,8 @@ const LiveTrackingMap = ({
             <p className="text-gray-700">
               Driver&apos;s live location will appear here once they start
               sharing their location.
-            </p>
-          </div>
+        </p>
+      </div>
         </div>
       )}
     </div>

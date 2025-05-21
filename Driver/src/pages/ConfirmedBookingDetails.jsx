@@ -279,16 +279,16 @@ const ConfirmedBookingDetails = () => {
   const formatDate = (dateString) => {
     if (!dateString) return "Not specified";
     try {
-      const date = new Date(dateString);
+    const date = new Date(dateString);
       // Check if date is valid
       if (isNaN(date.getTime())) return "Invalid date";
 
-      return date.toLocaleDateString("en-IN", {
-        weekday: "short",
-        day: "numeric",
-        month: "short",
-        year: "numeric",
-      });
+    return date.toLocaleDateString("en-IN", {
+      weekday: "short",
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    });
     } catch (error) {
       console.error("Error formatting date:", error);
       return "Date error";
@@ -303,13 +303,13 @@ const ConfirmedBookingDetails = () => {
 
     // Handle object locations
     if (typeof location === "object" && location !== null) {
-      const parts = [];
+    const parts = [];
 
-      if (location.addressLine1) parts.push(location.addressLine1);
-      if (location.addressLine2) parts.push(location.addressLine2);
-      if (location.city) parts.push(location.city);
-      if (location.state) parts.push(location.state);
-      if (location.pincode) parts.push(location.pincode);
+    if (location.addressLine1) parts.push(location.addressLine1);
+    if (location.addressLine2) parts.push(location.addressLine2);
+    if (location.city) parts.push(location.city);
+    if (location.state) parts.push(location.state);
+    if (location.pincode) parts.push(location.pincode);
 
       return parts.length > 0
         ? parts.join(", ")
@@ -370,15 +370,15 @@ const ConfirmedBookingDetails = () => {
       );
     }
 
-    return (
-      <button
+      return (
+        <button
         onClick={() => updateBookingStatus(nextStatus)}
         className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg flex items-center gap-2"
-      >
+        >
         {getStatusButtonIcon()}
         {getStatusButtonLabel()}
-      </button>
-    );
+        </button>
+      );
   };
 
   const renderStatusTimeline = () => {
@@ -410,7 +410,7 @@ const ConfirmedBookingDetails = () => {
     const currentStatusId =
       booking.status === "in_transit" ? "inTransit" : booking.status;
 
-    return (
+      return (
       <div className="space-y-4">
         {statuses.map((status, index) => {
           // When delivery is completed, ALL steps are active and green
@@ -442,7 +442,7 @@ const ConfirmedBookingDetails = () => {
                   }`}
                 >
                   {status.icon}
-                </div>
+        </div>
                 <div className="ml-4 flex-1">
                   <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center">
                     <p className="font-medium mb-1 sm:mb-0">{status.label}</p>
@@ -611,8 +611,8 @@ const ConfirmedBookingDetails = () => {
               <div>
                 <div className="flex flex-wrap items-center gap-2">
                   <h1 className="text-2xl font-bold text-gray-800">
-                    Booking #{booking.bookingId}
-                  </h1>
+                  Booking #{booking.bookingId}
+                </h1>
                   <span
                     className={`px-3 py-1 rounded-full text-sm font-medium whitespace-nowrap
                     ${
@@ -632,14 +632,14 @@ const ConfirmedBookingDetails = () => {
                   </span>
                 </div>
                 <p className="text-gray-500 mt-1">
-                  {booking.confirmedAt
-                    ? `Confirmed: ${formatDate(booking.confirmedAt)}`
-                    : ""}
+                    {booking.confirmedAt
+                      ? `Confirmed: ${formatDate(booking.confirmedAt)}`
+                      : ""}
                 </p>
-              </div>
+                </div>
               <div className="mt-2 sm:mt-0">{renderStatusButton()}</div>
+              </div>
             </div>
-          </div>
         </div>
 
         {/* Tab navigation */}
@@ -675,139 +675,139 @@ const ConfirmedBookingDetails = () => {
         </div>
 
         {activeTab === "details" && (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Left Column */}
-            <div className="lg:col-span-2 space-y-6">
-              {/* Customer Details Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Left Column */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Customer Details Section */}
               <div className="bg-white rounded-xl shadow-md p-6">
-                <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+              <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
                   <FaUser className="text-red-600" /> Customer Information
-                </h2>
+              </h2>
 
-                <div className="flex flex-col md:flex-row gap-6">
-                  {/* Customer Photo */}
-                  <div className="flex-shrink-0">
-                    {customer?.profileImage ? (
-                      <img
-                        src={customer.profileImage}
-                        alt={customer.fullName || "Customer"}
-                        className="w-24 h-24 rounded-full object-cover border-2 border-gray-200"
-                      />
-                    ) : (
+              <div className="flex flex-col md:flex-row gap-6">
+                {/* Customer Photo */}
+                <div className="flex-shrink-0">
+                  {customer?.profileImage ? (
+                    <img
+                      src={customer.profileImage}
+                      alt={customer.fullName || "Customer"}
+                      className="w-24 h-24 rounded-full object-cover border-2 border-gray-200"
+                    />
+                  ) : (
                       <div className="w-24 h-24 rounded-full bg-red-50 flex items-center justify-center">
                         <FaUser className="text-red-400 text-3xl" />
-                      </div>
-                    )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Customer Details */}
+                <div className="flex-grow space-y-3">
+                  <div>
+                    <p className="text-sm text-gray-500">Full Name</p>
+                    <p className="text-gray-800 font-medium">
+                      {customer?.fullName || "Not available"}
+                    </p>
                   </div>
 
-                  {/* Customer Details */}
-                  <div className="flex-grow space-y-3">
-                    <div>
-                      <p className="text-sm text-gray-500">Full Name</p>
-                      <p className="text-gray-800 font-medium">
-                        {customer?.fullName || "Not available"}
-                      </p>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <FaPhone className="text-gray-500" />
-                      <a
-                        href={`tel:${customer?.phone}`}
+                  <div className="flex items-center gap-2">
+                    <FaPhone className="text-gray-500" />
+                    <a
+                      href={`tel:${customer?.phone}`}
                         className="text-red-600 hover:underline cursor-pointer"
-                      >
-                        {customer?.phone || "Not available"}
-                      </a>
-                    </div>
+                    >
+                      {customer?.phone || "Not available"}
+                    </a>
+                  </div>
 
-                    <div className="flex items-center gap-2">
-                      <FaEnvelope className="text-gray-500" />
-                      <a
-                        href={`mailto:${customer?.email}`}
+                  <div className="flex items-center gap-2">
+                    <FaEnvelope className="text-gray-500" />
+                    <a
+                      href={`mailto:${customer?.email}`}
                         className="text-red-600 hover:underline cursor-pointer"
-                      >
-                        {customer?.email || "Not available"}
-                      </a>
-                    </div>
+                    >
+                      {customer?.email || "Not available"}
+                    </a>
                   </div>
                 </div>
               </div>
+            </div>
 
-              {/* Shipment Details Section */}
+            {/* Shipment Details Section */}
               <div className="bg-white rounded-xl shadow-md p-6">
-                <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+              <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
                   <FaShippingFast className="text-red-600" /> Shipment Details
-                </h2>
+              </h2>
 
                 <div className="space-y-6">
-                  {/* Pickup and Delivery */}
+                {/* Pickup and Delivery */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="p-5 bg-red-50 rounded-lg border border-red-100">
-                      <div className="flex items-start gap-3">
-                        <div className="bg-red-100 p-2 rounded-full">
-                          <FaMapMarkerAlt className="text-red-600" />
-                        </div>
-                        <div>
-                          <p className="text-sm text-gray-500 mb-1">
-                            Pickup Address
-                          </p>
-                          <p className="text-gray-800 font-medium">
-                            {formatLocation(booking.pickup)}
-                          </p>
-                          {booking.pickup?.landmark && (
-                            <p className="text-sm text-gray-600 mt-1">
-                              Landmark: {booking.pickup.landmark}
-                            </p>
-                          )}
-                        </div>
+                    <div className="flex items-start gap-3">
+                      <div className="bg-red-100 p-2 rounded-full">
+                        <FaMapMarkerAlt className="text-red-600" />
                       </div>
-                    </div>
-
-                    <div className="p-5 bg-green-50 rounded-lg border border-green-100">
-                      <div className="flex items-start gap-3">
-                        <div className="bg-green-100 p-2 rounded-full">
-                          <FaMapMarkerAlt className="text-green-600" />
-                        </div>
-                        <div>
-                          <p className="text-sm text-gray-500 mb-1">
-                            Delivery Address
-                          </p>
+                      <div>
+                        <p className="text-sm text-gray-500 mb-1">
+                          Pickup Address
+                        </p>
                           <p className="text-gray-800 font-medium">
-                            {formatLocation(booking.delivery)}
+                          {formatLocation(booking.pickup)}
+                        </p>
+                        {booking.pickup?.landmark && (
+                          <p className="text-sm text-gray-600 mt-1">
+                            Landmark: {booking.pickup.landmark}
                           </p>
-                          {booking.delivery?.landmark && (
-                            <p className="text-sm text-gray-600 mt-1">
-                              Landmark: {booking.delivery.landmark}
-                            </p>
-                          )}
-                        </div>
+                        )}
                       </div>
                     </div>
                   </div>
 
-                  {/* Other details */}
+                    <div className="p-5 bg-green-50 rounded-lg border border-green-100">
+                    <div className="flex items-start gap-3">
+                      <div className="bg-green-100 p-2 rounded-full">
+                        <FaMapMarkerAlt className="text-green-600" />
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-500 mb-1">
+                          Delivery Address
+                        </p>
+                          <p className="text-gray-800 font-medium">
+                          {formatLocation(booking.delivery)}
+                        </p>
+                        {booking.delivery?.landmark && (
+                          <p className="text-sm text-gray-600 mt-1">
+                            Landmark: {booking.delivery.landmark}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Other details */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* Schedule */}
+                  {/* Schedule */}
                     <div className="p-5 bg-gray-50 rounded-lg border border-gray-100">
-                      <div className="flex items-start gap-3">
+                    <div className="flex items-start gap-3">
                         <div className="bg-red-100 p-2 rounded-full">
                           <FaCalendarAlt className="text-red-600" />
-                        </div>
-                        <div>
-                          <p className="text-sm text-gray-500 mb-1">Schedule</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-500 mb-1">Schedule</p>
                           <div className="space-y-2">
-                            <div className="flex items-center gap-2">
-                              <FaCalendarAlt className="text-gray-400" />
+                          <div className="flex items-center gap-2">
+                            <FaCalendarAlt className="text-gray-400" />
                               <span className="text-gray-800 font-medium">
-                                {formatDate(booking.schedule?.date)}
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <FaClock className="text-gray-400" />
-                              <span className="text-gray-800 font-medium">
-                                {booking.schedule?.time || "Not specified"}
-                              </span>
-                            </div>
+                              {formatDate(booking.schedule?.date)}
+                            </span>
                           </div>
+                          <div className="flex items-center gap-2">
+                            <FaClock className="text-gray-400" />
+                              <span className="text-gray-800 font-medium">
+                              {booking.schedule?.time || "Not specified"}
+                            </span>
+                          </div>
+                        </div>
                           {booking.schedule?.specialInstructions &&
                             typeof booking.schedule.specialInstructions ===
                               "string" && (
@@ -816,21 +816,21 @@ const ConfirmedBookingDetails = () => {
                                   <FaInfoCircle /> Special Instructions
                                 </h4>
                                 <p className="text-sm text-yellow-700">
-                                  {booking.schedule.specialInstructions}
-                                </p>
-                              </div>
-                            )}
-                        </div>
+                              {booking.schedule.specialInstructions}
+                            </p>
+                          </div>
+                        )}
                       </div>
                     </div>
+                  </div>
 
                     {/* Goods & Vehicle */}
                     <div className="p-5 bg-gray-50 rounded-lg border border-gray-100">
                       <div className="space-y-4">
-                        <div className="flex items-start gap-3">
-                          <div className="bg-yellow-100 p-2 rounded-full">
-                            <FaBoxOpen className="text-yellow-600" />
-                          </div>
+                    <div className="flex items-start gap-3">
+                      <div className="bg-yellow-100 p-2 rounded-full">
+                        <FaBoxOpen className="text-yellow-600" />
+                      </div>
                           <div>
                             <p className="text-sm text-gray-500 mb-1">
                               Vehicle Type
@@ -865,9 +865,9 @@ const ConfirmedBookingDetails = () => {
                         </div>
                       </div>
                     </div>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </div>
 
               {/* Goods Details */}
               <div className="mt-6 bg-white rounded-xl shadow-md p-6">
@@ -892,7 +892,7 @@ const ConfirmedBookingDetails = () => {
                             .join(" ")
                         : booking.goodsType || "N/A"}
                     </span>
-                  </div>
+                      </div>
 
                   {booking.goods &&
                     booking.goods.items &&
@@ -914,8 +914,8 @@ const ConfirmedBookingDetails = () => {
                               </li>
                             ))}
                           </ul>
-                        </div>
                       </div>
+                    </div>
                     )}
 
                   {booking.goods && booking.goods.additionalItems && (
@@ -926,7 +926,7 @@ const ConfirmedBookingDetails = () => {
                       <span className="text-gray-800">
                         {booking.goods.additionalItems}
                       </span>
-                    </div>
+                  </div>
                   )}
 
                   {/* Add any other goods details that might be available */}
@@ -934,7 +934,7 @@ const ConfirmedBookingDetails = () => {
                     <div className="flex flex-col md:flex-row md:items-center justify-between py-3 border-b border-gray-100">
                       <span className="text-gray-600 font-medium">Weight:</span>
                       <span className="text-gray-800">{booking.weight} kg</span>
-                    </div>
+                </div>
                   )}
 
                   {booking.dimensions && (
@@ -945,7 +945,7 @@ const ConfirmedBookingDetails = () => {
                       <span className="text-gray-800">
                         {booking.dimensions}
                       </span>
-                    </div>
+              </div>
                   )}
 
                   {booking.description && (
@@ -959,18 +959,18 @@ const ConfirmedBookingDetails = () => {
                     </div>
                   )}
                 </div>
-              </div>
             </div>
+          </div>
 
-            {/* Right Column */}
-            <div className="space-y-6">
-              {/* Price Card */}
+          {/* Right Column */}
+          <div className="space-y-6">
+            {/* Price Card */}
               <div className="bg-white rounded-xl shadow-md p-6">
-                <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+              <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
                   <FaMoneyBillWave className="text-red-600" /> Price Details
-                </h2>
+              </h2>
 
-                <div className="space-y-3">
+              <div className="space-y-3">
                   {/* Final Price - Show this for confirmed bookings */}
                   <div className="flex flex-col md:flex-row md:items-center justify-between py-3 border-b border-gray-100">
                     <span className="text-gray-600 font-medium">
@@ -978,8 +978,8 @@ const ConfirmedBookingDetails = () => {
                     </span>
                     <span className="text-green-600 font-semibold text-lg">
                       ₹{parseFloat(getActualPrice()).toLocaleString("en-IN")}
-                    </span>
-                  </div>
+                  </span>
+                </div>
 
                   {/* Estimated Price - Show for reference */}
                   {booking.estimatedPrice &&
@@ -1004,8 +1004,8 @@ const ConfirmedBookingDetails = () => {
                               "en-IN"
                             )}
                           </span>
-                        </span>
-                      </div>
+                    </span>
+                  </div>
                     )}
 
                   {/* Payment Details */}
@@ -1032,7 +1032,7 @@ const ConfirmedBookingDetails = () => {
                         ? "Paid"
                         : "Pending"}
                     </span>
-                  </div>
+                </div>
 
                   <div className="flex flex-col md:flex-row md:items-center justify-between py-3">
                     <span className="text-gray-600 font-medium">
@@ -1058,16 +1058,16 @@ const ConfirmedBookingDetails = () => {
                       <span className="text-gray-800 font-mono text-sm">
                         {booking.payment?._id || booking.paymentId}
                       </span>
-                    </div>
-                  )}
                 </div>
+                  )}
               </div>
+            </div>
 
               {/* Route Map Preview */}
               <div className="bg-white rounded-xl shadow-md p-6">
-                <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+              <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
                   <FaMapMarkedAlt className="text-red-600" /> Route Map
-                </h2>
+              </h2>
 
                 <div className="bg-gray-50 rounded-lg p-4 flex flex-col items-center justify-center border border-gray-100">
                   <div className="text-center w-full mb-4">
@@ -1204,7 +1204,7 @@ const ConfirmedBookingDetails = () => {
               <div className="bg-white rounded-xl shadow-md p-6">
                 <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
                   <FaInfoCircle
-                    className={
+                      className={
                       booking.status === "delivered"
                         ? "text-green-600"
                         : "text-red-600"
@@ -1242,8 +1242,8 @@ const ConfirmedBookingDetails = () => {
                     </div>
                   </div>
                 </div>
-              </div>
-            </div>
+                  </div>
+                </div>
 
             {/* Right Column - Location Sharing */}
             <div className="space-y-6">
@@ -1253,7 +1253,7 @@ const ConfirmedBookingDetails = () => {
                   <FaLocationArrow
                     className={
                       booking.status === "delivered"
-                        ? "text-green-600"
+                      ? "text-green-600"
                         : "text-red-600"
                     }
                   />
@@ -1348,9 +1348,9 @@ const ConfirmedBookingDetails = () => {
               <div className="bg-white rounded-xl shadow-md p-6">
                 <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
                   <FaClipboardList
-                    className={
+                      className={
                       booking.status === "delivered"
-                        ? "text-green-600"
+                          ? "text-green-600"
                         : "text-red-600"
                     }
                   />
@@ -1387,7 +1387,7 @@ const ConfirmedBookingDetails = () => {
                               <span className="font-medium">
                                 {formatDate(booking?.completedAt || new Date())}
                               </span>
-                            </div>
+                  </div>
                             <div className="flex justify-between py-1">
                               <span>Delivery Location:</span>
                               <span className="font-medium">
@@ -1434,14 +1434,14 @@ const ConfirmedBookingDetails = () => {
                           </h4>
                           <p className="text-sm text-yellow-700">
                             {booking.schedule.specialInstructions}
-                          </p>
-                        </div>
-                      )}
+                    </p>
                   </div>
+                      )}
                 </div>
               </div>
             </div>
           </div>
+        </div>
         )}
       </div>
     </DashboardLayout>

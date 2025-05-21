@@ -588,7 +588,7 @@ const DriverDetailsCard = ({ booking }) => {
       booking &&
       (booking.status === "completed" || booking.status === "delivered")
     );
-  };
+    };
 
   return (
     <div className="bg-white rounded-xl shadow-md p-6">

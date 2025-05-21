@@ -38,7 +38,7 @@ const TrackingPage = () => {
   // Set page title
   useEffect(() => {
     document.title = `Tracking Shipment #${bookingId} | Shiftly`;
-
+    
     return () => {
       document.title = "Shiftly | A Seamless Transport System";
     };
@@ -185,9 +185,9 @@ const TrackingPage = () => {
             <div className="text-red-500 mb-4 text-5xl flex justify-center">
               <FaInfoCircle />
             </div>
-            <h2 className="text-2xl font-bold text-gray-800 mb-4">
+          <h2 className="text-2xl font-bold text-gray-800 mb-4">
               Booking Not Found
-            </h2>
+          </h2>
             <p className="text-gray-600 mb-6">
               {error || "The booking you're looking for could not be found."}
             </p>
@@ -270,8 +270,8 @@ const TrackingPage = () => {
         <div className="bg-white rounded-xl shadow-md p-6 mb-6">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-2">
             <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
-              Track Shipment #{booking.bookingId}
-            </h1>
+          Track Shipment #{booking.bookingId}
+        </h1>
             <div className="flex items-center gap-2">
               {booking.status === "delivered" ||
               booking.status === "completed" ? (
@@ -470,7 +470,7 @@ const TrackingPage = () => {
                 Shipment Status
               </h2>
 
-              <ShipmentTracker booking={booking} />
+          <ShipmentTracker booking={booking} />
 
               {booking.trackingUpdates &&
                 booking.trackingUpdates.length > 0 && (
