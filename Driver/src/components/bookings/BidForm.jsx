@@ -142,115 +142,68 @@ const BidForm = ({ booking, currentBid, onBidSubmit, isLocked = false }) => {
     );
   }
 
-  // Handle form submission
+  // Update the handleSubmit function
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    // Validate bid amount
-    if (!bidAmount || isNaN(bidAmount) || Number(bidAmount) <= 0) {
-      toast.error("Please enter a valid bid amount");
-      return;
-    }
-
-    // Validate against booking's price range if available
-    const numericBidAmount = Number(bidAmount);
-    const minPrice =
-      booking.priceRange?.min || booking.estimatedPrice?.min || 0;
-    const maxPrice = booking.priceRange?.max || booking.estimatedPrice?.max;
-
-    // Check if bid is below minimum price
-    if (minPrice && numericBidAmount < minPrice) {
-      toast.error(
-        `Your bid (₹${numericBidAmount}) is below the minimum estimated price (₹${minPrice})`
-      );
-      return;
-    }
-
-    // Check if bid exceeds maximum price by more than 15%
-    if (maxPrice && numericBidAmount > maxPrice * 1.15) {
-      toast.error(
-        `Your bid (₹${numericBidAmount}) is too high compared to the maximum estimated price (₹${maxPrice})`
-      );
-      return;
-    }
-
     setIsSubmitting(true);
 
-    // Use MongoDB ObjectId if available, otherwise use the formatted booking ID
-    const bidBookingId = booking._id || booking.id || booking.bookingId;
-
-    if (!bidBookingId) {
-      toast.error("Invalid booking reference");
-      setIsSubmitting(false);
-      return;
-    }
-
-    // Prepare bid data
-    const bidData = {
-      amount: numericBidAmount,
-      note: bidNote || "",
-      bookingId: bidBookingId,
-      offlineMode: !isConnected,
-    };
-
     try {
-      // Use our placeBid function from WebSocketContext
-      const result = await placeBid(
-        bidData.bookingId,
-        Number(bidData.amount),
-        bidData.note
-      );
+      const amount = parseFloat(bidAmount);
 
-      if (!result || !result.success) {
-        throw new Error(result?.message || "Failed to place bid");
+      // Validate bid amount
+      if (booking.priceRange) {
+        const { min, max } = booking.priceRange;
+        if (amount < min || amount > max) {
+          toast.error(`Bid amount must be between ₹${min} and ₹${max}`);
+          setIsSubmitting(false);
+          return;
+        }
       }
 
-      // If offline, save bid to localStorage for later submission
-      if (!isConnected) {
-        const offlineBids = JSON.parse(
-          localStorage.getItem("offlineBids") || "[]"
-        );
-        offlineBids.push({
-          ...bidData,
-          timestamp: new Date().toISOString(),
-        });
-        localStorage.setItem("offlineBids", JSON.stringify(offlineBids));
+      if (isConnected) {
+        const response = await placeBid(booking._id, amount, bidNote);
 
-        // Keep only this offline-specific toast
-        toast.success("Bid saved for submission when back online", {
-          id: "offline-bid-saved",
-        });
-      }
+        if (response.success) {
+          // Create a complete bid object
+          const newBid = {
+            amount: amount,
+            note: bidNote,
+            bidTime: new Date().toISOString(),
+            driverId: localStorage.getItem("driverId"),
+            status: "pending",
+          };
 
-      // Update lastBid state to show the new bid immediately in your current bid section
-      const driverId = localStorage.getItem("driverId");
-      const updatedBid = {
-        ...bidData,
-        driverId,
-        bidTime: new Date().toISOString(),
-      };
-      setLastBid(updatedBid);
+          // Store in localStorage
+          const storedBids = JSON.parse(
+            localStorage.getItem("driverBids") || "{}"
+          );
+          storedBids[booking._id] = newBid;
+          localStorage.setItem("driverBids", JSON.stringify(storedBids));
 
-      // Immediately update the current bid in the form
-      if (!currentBid) {
-        // If it's a new bid, clear the form
-        setBidAmount("");
-        setBidNote("");
+          // Show success message
+          toast.success("Bid placed successfully");
+
+          // Dispatch bid:update event for real-time updates
+          document.dispatchEvent(
+            new CustomEvent("bid:update", {
+              detail: {
+                bookingId: booking._id,
+                bid: newBid,
+              },
+            })
+          );
+
+          // Call parent's onBidSubmit
+          if (onBidSubmit) onBidSubmit(newBid);
+        } else {
+          toast.error(response.error || "Failed to place bid");
+        }
       } else {
-        // If updating an existing bid, keep the value so it's visible in the form
-        setBidAmount(numericBidAmount);
-        setBidNote(bidData.note);
-      }
-
-      // Notify parent component
-      if (onBidSubmit) {
-        onBidSubmit(bidData);
+        toast.error("Not connected to server. Please check your connection.");
       }
     } catch (error) {
       console.error("Error submitting bid:", error);
-      toast.error(error.message || "Error submitting bid. Please try again.", {
-        id: "bid-submit-error",
-      });
+      toast.error(error.message || "Failed to submit bid");
     } finally {
       setIsSubmitting(false);
     }
@@ -349,7 +302,9 @@ const BidForm = ({ booking, currentBid, onBidSubmit, isLocked = false }) => {
             <div className="flex items-center mt-1">
               <div className="text-sm text-gray-600 flex items-center gap-1">
                 <FaCheck className="text-green-500" />
-                <span>You can update your bid until 24 hours before the pickup time</span>
+                <span>
+                  You can update your bid until 24 hours before the pickup time
+                </span>
               </div>
             </div>
             {displayBid.note && (

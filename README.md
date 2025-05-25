@@ -1,7 +1,7 @@
 # Shiftly - A Seamless Transport System 🚚
 
 <div align="center">
-  <img src="./frontend/src/assets/logo-light.png" alt="Shiftly Logo" width="200"/>
+  <img src="./frontend/src/assets/logo-light.png" alt="Shiftly Logo" width="300"/>
   
   [![React](https://img.shields.io/badge/React-18.2.0-red)](https://reactjs.org/)
   [![Tailwind](https://img.shields.io/badge/tailwind-4.0+-blue)](https://tailwindcss.com/)
@@ -39,6 +39,9 @@ The platform provides role-based dashboards for customers and drivers, supports 
 - **Delivery Status & Tracking** : Update delivery status and send live location updates via Socket.io.
 
 - **Earnings Dashboard**: Track income, completed jobs, and customer ratings.
+
+### ❓What is this Bidding System?
+Once a customer enters their transport details, Shiftly generates a price range. Drivers in the area can bid an amount within this range, and the customer selects the driver based on price, rating, and availability. The drivers can also update their bids anytime giving them the flexibility to be competitive with other drivers.
 
 
 ##  🛠️ Technologies Used
@@ -306,7 +309,7 @@ Shiftly aims to revolutionize goods transport in India by providing a digital so
   <img src="./Screenshots/Shiftly_logo.png" alt="Shiftly Logo" width="200"/>
 
 <div align="center" marginTop='100px'>
-  Made with ❤️ by @CodeCrafters
+  Made with ❤️ by Team @CodeCrafters
 </div>
 
 

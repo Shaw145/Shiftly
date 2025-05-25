@@ -57,7 +57,7 @@ export const WebSocketProvider = ({ children }) => {
     console.error("WebSocket error:", error);
   };
 
-  // Handle WebSocket messages
+  // Update the handleWebSocketMessage function
   const handleWebSocketMessage = (event) => {
     try {
       const data = JSON.parse(event.data);
@@ -68,70 +68,67 @@ export const WebSocketProvider = ({ children }) => {
         const pendingBid = pendingBids.current.find(
           (bid) => bid.messageId === data.messageId
         );
+
         if (pendingBid) {
-          // Remove this bid from pending list
+          // Clear timeout for this bid
+          clearTimeout(pendingBid.timeoutId);
+          // Remove from pending bids
           pendingBids.current = pendingBids.current.filter(
             (bid) => bid.messageId !== data.messageId
           );
 
-          // Clear any timeout associated with this bid
-          if (pendingBid.timeoutId) {
-            clearTimeout(pendingBid.timeoutId);
-          }
-
-          if (status === "success" && bid) {
-            // Dispatch bid update event with the returned bid details
-            const updateEvent = new CustomEvent("bid:update", {
-              detail: {
-                bookingId: pendingBid.bookingId,
-                bid: {
-                  ...bid,
-                  driverId: driverIdRef.current,
-                  amount: pendingBid.amount,
-                  note: pendingBid.note,
-                  bidTime: new Date().toISOString(),
-                },
-              },
-            });
-            document.dispatchEvent(updateEvent);
+          if (status === "success") {
+            // Create a standardized bid object
+            const standardizedBid = {
+              amount: pendingBid.amount,
+              note: pendingBid.note,
+              bidTime: new Date().toISOString(),
+              driverId: driverIdRef.current,
+              status: "pending",
+              ...bid, // Include any additional data from server
+            };
 
             // Dispatch success event
-            const successEvent = new CustomEvent("bid_placed", {
-              detail: {
-                success: true,
-                message: message || "Bid placed successfully",
-                bookingId: pendingBid.bookingId,
-                bid: {
-                  ...bid,
-                  driverId: driverIdRef.current,
-                  amount: pendingBid.amount,
-                  note: pendingBid.note,
+            document.dispatchEvent(
+              new CustomEvent("bid_placed", {
+                detail: {
+                  success: true,
+                  message: message || "Bid placed successfully",
+                  bookingId: pendingBid.bookingId,
+                  bid: standardizedBid,
                 },
-              },
-            });
-            document.dispatchEvent(successEvent);
-          } else {
-            // Bid placement failed, notify user
-            const errorEvent = new CustomEvent("bid_error", {
-              detail: {
-                error: message || "Failed to place bid",
-                bookingId: pendingBid.bookingId,
-              },
-            });
-            document.dispatchEvent(errorEvent);
+              })
+            );
 
-            console.error("Bid placement failed:", message);
+            // Also dispatch bid:update for real-time updates
+            document.dispatchEvent(
+              new CustomEvent("bid:update", {
+                detail: {
+                  bookingId: pendingBid.bookingId,
+                  bid: standardizedBid,
+                },
+              })
+            );
+
+            // Show success toast
+            toast.success(message || "Bid placed successfully");
+          } else {
+            // Handle error case
+            document.dispatchEvent(
+              new CustomEvent("bid_error", {
+                detail: {
+                  error: message || "Failed to place bid",
+                  bookingId: pendingBid.bookingId,
+                },
+              })
+            );
             toast.error(message || "Failed to place bid");
           }
-
-          return; // Skip the rest of message processing for bid_response
         }
       }
 
-      // Process other message types
-      if (type && wsClientRef.current) {
-        wsClientRef.current.emit(type, data);
-      }
+      // Broadcast the message to all listeners
+      document.dispatchEvent(new CustomEvent("ws:message", { detail: data }));
     } catch (error) {
       console.error("Error handling WebSocket message:", error);
     }
@@ -448,25 +445,21 @@ export const WebSocketProvider = ({ children }) => {
     }
   };
 
-  // Submit bid via REST API as a fallback
+  // Update the submitBidViaRest function
   const submitBidViaRest = async (bidData) => {
     try {
-      console.log("Submitting bid via REST API");
-
-      // Get fresh token from localStorage to ensure we have the latest
-      const token = localStorage.getItem("driverToken");
-
-      // Validate token is present
-      if (!token) {
-        console.error("No driver token found when attempting to place bid");
-        throw new Error("Authentication required - Please log in again");
+      const { bookingId, amount, note } = bidData;
+      if (!amount || amount <= 0) {
+        throw new Error("Valid bid price is required");
       }
 
-      // Make the API request
+      const token = localStorage.getItem("driverToken");
+      if (!token) {
+        throw new Error("Authentication required");
+      }
+
       const response = await fetch(
-        `${import.meta.env.VITE_BACKEND_URL}/api/bookings/${
-          bidData.bookingId
-        }/bids`,
+        `${import.meta.env.VITE_BACKEND_URL}/api/bids/place`,
         {
           method: "POST",
           headers: {
@@ -474,33 +467,19 @@ export const WebSocketProvider = ({ children }) => {
             Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({
-            price: bidData.amount,
-            note: bidData.note,
+            bookingId,
+            amount,
+            notes: note,
           }),
         }
       );
 
       const data = await response.json();
-
-      if (!response.ok) {
+      if (!data.success) {
         throw new Error(data.message || "Failed to place bid");
       }
 
-      // Dispatch event for UI updates
-      const event = new CustomEvent("bid:update", {
-        detail: {
-          bookingId: bidData.bookingId,
-          bid: {
-            driverId: bidData.driverId,
-            amount: bidData.amount,
-            note: bidData.note,
-            bidTime: new Date().toISOString(),
-          },
-        },
-      });
-      document.dispatchEvent(event);
-
-      return { success: true, data };
+      return data;
     } catch (error) {
       console.error("REST API bid error:", error);
       throw error;
